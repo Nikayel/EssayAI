@@ -4,7 +4,7 @@ import { prisma } from '@/lib/prisma';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { ArrowRight, FileText, Loader2, CheckCircle2, Clock } from 'lucide-react';
+import { ArrowRight, FileText, Loader2, CheckCircle2, Clock, MessageCircle } from 'lucide-react';
 
 async function getEssays(userId: string) {
   return await prisma.essay.findMany({
@@ -101,6 +101,37 @@ function getEssayStatus(essay: any) {
   };
 }
 
+async function getQASessions(userId: string) {
+  const sessions = await prisma.order.findMany({
+    where: {
+      userId,
+      package: {
+        in: ['EXPERT_QA_PREMIUM', 'EXPERT_QA_STANDARD'],
+      },
+      status: 'PAID',
+    },
+    include: {
+      essay: true,
+      _count: {
+        select: {
+          messages: true,
+        },
+      },
+    },
+    orderBy: {
+      createdAt: 'desc',
+    },
+  });
+
+  // Filter only active sessions
+  return sessions.filter(session => {
+    const isPremium = session.package === 'EXPERT_QA_PREMIUM';
+    const hoursRemaining = isPremium ? 48 : 24;
+    const expiresAt = new Date(session.createdAt.getTime() + hoursRemaining * 60 * 60 * 1000);
+    return new Date() < expiresAt;
+  });
+}
+
 export default async function DashboardPage() {
   const supabase = await createClient();
   const { data: { user }, error } = await supabase.auth.getUser();
@@ -110,6 +141,7 @@ export default async function DashboardPage() {
   }
 
   const essays = await getEssays(user.id);
+  const qaSessions = await getQASessions(user.id);
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -134,6 +166,56 @@ export default async function DashboardPage() {
 
       {/* Main Content */}
       <main className="container mx-auto px-4 py-8">
+        {/* Active Q&A Sessions */}
+        {qaSessions.length > 0 && (
+          <div className="mb-8">
+            <h2 className="text-2xl font-bold mb-4">Active Q&A Sessions</h2>
+            <div className="grid md:grid-cols-2 gap-4">
+              {qaSessions.map((session) => {
+                const isPremium = session.package === 'EXPERT_QA_PREMIUM';
+                const hoursRemaining = isPremium ? 48 : 24;
+                const expiresAt = new Date(session.createdAt.getTime() + hoursRemaining * 60 * 60 * 1000);
+
+                return (
+                  <Card key={session.id} className="border-2 border-blue-500">
+                    <CardHeader>
+                      <div className="flex items-center gap-2 mb-2">
+                        <MessageCircle className="w-6 h-6 text-blue-600" />
+                        <CardTitle className="text-lg">
+                          {isPremium ? '2-Day Premium Q&A' : '1-Day Standard Q&A'}
+                        </CardTitle>
+                      </div>
+                      <CardDescription>
+                        {session.essay?.type.replace(/_/g, ' ') || 'Your Essay'}
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="space-y-2 mb-4">
+                        <div className="flex justify-between text-sm">
+                          <span className="text-gray-600">Messages</span>
+                          <span className="font-semibold">{session._count.messages}</span>
+                        </div>
+                        <div className="flex justify-between text-sm">
+                          <span className="text-gray-600">Expires</span>
+                          <span className="font-semibold">
+                            {expiresAt.toLocaleDateString()} at {expiresAt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                          </span>
+                        </div>
+                      </div>
+                      <Link href={`/dashboard/qa/${session.id}`}>
+                        <Button className="w-full">
+                          Open Q&A Session
+                          <ArrowRight className="w-4 h-4 ml-2" />
+                        </Button>
+                      </Link>
+                    </CardContent>
+                  </Card>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
         <div className="flex justify-between items-center mb-6">
           <div>
             <h2 className="text-3xl font-bold">My Essays</h2>

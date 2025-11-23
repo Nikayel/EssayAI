@@ -3,6 +3,7 @@ import { stripe } from '@/lib/stripe/config';
 import { prisma } from '@/lib/prisma';
 import { analyzeEssay } from '@/lib/ai/analyzer';
 import { sendEmail, analysisCompleteEmail, reviewAssignedEmail } from '@/lib/email/send';
+import { trackUpsellPurchase } from '@/lib/analytics/track';
 import Stripe from 'stripe';
 
 /**
@@ -87,6 +88,15 @@ export async function POST(request: NextRequest) {
               },
             },
           });
+
+          // Track upsell purchase if this was an upsell (metadata contains previousPackage)
+          if (session.metadata?.previousPackage && session.metadata?.package) {
+            trackUpsellPurchase(
+              session.metadata.package,
+              session.metadata.previousPackage,
+              session.amount_total || 0
+            );
+          }
 
           // TRIGGER AI ANALYSIS AUTOMATICALLY
           if (order.essay) {

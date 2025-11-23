@@ -43,11 +43,17 @@ enum ReviewStatus {
 enum Package {
   FREE
   AI_LITE
-  AI_PRO
+  AI_PRO_SINGLE
+  AI_PRO_MONTHLY
   HUMAN_LITE
+  HUMAN_OVERALL_REVIEW
   HUMAN_FULL_1
   HUMAN_FULL_3
   HUMAN_FULL_5
+  DEEP_REVIEW
+  EXPERT_QA_PREMIUM
+  EXPERT_QA_STANDARD
+  RUSH_ADDON
 }
 
 model User {
@@ -73,6 +79,9 @@ model Profile {
   userId          String    @unique
   user            User      @relation(fields: [userId], references: [id], onDelete: Cascade)
 
+  name            String?
+  gradeLevel      String?
+  intendedMajor   String?
   schoolYear      Int?
   dob             DateTime?
   guardianEmail   String?
@@ -180,7 +189,7 @@ model Order {
   essay           Essay?        @relation(fields: [essayId], references: [id])
 
   package         Package
-  price           Int           // In cents
+  amount          Int           // In cents
   status          OrderStatus   @default(PENDING)
 
   stripeSessionId String?       @unique
@@ -325,4 +334,18 @@ model AuditLog {
   @@index([userId])
   @@index([createdAt])
   @@map("audit_logs")
+}
+
+model AnalyticsEvent {
+  id              String      @id @default(cuid())
+  userId          String?
+  event           String
+  properties      Json?
+
+  createdAt       DateTime    @default(now())
+
+  @@index([event])
+  @@index([userId])
+  @@index([createdAt])
+  @@map("analytics_events")
 }

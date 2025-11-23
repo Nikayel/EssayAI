@@ -86,6 +86,12 @@ export default async function AdminDashboard() {
             <Link href="/admin/analytics">
               <Button variant="ghost">Analytics</Button>
             </Link>
+            <Link href="/admin/conversions">
+              <Button variant="ghost">Conversions</Button>
+            </Link>
+            <Link href="/admin/qa">
+              <Button variant="ghost">Q&A Sessions</Button>
+            </Link>
             <Link href="/dashboard">
               <Button variant="outline">My Dashboard</Button>
             </Link>

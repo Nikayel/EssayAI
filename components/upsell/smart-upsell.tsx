@@ -1,11 +1,12 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Check, Sparkles, MessageCircle, TrendingUp } from 'lucide-react';
 import { PACKAGE_INFO } from '@/lib/stripe/config';
 import { useRouter } from 'next/navigation';
+import { trackUpsellView, trackUpsellClick } from '@/lib/analytics/track';
 
 interface SmartUpsellProps {
   currentPackage: string;
@@ -82,9 +83,19 @@ export function SmartUpsell({ currentPackage, essayId, hasHumanReview }: SmartUp
 
   const upsells = getUpsells();
 
+  // Track upsell views when component mounts
+  useEffect(() => {
+    upsells.forEach(upsell => {
+      trackUpsellView(upsell.package, currentPackage);
+    });
+  }, [currentPackage]);
+
   if (upsells.length === 0) return null;
 
   const handlePurchase = async (packageType: string) => {
+    // Track upsell click
+    const packageInfo = PACKAGE_INFO[packageType as keyof typeof PACKAGE_INFO];
+    trackUpsellClick(packageType, currentPackage, packageInfo.price);
     setIsProcessing(true);
     try {
       const res = await fetch('/api/stripe/checkout', {
