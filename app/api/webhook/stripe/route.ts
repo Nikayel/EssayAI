@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { stripe } from '@/lib/stripe/config';
 import { prisma } from '@/lib/prisma';
+import { analyzeEssay } from '@/lib/ai/analyzer';
 import Stripe from 'stripe';
 
 /**
@@ -38,11 +39,22 @@ export async function POST(request: NextRequest) {
         const orderId = session.metadata?.orderId;
 
         if (orderId) {
-          await prisma.order.update({
+          // Update order status
+          const order = await prisma.order.update({
             where: { id: orderId },
             data: {
               status: 'PAID',
               stripePaymentId: session.payment_intent as string,
+            },
+            include: {
+              essay: {
+                include: {
+                  versions: {
+                    orderBy: { versionIndex: 'desc' },
+                    take: 1,
+                  },
+                },
+              },
             },
           });
 
@@ -59,6 +71,66 @@ export async function POST(request: NextRequest) {
               },
             },
           });
+
+          // TRIGGER AI ANALYSIS AUTOMATICALLY
+          if (order.essay) {
+            const latestVersion = order.essay.versions[0];
+
+            // Run AI analysis in background (don't await - let it run async)
+            analyzeEssay({
+              essayText: latestVersion.content,
+              essayType: order.essay.type.toLowerCase().replace('_', ' '),
+              school: order.essay.targetSchool || undefined,
+              prompt: order.essay.promptText,
+              wordLimit: order.essay.wordLimit || undefined,
+              hasPreviousDraft: latestVersion.versionIndex > 1,
+            })
+              .then(async (analysisResult) => {
+                // Store analysis in database
+                await prisma.aIAnalysis.create({
+                  data: {
+                    versionId: latestVersion.id,
+                    analysisJson: analysisResult as any,
+                    overallScore: analysisResult.overall.score_100,
+                    modelRef: 'claude-3-5-sonnet-20241022',
+                    commonsFlags: {
+                      create: Object.entries(analysisResult.commons_check).map(
+                        ([key, value]) => ({
+                          key,
+                          flag: value.flag,
+                          evidence: value.evidence || value.phrases || (value.notes ? [value.notes] : []),
+                        })
+                      ),
+                    },
+                  },
+                });
+
+                console.log(`✅ AI analysis complete for version ${latestVersion.id}`);
+
+                // If human review package, create review assignment
+                const needsHumanReview = ['HUMAN_LITE', 'HUMAN_FULL_1', 'HUMAN_FULL_3', 'HUMAN_FULL_5'].includes(order.package);
+
+                if (needsHumanReview) {
+                  // Calculate due date based on package
+                  const hoursToAdd = order.package === 'HUMAN_LITE' ? 48 : 72;
+                  const dueAt = new Date(Date.now() + hoursToAdd * 60 * 60 * 1000);
+
+                  await prisma.review.create({
+                    data: {
+                      orderId: order.id,
+                      versionId: latestVersion.id,
+                      status: 'ASSIGNED',
+                      dueAt,
+                    },
+                  });
+
+                  console.log(`📝 Human review assigned for order ${order.id}`);
+                }
+              })
+              .catch((error) => {
+                console.error('AI analysis failed:', error);
+              });
+          }
         }
         break;
       }
