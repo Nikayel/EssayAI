@@ -1,0 +1,328 @@
+// EssayEdge AI - Database Schema
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  STUDENT
+  PARENT
+  COUNSELOR
+  REVIEWER
+  ADMIN
+}
+
+enum EssayType {
+  PERSONAL_STATEMENT
+  WHY_US
+  SUPPLEMENTAL
+  ACTIVITY
+  OTHER
+}
+
+enum OrderStatus {
+  PENDING
+  PAID
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+  REFUNDED
+}
+
+enum ReviewStatus {
+  ASSIGNED
+  IN_PROGRESS
+  DELIVERED
+  REVISION_REQUESTED
+}
+
+enum Package {
+  FREE
+  AI_LITE
+  AI_PRO
+  HUMAN_LITE
+  HUMAN_FULL_1
+  HUMAN_FULL_3
+  HUMAN_FULL_5
+}
+
+model User {
+  id            String    @id @default(cuid())
+  email         String    @unique
+  name          String?
+  role          UserRole  @default(STUDENT)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  profile       Profile?
+  essays        Essay[]
+  orders        Order[]
+  messages      Message[]
+  reviewsGiven  Review[]  @relation("ReviewerReviews")
+
+  @@index([email])
+  @@map("users")
+}
+
+model Profile {
+  id              String    @id @default(cuid())
+  userId          String    @unique
+  user            User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  schoolYear      Int?
+  dob             DateTime?
+  guardianEmail   String?
+  regions         String[]
+  goals           String?
+  consentFlags    Json?
+  toneSample      String?   @db.Text
+  toneEmbedding   Json?     // Store embeddings as JSON array
+
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  @@map("profiles")
+}
+
+model Essay {
+  id              String      @id @default(cuid())
+  userId          String
+  user            User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  type            EssayType
+  promptText      String      @db.Text
+  targetSchool    String?
+  wordLimit       Int?
+
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+
+  versions        EssayVersion[]
+  orders          Order[]
+
+  @@index([userId])
+  @@map("essays")
+}
+
+model EssayVersion {
+  id              String      @id @default(cuid())
+  essayId         String
+  essay           Essay       @relation(fields: [essayId], references: [id], onDelete: Cascade)
+
+  content         String      @db.Text
+  versionIndex    Int
+  toneEmbedding   Json?       // Store embeddings as JSON array
+
+  createdAt       DateTime    @default(now())
+
+  analyses        AIAnalysis[]
+  rewrites        Rewrite[]
+  reviews         Review[]
+
+  @@unique([essayId, versionIndex])
+  @@index([essayId])
+  @@map("essay_versions")
+}
+
+model AIAnalysis {
+  id              String          @id @default(cuid())
+  versionId       String
+  version         EssayVersion    @relation(fields: [versionId], references: [id], onDelete: Cascade)
+
+  analysisJson    Json            // Full structured analysis
+  overallScore    Float
+  modelRef        String          // e.g., "claude-3-sonnet-20240229"
+
+  createdAt       DateTime        @default(now())
+
+  commonsFlags    CommonsFlag[]
+
+  @@index([versionId])
+  @@map("ai_analyses")
+}
+
+model CommonsFlag {
+  id              String      @id @default(cuid())
+  analysisId      String
+  analysis        AIAnalysis  @relation(fields: [analysisId], references: [id], onDelete: Cascade)
+
+  key             String      // e.g., "about_applicant", "jargon_overuse"
+  flag            Boolean
+  evidence        Json?       // Array of evidence snippets
+
+  @@index([analysisId])
+  @@map("commons_flags")
+}
+
+model Rewrite {
+  id              String          @id @default(cuid())
+  versionId       String
+  version         EssayVersion    @relation(fields: [versionId], references: [id], onDelete: Cascade)
+
+  rewriteJson     Json            // Structured rewrite suggestions
+  modelRef        String
+
+  createdAt       DateTime        @default(now())
+
+  @@index([versionId])
+  @@map("rewrites")
+}
+
+model Order {
+  id              String        @id @default(cuid())
+  userId          String
+  user            User          @relation(fields: [userId], references: [id])
+  essayId         String?
+  essay           Essay?        @relation(fields: [essayId], references: [id])
+
+  package         Package
+  price           Int           // In cents
+  status          OrderStatus   @default(PENDING)
+
+  stripeSessionId String?       @unique
+  stripePaymentId String?
+
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  reviews         Review[]
+  messages        Message[]
+  refund          Refund?
+
+  @@index([userId])
+  @@index([status])
+  @@map("orders")
+}
+
+model Review {
+  id              String          @id @default(cuid())
+  orderId         String
+  order           Order           @relation(fields: [orderId], references: [id])
+  versionId       String
+  version         EssayVersion    @relation(fields: [versionId], references: [id])
+  reviewerId      String?
+  reviewer        User?           @relation("ReviewerReviews", fields: [reviewerId], references: [id])
+
+  status          ReviewStatus    @default(ASSIGNED)
+  dueAt           DateTime
+  deliveredAt     DateTime?
+  assetsRef       String?         // S3/Supabase Storage reference to annotated docs
+  summaryText     String?         @db.Text
+
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+
+  comments        ReviewComment[]
+
+  @@index([orderId])
+  @@index([reviewerId])
+  @@index([status])
+  @@map("reviews")
+}
+
+model ReviewComment {
+  id              String      @id @default(cuid())
+  reviewId        String
+  review          Review      @relation(fields: [reviewId], references: [id], onDelete: Cascade)
+
+  locationRef     String?     // Paragraph or line reference
+  commentText     String      @db.Text
+
+  createdAt       DateTime    @default(now())
+
+  @@index([reviewId])
+  @@map("review_comments")
+}
+
+model Message {
+  id              String      @id @default(cuid())
+  orderId         String
+  order           Order       @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  senderId        String
+  sender          User        @relation(fields: [senderId], references: [id])
+
+  text            String      @db.Text
+  attachmentUrl   String?
+
+  createdAt       DateTime    @default(now())
+
+  @@index([orderId])
+  @@map("messages")
+}
+
+model Reviewer {
+  id              String      @id @default(cuid())
+  userId          String      @unique
+
+  bio             String?     @db.Text
+  credentials     String?     @db.Text
+  rating          Float?
+  capacity        Int         @default(5) // Weekly review capacity
+  specialties     String[]    // e.g., ["PERSONAL_STATEMENT", "WHY_US"]
+  isActive        Boolean     @default(true)
+
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+
+  @@map("reviewers")
+}
+
+model School {
+  id              String      @id @default(cuid())
+  name            String      @unique
+  factsJson       Json?       // Programs, values, mission, etc.
+
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+
+  @@index([name])
+  @@map("schools")
+}
+
+model PromptTemplate {
+  id              String      @id @default(cuid())
+  name            String      @unique
+  systemText      String      @db.Text
+  userTemplate    String      @db.Text
+  schemaRef       String?     // Reference to JSON schema
+
+  version         Int         @default(1)
+  isActive        Boolean     @default(true)
+
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+
+  @@map("prompt_templates")
+}
+
+model Refund {
+  id              String      @id @default(cuid())
+  orderId         String      @unique
+  order           Order       @relation(fields: [orderId], references: [id])
+
+  amount          Int         // In cents
+  reason          String?     @db.Text
+  stripeRefundId  String?
+
+  createdAt       DateTime    @default(now())
+
+  @@map("refunds")
+}
+
+model AuditLog {
+  id              String      @id @default(cuid())
+  userId          String?
+  action          String
+  resource        String?
+  details         Json?
+
+  createdAt       DateTime    @default(now())
+
+  @@index([userId])
+  @@index([createdAt])
+  @@map("audit_logs")
+}
