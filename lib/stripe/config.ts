@@ -16,9 +16,11 @@ export const PRICING = {
   AI_PRO_SINGLE: 2900, // $29
   AI_PRO_MONTHLY: 4900, // $49/month (up to 6 essays)
   HUMAN_LITE: 7900, // $79
+  HUMAN_OVERALL_REVIEW: 12900, // $129 - NEW!
   HUMAN_FULL_1: 12900, // $129
   HUMAN_FULL_3: 27900, // $279
   HUMAN_FULL_5: 39900, // $399
+  DEEP_REVIEW: 45000, // $450 - NEW PREMIUM!
   RUSH_ADDON: 4900, // $49
 } as const;
 
@@ -106,6 +108,37 @@ export const PACKAGE_INFO = {
       'Dedicated editor assignment',
       'Priority scheduling',
       'Comprehensive voice development',
+    ],
+  },
+  HUMAN_OVERALL_REVIEW: {
+    name: 'Overall Review',
+    description: 'Single comprehensive holistic review',
+    price: PRICING.HUMAN_OVERALL_REVIEW,
+    features: [
+      'AI analysis included',
+      'Expert holistic review',
+      'Overall assessment & summary',
+      'Top-level improvement recommendations',
+      '48-hour turnaround',
+      'Perfect for quick feedback',
+    ],
+  },
+  DEEP_REVIEW: {
+    name: 'Deep Review Premium',
+    description: 'The ultimate essay transformation package',
+    price: PRICING.DEEP_REVIEW,
+    features: [
+      'AI Pro analysis included',
+      'Line-by-line deep edit',
+      'Comprehensive structural analysis',
+      'Voice coaching & development',
+      'Multiple revision rounds (up to 5)',
+      'Dedicated senior editor',
+      '1-on-1 video call session',
+      'School-specific optimization',
+      'Admissions strategy consultation',
+      '24-hour priority turnaround',
+      'Guaranteed transformation or money back',
     ],
   },
 } as const;
