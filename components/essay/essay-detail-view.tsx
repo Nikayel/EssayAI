@@ -11,9 +11,12 @@ import { downloadPDFReport } from '@/lib/pdf/export';
 export function EssayDetailView({ essay, userName, userEmail }: { essay: any; userName: string; userEmail: string }) {
   const latestVersion = essay.versions[0];
   const latestAnalysis = latestVersion?.analyses[0];
+  const latestReview = latestVersion?.reviews?.[0];
   const latestOrder = essay.orders[0];
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [analysis, setAnalysis] = useState(latestAnalysis?.analysisJson || null);
+  const [rewriteSuggestions, setRewriteSuggestions] = useState<any>(null);
+  const [isGeneratingRewrites, setIsGeneratingRewrites] = useState(false);
 
   // Check if we need to show analyzing screen
   useEffect(() => {
@@ -85,6 +88,30 @@ export function EssayDetailView({ essay, userName, userEmail }: { essay: any; us
     });
   };
 
+  const handleGenerateRewrites = async () => {
+    setIsGeneratingRewrites(true);
+    try {
+      const res = await fetch('/api/rewrite', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          versionId: latestVersion.id,
+          targetSections: ['opening', 'body', 'conclusion'],
+        }),
+      });
+
+      if (!res.ok) throw new Error('Failed to generate rewrites');
+
+      const data = await res.json();
+      setRewriteSuggestions(data.rewrite);
+    } catch (error) {
+      console.error('Rewrite generation error:', error);
+      alert('Failed to generate rewrite suggestions. Please try again.');
+    } finally {
+      setIsGeneratingRewrites(false);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
@@ -129,6 +156,99 @@ export function EssayDetailView({ essay, userName, userEmail }: { essay: any; us
             </div>
           </CardContent>
         </Card>
+
+        {/* Human Review Feedback */}
+        {latestReview && latestReview.status === 'DELIVERED' && (
+          <Card className="mb-6 border-2 border-green-500 bg-gradient-to-br from-green-50 to-white">
+            <CardHeader>
+              <div className="flex items-center gap-2">
+                <CheckCircle2 className="w-6 h-6 text-green-600" />
+                <CardTitle className="text-2xl text-green-900">Expert Review Complete</CardTitle>
+              </div>
+              <CardDescription>
+                Delivered on {new Date(latestReview.deliveredAt).toLocaleDateString('en-US', {
+                  weekday: 'long',
+                  year: 'numeric',
+                  month: 'long',
+                  day: 'numeric'
+                })}
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {/* Summary */}
+              {latestReview.summary && (
+                <div className="bg-white p-4 rounded-lg border border-green-200">
+                  <h4 className="font-semibold text-lg mb-2 text-green-900">Overall Assessment</h4>
+                  <p className="text-gray-800 leading-relaxed">{latestReview.summary}</p>
+                </div>
+              )}
+
+              {/* Detailed Feedback */}
+              {latestReview.reviewerNotes && (
+                <div className="bg-white p-4 rounded-lg border border-green-200">
+                  <h4 className="font-semibold text-lg mb-3 text-green-900">Detailed Feedback</h4>
+                  <pre className="whitespace-pre-wrap font-sans text-sm text-gray-800 leading-relaxed">
+                    {latestReview.reviewerNotes}
+                  </pre>
+                </div>
+              )}
+
+              {/* File Attachments (if any) */}
+              {latestReview.fileUrls && latestReview.fileUrls.length > 0 && (
+                <div className="bg-white p-4 rounded-lg border border-green-200">
+                  <h4 className="font-semibold text-lg mb-2 text-green-900">Attachments</h4>
+                  <div className="space-y-2">
+                    {latestReview.fileUrls.map((url: string, idx: number) => (
+                      <a
+                        key={idx}
+                        href={url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center gap-2 text-blue-600 hover:underline"
+                      >
+                        <Download className="w-4 h-4" />
+                        <span>Download Attachment {idx + 1}</span>
+                      </a>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Review In Progress */}
+        {latestReview && latestReview.status !== 'DELIVERED' && (
+          <Card className="mb-6 border-2 border-purple-500 bg-gradient-to-br from-purple-50 to-white">
+            <CardHeader>
+              <CardTitle className="text-xl text-purple-900">Expert Review In Progress</CardTitle>
+              <CardDescription>
+                Your essay is currently being reviewed by our expert team
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="flex items-center gap-4">
+                <div className="flex-shrink-0">
+                  <div className="w-12 h-12 bg-purple-200 rounded-full flex items-center justify-center">
+                    <div className="w-8 h-8 border-4 border-purple-600 border-t-transparent rounded-full animate-spin"></div>
+                  </div>
+                </div>
+                <div className="flex-1">
+                  <p className="text-gray-700 mb-2">
+                    Status: <span className="font-semibold text-purple-700">{latestReview.status.replace(/_/g, ' ')}</span>
+                  </p>
+                  <p className="text-sm text-gray-600">
+                    Expected delivery: {new Date(latestReview.dueAt).toLocaleDateString('en-US', {
+                      weekday: 'long',
+                      month: 'long',
+                      day: 'numeric'
+                    })}
+                  </p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
         <div className="grid md:grid-cols-2 gap-6">
           {/* Left Column: Scores */}
@@ -228,6 +348,71 @@ export function EssayDetailView({ essay, userName, userEmail }: { essay: any; us
                     </div>
                   </div>
                 ))}
+              </CardContent>
+            </Card>
+
+            {/* Rewrite Suggestions */}
+            <Card className="border-2 border-purple-500">
+              <CardHeader>
+                <CardTitle>Rewrite Suggestions</CardTitle>
+                <CardDescription>Get AI-powered rewrite examples while preserving your voice</CardDescription>
+              </CardHeader>
+              <CardContent>
+                {!rewriteSuggestions ? (
+                  <div className="text-center py-4">
+                    <Button
+                      onClick={handleGenerateRewrites}
+                      disabled={isGeneratingRewrites}
+                      className="w-full"
+                    >
+                      {isGeneratingRewrites ? 'Generating...' : 'Generate Rewrite Suggestions'}
+                    </Button>
+                    <p className="text-xs text-gray-500 mt-2">
+                      This will show alternative phrasings that maintain your authentic voice
+                    </p>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    {rewriteSuggestions.rewrites && rewriteSuggestions.rewrites.length > 0 && (
+                      <>
+                        {rewriteSuggestions.rewrites.map((rewrite: any, idx: number) => (
+                          <div key={idx} className="border-l-4 border-purple-500 pl-4">
+                            <h4 className="font-semibold text-purple-900">{rewrite.section_name}</h4>
+                            <div className="mt-2 space-y-2">
+                              <div className="p-2 bg-gray-100 rounded text-sm">
+                                <strong className="text-gray-700">Original:</strong>
+                                <p className="text-gray-600 mt-1">{rewrite.original_text}</p>
+                              </div>
+                              <div className="p-2 bg-purple-50 rounded text-sm">
+                                <strong className="text-purple-900">Suggested:</strong>
+                                <p className="text-gray-800 mt-1">{rewrite.suggested_rewrite}</p>
+                              </div>
+                              <p className="text-xs text-gray-600 italic">{rewrite.why_better}</p>
+                            </div>
+                          </div>
+                        ))}
+                        {rewriteSuggestions.tone_preservation_score && (
+                          <div className="mt-4 p-3 bg-purple-50 rounded border border-purple-200">
+                            <p className="text-sm font-semibold text-purple-900">
+                              Voice Preservation: {Math.round(rewriteSuggestions.tone_preservation_score * 100)}%
+                            </p>
+                            <p className="text-xs text-gray-600 mt-1">
+                              Our suggestions maintain your authentic voice
+                            </p>
+                          </div>
+                        )}
+                      </>
+                    )}
+                    <Button
+                      onClick={() => setRewriteSuggestions(null)}
+                      variant="outline"
+                      size="sm"
+                      className="w-full"
+                    >
+                      Generate New Suggestions
+                    </Button>
+                  </div>
+                )}
               </CardContent>
             </Card>
 

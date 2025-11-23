@@ -80,6 +80,12 @@ export default async function AdminDashboard() {
         <div className="container mx-auto px-4 py-4 flex justify-between items-center">
           <h1 className="text-2xl font-bold">Admin Panel</h1>
           <div className="flex gap-4">
+            <Link href="/admin/users">
+              <Button variant="ghost">Users</Button>
+            </Link>
+            <Link href="/admin/analytics">
+              <Button variant="ghost">Analytics</Button>
+            </Link>
             <Link href="/dashboard">
               <Button variant="outline">My Dashboard</Button>
             </Link>
