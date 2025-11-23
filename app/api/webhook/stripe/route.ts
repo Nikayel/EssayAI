@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { stripe } from '@/lib/stripe/config';
 import { prisma } from '@/lib/prisma';
 import { analyzeEssay } from '@/lib/ai/analyzer';
+import { sendEmail, analysisCompleteEmail, reviewAssignedEmail } from '@/lib/email/send';
 import Stripe from 'stripe';
 
 /**
@@ -39,6 +40,16 @@ export async function POST(request: NextRequest) {
         const orderId = session.metadata?.orderId;
 
         if (orderId) {
+          // Check if order is already paid (prevent duplicate processing)
+          const existingOrder = await prisma.order.findUnique({
+            where: { id: orderId },
+          });
+
+          if (existingOrder?.status === 'PAID') {
+            console.log(`Order ${orderId} already processed, skipping duplicate webhook`);
+            return NextResponse.json({ received: true, skipped: true });
+          }
+
           // Update order status
           const order = await prisma.order.update({
             where: { id: orderId },
@@ -47,6 +58,11 @@ export async function POST(request: NextRequest) {
               stripePaymentId: session.payment_intent as string,
             },
             include: {
+              user: {
+                include: {
+                  profile: true,
+                },
+              },
               essay: {
                 include: {
                   versions: {
@@ -107,12 +123,20 @@ export async function POST(request: NextRequest) {
 
                 console.log(`✅ AI analysis complete for version ${latestVersion.id}`);
 
+                // Send analysis complete email
+                const userName = order.user.profile?.name || order.user.email.split('@')[0];
+                await sendEmail({
+                  to: order.user.email,
+                  subject: '✨ Your Analysis is Ready!',
+                  html: analysisCompleteEmail(userName, order.essay.type.replace(/_/g, ' '), Math.round(analysisResult.overall.score_100)),
+                });
+
                 // If human review package, create review assignment
-                const needsHumanReview = ['HUMAN_LITE', 'HUMAN_FULL_1', 'HUMAN_FULL_3', 'HUMAN_FULL_5'].includes(order.package);
+                const needsHumanReview = ['HUMAN_LITE', 'HUMAN_OVERALL_REVIEW', 'DEEP_REVIEW', 'HUMAN_FULL_1', 'HUMAN_FULL_3', 'HUMAN_FULL_5'].includes(order.package);
 
                 if (needsHumanReview) {
                   // Calculate due date based on package
-                  const hoursToAdd = order.package === 'HUMAN_LITE' ? 48 : 72;
+                  const hoursToAdd = order.package === 'HUMAN_LITE' ? 48 : order.package === 'DEEP_REVIEW' ? 24 : 72;
                   const dueAt = new Date(Date.now() + hoursToAdd * 60 * 60 * 1000);
 
                   await prisma.review.create({
@@ -125,6 +149,13 @@ export async function POST(request: NextRequest) {
                   });
 
                   console.log(`📝 Human review assigned for order ${order.id}`);
+
+                  // Send review assigned email
+                  await sendEmail({
+                    to: order.user.email,
+                    subject: '📝 Expert Review Assigned!',
+                    html: reviewAssignedEmail(userName, dueAt.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })),
+                  });
                 }
               })
               .catch((error) => {

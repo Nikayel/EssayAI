@@ -130,7 +130,7 @@ export default function PricingPage() {
         </div>
       </section>
 
-      {/* Human Review */}
+      {/* Human Review - Standard Packages */}
       <section className="container mx-auto px-4 py-8">
         <h3 className="text-2xl font-bold mb-6">Human Review & Coaching</h3>
         <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -180,6 +180,67 @@ export default function PricingPage() {
               </Card>
             );
           })}
+        </div>
+      </section>
+
+      {/* Premium Packages */}
+      <section className="container mx-auto px-4 py-8">
+        <h3 className="text-2xl font-bold mb-6">Premium Packages</h3>
+        <div className="grid md:grid-cols-2 gap-6 max-w-4xl mx-auto">
+          {/* Overall Review */}
+          <Card className="border-2 border-amber-500">
+            <CardHeader>
+              <CardTitle>{PACKAGE_INFO.HUMAN_OVERALL_REVIEW.name}</CardTitle>
+              <CardDescription>Single comprehensive holistic review</CardDescription>
+              <div className="text-3xl font-bold mt-4">
+                {formatPrice(PACKAGE_INFO.HUMAN_OVERALL_REVIEW.price)}
+              </div>
+            </CardHeader>
+            <CardContent>
+              <ul className="space-y-2">
+                {PACKAGE_INFO.HUMAN_OVERALL_REVIEW.features.map((feature, idx) => (
+                  <li key={idx} className="flex gap-2">
+                    <Check className="w-5 h-5 text-green-600 flex-shrink-0" />
+                    <span className="text-sm">{feature}</span>
+                  </li>
+                ))}
+              </ul>
+            </CardContent>
+            <CardFooter>
+              <Link href="/signup" className="w-full">
+                <Button className="w-full" variant="outline">Get Started</Button>
+              </Link>
+            </CardFooter>
+          </Card>
+
+          {/* Deep Review */}
+          <Card className="border-2 border-violet-600 relative">
+            <div className="absolute -top-4 left-1/2 -translate-x-1/2 bg-violet-600 text-white px-4 py-1 rounded-full text-sm font-semibold">
+              Ultimate Package
+            </div>
+            <CardHeader>
+              <CardTitle>{PACKAGE_INFO.DEEP_REVIEW.name}</CardTitle>
+              <CardDescription>Transform your essay completely</CardDescription>
+              <div className="text-3xl font-bold mt-4">
+                {formatPrice(PACKAGE_INFO.DEEP_REVIEW.price)}
+              </div>
+            </CardHeader>
+            <CardContent>
+              <ul className="space-y-2">
+                {PACKAGE_INFO.DEEP_REVIEW.features.map((feature, idx) => (
+                  <li key={idx} className="flex gap-2">
+                    <Check className="w-5 h-5 text-green-600 flex-shrink-0" />
+                    <span className="text-sm">{feature}</span>
+                  </li>
+                ))}
+              </ul>
+            </CardContent>
+            <CardFooter>
+              <Link href="/signup" className="w-full">
+                <Button className="w-full">Get Started</Button>
+              </Link>
+            </CardFooter>
+          </Card>
         </div>
       </section>
 

@@ -19,21 +19,25 @@ async function getReviews() {
           essay: {
             include: {
               user: {
-                select: {
-                  email: true,
-                  name: true,
+                include: {
+                  profile: true,
                 },
               },
             },
+          },
+          analyses: {
+            orderBy: {
+              createdAt: 'desc',
+            },
+            take: 1,
           },
         },
       },
       order: {
         include: {
           user: {
-            select: {
-              email: true,
-              name: true,
+            include: {
+              profile: true,
             },
           },
         },
@@ -135,52 +139,114 @@ export default async function AdminDashboard() {
               const hoursUntilDue = Math.round(
                 (new Date(review.dueAt).getTime() - Date.now()) / (1000 * 60 * 60)
               );
+              const wordCount = review.version.content.split(/\s+/).length;
+              const aiAnalysis = review.version.analyses[0];
+              const userName = review.order.user.profile?.name || review.order.user.email.split('@')[0];
+              const userGrade = review.order.user.profile?.gradeLevel;
+              const userMajor = review.order.user.profile?.intendedMajor;
 
               return (
-                <Card key={review.id} className={isOverdue ? 'border-2 border-red-500' : ''}>
-                  <CardHeader>
+                <Card key={review.id} className={isOverdue ? 'border-2 border-red-500' : 'border-l-4 border-l-blue-600'}>
+                  <CardHeader className="pb-3">
                     <div className="flex justify-between items-start">
-                      <div>
-                        <CardTitle>
-                          {review.version.essay.type.replace(/_/g, ' ')}
+                      <div className="flex-1">
+                        <div className="flex items-center gap-3 mb-2">
+                          <CardTitle className="text-xl">
+                            {review.version.essay.type.replace(/_/g, ' ')}
+                          </CardTitle>
                           {review.version.essay.targetSchool && (
-                            <span className="text-sm font-normal text-gray-600 ml-2">
-                              for {review.version.essay.targetSchool}
+                            <span className="px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm font-semibold">
+                              {review.version.essay.targetSchool}
                             </span>
                           )}
-                        </CardTitle>
-                        <CardDescription className="mt-2">
-                          Student: {review.order.user.email}
+                        </div>
+
+                        {/* Student Info */}
+                        <div className="flex gap-4 text-sm text-gray-700 mt-2">
+                          <div className="flex items-center gap-2">
+                            <span className="font-semibold">Student:</span>
+                            <span>{userName}</span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <span className="font-semibold">Email:</span>
+                            <span className="text-gray-600">{review.order.user.email}</span>
+                          </div>
+                          {userGrade && (
+                            <div className="flex items-center gap-2">
+                              <span className="font-semibold">Grade:</span>
+                              <span>{userGrade}</span>
+                            </div>
+                          )}
+                          {userMajor && (
+                            <div className="flex items-center gap-2">
+                              <span className="font-semibold">Major:</span>
+                              <span>{userMajor}</span>
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Essay Preview */}
+                        <CardDescription className="mt-3 text-sm leading-relaxed">
+                          <span className="font-semibold text-gray-700">Prompt:</span>{' '}
+                          {review.version.essay.promptText.substring(0, 150)}
+                          {review.version.essay.promptText.length > 150 && '...'}
                         </CardDescription>
                       </div>
-                      <div className="text-right">
+
+                      <div className="text-right ml-4">
                         {isOverdue ? (
-                          <div className="flex items-center gap-2 text-red-600 font-semibold">
+                          <div className="flex items-center gap-2 text-red-600 font-semibold mb-2">
                             <AlertCircle className="w-5 h-5" />
                             <span>OVERDUE</span>
                           </div>
                         ) : (
-                          <div className="flex items-center gap-2 text-gray-600">
+                          <div className="flex items-center gap-2 text-gray-700 mb-2">
                             <Clock className="w-5 h-5" />
-                            <span>
-                              {hoursUntilDue > 0 ? `${hoursUntilDue}h remaining` : 'Due now'}
+                            <span className="font-semibold">
+                              {hoursUntilDue > 0 ? `${hoursUntilDue}h left` : 'Due now'}
                             </span>
                           </div>
                         )}
+                        <div className="text-xs text-gray-500">
+                          Due: {new Date(review.dueAt).toLocaleDateString()}
+                        </div>
                       </div>
                     </div>
                   </CardHeader>
-                  <CardContent>
+                  <CardContent className="pt-0">
                     <div className="flex justify-between items-center">
-                      <div className="flex gap-4 text-sm text-gray-600">
-                        <span>Package: {review.order.package.replace(/_/g, ' ')}</span>
-                        <span>Due: {new Date(review.dueAt).toLocaleDateString()}</span>
-                        <span className={`font-semibold ${review.status === 'IN_PROGRESS' ? 'text-blue-600' : 'text-yellow-600'}`}>
-                          {review.status.replace(/_/g, ' ')}
-                        </span>
+                      <div className="flex gap-6 text-sm">
+                        <div className="flex items-center gap-2">
+                          <span className="text-gray-600">Package:</span>
+                          <span className="font-semibold text-purple-700">
+                            {review.order.package.replace(/_/g, ' ')}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <span className="text-gray-600">Words:</span>
+                          <span className="font-semibold">{wordCount}</span>
+                        </div>
+                        {aiAnalysis && (
+                          <div className="flex items-center gap-2">
+                            <span className="text-gray-600">AI Score:</span>
+                            <span className="font-semibold text-blue-600">
+                              {Math.round(aiAnalysis.overallScore)}/100
+                            </span>
+                          </div>
+                        )}
+                        <div className="flex items-center gap-2">
+                          <span className="text-gray-600">Status:</span>
+                          <span className={`font-semibold px-2 py-0.5 rounded ${
+                            review.status === 'IN_PROGRESS'
+                              ? 'bg-blue-100 text-blue-700'
+                              : 'bg-yellow-100 text-yellow-700'
+                          }`}>
+                            {review.status.replace(/_/g, ' ')}
+                          </span>
+                        </div>
                       </div>
                       <Link href={`/admin/review/${review.id}`}>
-                        <Button>
+                        <Button size="lg">
                           {review.status === 'ASSIGNED' ? 'Start Review' : 'Continue Review'}
                         </Button>
                       </Link>

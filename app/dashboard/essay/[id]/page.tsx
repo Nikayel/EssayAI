@@ -58,5 +58,10 @@ export default async function EssayDetailPage({
     redirect('/dashboard');
   }
 
-  return <EssayDetailView essay={essay} />;
+  // Fetch user profile for name
+  const profile = await prisma.profile.findUnique({
+    where: { userId: user.id },
+  });
+
+  return <EssayDetailView essay={essay} userEmail={user.email!} userName={profile?.name || user.email!.split('@')[0]} />;
 }

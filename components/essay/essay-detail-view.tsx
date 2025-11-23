@@ -6,8 +6,9 @@ import { Button } from '@/components/ui/button';
 import { AnalyzingScreen } from './analyzing-screen';
 import { ArrowLeft, Download, AlertTriangle, CheckCircle2, XCircle } from 'lucide-react';
 import Link from 'next/link';
+import { downloadPDFReport } from '@/lib/pdf/export';
 
-export function EssayDetailView({ essay }: { essay: any }) {
+export function EssayDetailView({ essay, userName, userEmail }: { essay: any; userName: string; userEmail: string }) {
   const latestVersion = essay.versions[0];
   const latestAnalysis = latestVersion?.analyses[0];
   const latestOrder = essay.orders[0];
@@ -65,6 +66,24 @@ export function EssayDetailView({ essay }: { essay: any }) {
   const commonsCheck = analysis.commons_check;
   const suggestions = analysis.suggestions;
   const overall = analysis.overall;
+  const wordCount = latestVersion.content.split(/\s+/).length;
+
+  const handleExportPDF = () => {
+    downloadPDFReport({
+      userName,
+      essayType: essay.type.replace(/_/g, ' '),
+      school: essay.targetSchool,
+      wordCount,
+      essayContent: latestVersion.content,
+      analysis: {
+        overallScore: Math.round(overall.score_100),
+        scores,
+        commonsCheck,
+        suggestions,
+        overall,
+      },
+    });
+  };
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -78,7 +97,7 @@ export function EssayDetailView({ essay }: { essay: any }) {
             </Button>
           </Link>
           <h1 className="text-2xl font-bold">Essay Analysis</h1>
-          <Button variant="outline">
+          <Button variant="outline" onClick={handleExportPDF}>
             <Download className="w-4 h-4 mr-2" />
             Export Report
           </Button>

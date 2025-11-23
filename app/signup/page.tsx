@@ -11,7 +11,7 @@ export default function SignupPage() {
   const router = useRouter();
   const [supabase] = useState(() => createClient());
 
-  useEffect() => {
+  useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (event === 'SIGNED_IN' && session) {
         // Create user profile in public.users table
