@@ -7,6 +7,7 @@ import { AnalyzingScreen } from './analyzing-screen';
 import { ArrowLeft, Download, AlertTriangle, CheckCircle2, XCircle } from 'lucide-react';
 import Link from 'next/link';
 import { downloadPDFReport } from '@/lib/pdf/export';
+import { SmartUpsell } from '@/components/upsell/smart-upsell';
 
 export function EssayDetailView({ essay, userName, userEmail }: { essay: any; userName: string; userEmail: string }) {
   const latestVersion = essay.versions[0];
@@ -449,6 +450,15 @@ export function EssayDetailView({ essay, userName, userEmail }: { essay: any; us
               </CardContent>
             </Card>
           </div>
+        </div>
+
+        {/* Smart Upsells */}
+        <div className="mt-12 max-w-4xl mx-auto">
+          <SmartUpsell
+            currentPackage={latestOrder?.package || 'AI_LITE'}
+            essayId={essay.id}
+            hasHumanReview={!!latestReview}
+          />
         </div>
       </main>
     </div>

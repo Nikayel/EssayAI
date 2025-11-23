@@ -21,6 +21,8 @@ export const PRICING = {
   HUMAN_FULL_3: 27900, // $279
   HUMAN_FULL_5: 39900, // $399
   DEEP_REVIEW: 45000, // $450 - NEW PREMIUM!
+  EXPERT_QA_PREMIUM: 30000, // $300 - 2-day unlimited Q&A (DEEP_REVIEW upsell)
+  EXPERT_QA_STANDARD: 15000, // $150 - 1-day Q&A session
   RUSH_ADDON: 4900, // $49
 } as const;
 
@@ -139,6 +141,33 @@ export const PACKAGE_INFO = {
       'Admissions strategy consultation',
       '24-hour priority turnaround',
       'Guaranteed transformation or money back',
+    ],
+  },
+  EXPERT_QA_PREMIUM: {
+    name: '2-Day Expert Q&A Session',
+    description: 'Unlimited questions & answers about your essay for 48 hours',
+    price: PRICING.EXPERT_QA_PREMIUM,
+    features: [
+      'Unlimited questions for 48 hours',
+      'Direct messaging with your expert reviewer',
+      'Follow-up on any part of your review',
+      'Strategy questions answered',
+      'Revision guidance included',
+      'Same expert who reviewed your essay',
+      'Response time: under 2 hours during business hours',
+    ],
+  },
+  EXPERT_QA_STANDARD: {
+    name: 'Expert Q&A Session',
+    description: 'Ask questions about your essay and get expert answers',
+    price: PRICING.EXPERT_QA_STANDARD,
+    features: [
+      '24-hour Q&A window',
+      'Up to 10 questions answered',
+      'Direct messaging with expert',
+      'Clarification on feedback',
+      'Revision suggestions',
+      'Response time: under 4 hours',
     ],
   },
 } as const;
