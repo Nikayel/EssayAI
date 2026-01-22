@@ -12,15 +12,30 @@ export const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
  * Package pricing in cents
  */
 export const PRICING = {
+  // Standard tiers
   AI_LITE: 900, // $9
   AI_PRO_SINGLE: 2900, // $29
   AI_PRO_MONTHLY: 4900, // $49/month (up to 6 essays)
+
+  // Ivy League tiers (premium)
+  IVY_SINGLE: 3900, // $39 - Single Ivy essay analysis
+  IVY_BUNDLE_3: 9900, // $99 - 3 Ivy essays
+  IVY_BUNDLE_8: 19900, // $199 - All 8 Ivies
+  IVY_UNLIMITED: 29900, // $299 - Unlimited Ivy essays for season
+
+  // Human review tiers
   HUMAN_LITE: 7900, // $79
   HUMAN_OVERALL_REVIEW: 12900, // $129 - NEW!
   HUMAN_FULL_1: 12900, // $129
   HUMAN_FULL_3: 27900, // $279
   HUMAN_FULL_5: 39900, // $399
   DEEP_REVIEW: 45000, // $450 - NEW PREMIUM!
+
+  // Ivy + Human combos
+  IVY_HUMAN_COMBO: 14900, // $149 - AI + 1 human review for 1 Ivy
+  IVY_PREMIUM_BUNDLE: 49900, // $499 - All 8 Ivies AI + 3 human reviews
+
+  // Add-ons
   EXPERT_QA_PREMIUM: 30000, // $300 - 2-day unlimited Q&A (DEEP_REVIEW upsell)
   EXPERT_QA_STANDARD: 15000, // $150 - 1-day Q&A session
   RUSH_ADDON: 4900, // $49
@@ -168,6 +183,82 @@ export const PACKAGE_INFO = {
       'Clarification on feedback',
       'Revision suggestions',
       'Response time: under 4 hours',
+    ],
+  },
+
+  // === IVY LEAGUE PACKAGES ===
+  IVY_SINGLE: {
+    name: 'Ivy League Single',
+    description: 'Deep analysis for one Ivy League essay',
+    price: PRICING.IVY_SINGLE,
+    features: [
+      'School-specific analysis',
+      'Fit score with evidence',
+      '2025-26 prompt alignment',
+      'Mission & values match',
+      'Red flag detection',
+      'Actionable improvements',
+      'Voice preservation check',
+    ],
+  },
+  IVY_BUNDLE_3: {
+    name: 'Ivy League 3-Pack',
+    description: 'Analyze essays for 3 Ivy League schools',
+    price: PRICING.IVY_BUNDLE_3,
+    features: [
+      'Everything in Ivy Single',
+      '3 school analyses',
+      'Cross-essay consistency',
+      'Save $18 vs individual',
+    ],
+  },
+  IVY_BUNDLE_8: {
+    name: 'Full Ivy Coverage',
+    description: 'All 8 Ivy League schools covered',
+    price: PRICING.IVY_BUNDLE_8,
+    features: [
+      'Everything in Ivy Single',
+      'All 8 Ivy analyses',
+      'School comparison insights',
+      'Portfolio consistency check',
+      'Save $112 vs individual',
+    ],
+  },
+  IVY_UNLIMITED: {
+    name: 'Ivy Season Pass',
+    description: 'Unlimited Ivy essays for entire application season',
+    price: PRICING.IVY_UNLIMITED,
+    features: [
+      'Unlimited Ivy analyses',
+      'All 8 schools',
+      'Revision tracking',
+      'Priority support',
+      'Valid through April 2026',
+    ],
+  },
+  IVY_HUMAN_COMBO: {
+    name: 'Ivy + Expert Review',
+    description: 'AI analysis plus human expert review',
+    price: PRICING.IVY_HUMAN_COMBO,
+    features: [
+      'Ivy League AI analysis',
+      '1 expert human review',
+      'School-specific feedback',
+      '48-hour turnaround',
+      'Best of both worlds',
+    ],
+  },
+  IVY_PREMIUM_BUNDLE: {
+    name: 'Ivy Premium Bundle',
+    description: 'The complete Ivy League package',
+    price: PRICING.IVY_PREMIUM_BUNDLE,
+    features: [
+      'All 8 Ivy AI analyses',
+      '3 expert human reviews',
+      'Priority turnaround',
+      'Dedicated support',
+      'Strategy consultation',
+      'Best value for serious applicants',
     ],
   },
 } as const;
