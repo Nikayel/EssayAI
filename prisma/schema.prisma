@@ -669,3 +669,199 @@ model AnalysisHistory {
   @@index([createdAt])
   @@map("analysis_history")
 }
+
+// =============================================================================
+// CONFIGURATION SYSTEM
+// =============================================================================
+
+// Admin-editable configuration overrides
+model ConfigOverride {
+  id        String   @id @default(cuid())
+  key       String   @unique  // Dot notation: "pricing.tiers.quick"
+  value     Json               // The override value
+  updatedAt DateTime @updatedAt
+  updatedBy String?            // Admin user ID who made the change
+
+  @@index([key])
+  @@map("config_overrides")
+}
+
+// Admissions cycle data (updated annually)
+model AdmissionsCycle {
+  id              String   @id @default(cuid())
+  cycle           String   @unique  // e.g., "2025-2026"
+  startDate       DateTime           // When this cycle begins (Aug 1)
+  endDate         DateTime           // When this cycle ends (Apr 1)
+  isActive        Boolean  @default(false)
+
+  // Aggregate stats (populated after cycle ends)
+  totalAnalyses   Int?
+  avgScore        Float?
+
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  schoolData      SchoolCycleData[]
+
+  @@index([isActive])
+  @@map("admissions_cycles")
+}
+
+// School-specific data per admissions cycle
+model SchoolCycleData {
+  id              String          @id @default(cuid())
+  cycleId         String
+  cycle           AdmissionsCycle @relation(fields: [cycleId], references: [id], onDelete: Cascade)
+  schoolId        String          // harvard, yale, etc.
+
+  // Deadlines
+  earlyDeadline   DateTime?
+  regularDeadline DateTime?
+
+  // Stats (updated after cycle ends)
+  acceptanceRate  Float?
+  applicantCount  Int?
+  acceptedCount   Int?
+
+  // Essay prompts for this cycle
+  essayPrompts    Json?           // Array of {type, prompt, wordLimit}
+
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@unique([cycleId, schoolId])
+  @@index([schoolId])
+  @@map("school_cycle_data")
+}
+
+// =============================================================================
+// TIERED ANALYSIS SYSTEM
+// =============================================================================
+
+// Analysis sessions (tracks each analysis request)
+model AnalysisSession {
+  id              String        @id @default(cuid())
+  userId          String?
+  userEmail       String        // For guest users or notifications
+
+  // Tier and payment
+  tier            String        // 'quick', 'standard', 'premium'
+  paidAmount      Int?          // In cents
+  stripePaymentId String?
+
+  // Input
+  essayText       String        @db.Text
+  intakeData      Json          // Full StudentIntake object
+  targetSchool    String?
+  essayType       String?
+
+  // Status
+  status          AnalysisStatus @default(PENDING)
+
+  // Results
+  aiResult        Json?         // Full AI analysis result
+  aiScore         Float?        // Overall score
+  aiCompletedAt   DateTime?
+
+  // Human review (Premium tier)
+  humanReviewId   String?       @unique
+  humanReview     HumanReviewAssignment? @relation(fields: [humanReviewId], references: [id])
+
+  // Metadata
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  @@index([userId])
+  @@index([userEmail])
+  @@index([status])
+  @@index([createdAt])
+  @@map("analysis_sessions")
+}
+
+enum AnalysisStatus {
+  PENDING           // Awaiting payment or processing
+  ANALYZING         // AI analysis in progress
+  AI_COMPLETE       // AI done, awaiting human (if premium)
+  HUMAN_QUEUED      // In human review queue
+  HUMAN_IN_PROGRESS // Human reviewing
+  COMPLETED         // Fully complete
+  FAILED            // Error occurred
+}
+
+// =============================================================================
+// HUMAN REVIEW SYSTEM (Premium Tier)
+// =============================================================================
+
+// Human reviewer profiles (separate from User for flexibility)
+model HumanReviewer {
+  id              String      @id @default(cuid())
+  email           String      @unique
+  name            String
+  credentials     String      // "Former Yale AO, 8 years"
+  bio             String?     @db.Text
+
+  // Specialties
+  schoolExpertise String[]    // ["harvard", "yale"]
+  essayExpertise  String[]    // ["personal_statement", "why_us"]
+
+  // Capacity management
+  maxActiveReviews Int        @default(5)
+  isActive        Boolean     @default(true)
+
+  // Stats
+  totalReviews    Int         @default(0)
+  avgRating       Float?
+
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+
+  assignments     HumanReviewAssignment[]
+
+  @@index([isActive])
+  @@map("human_reviewers")
+}
+
+// Human review assignments
+model HumanReviewAssignment {
+  id              String        @id @default(cuid())
+
+  // Reviewer assignment
+  reviewerId      String?
+  reviewer        HumanReviewer? @relation(fields: [reviewerId], references: [id])
+
+  // Status tracking
+  status          HumanReviewStatus @default(QUEUED)
+  assignedAt      DateTime?
+  dueAt           DateTime
+  completedAt     DateTime?
+
+  // Data for reviewer (denormalized for easy access)
+  studentEmail    String
+  essayText       String        @db.Text
+  targetSchool    String?
+  essayType       String?
+  intakeData      Json          // Student background, context
+  aiAnalysis      Json          // AI analysis results for reference
+
+  // Reviewer's work (simple - they email student directly)
+  internalNotes   String?       @db.Text
+  markedDoneAt    DateTime?
+
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  session         AnalysisSession?
+
+  @@index([reviewerId])
+  @@index([status])
+  @@index([dueAt])
+  @@map("human_review_assignments")
+}
+
+enum HumanReviewStatus {
+  QUEUED          // Awaiting assignment
+  ASSIGNED        // Assigned to reviewer
+  IN_PROGRESS     // Reviewer working on it
+  COMPLETED       // Done
+  OVERDUE         // Past due date
+}

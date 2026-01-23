@@ -39,7 +39,15 @@ export async function POST(request: NextRequest) {
       case 'checkout.session.completed': {
         const session = event.data.object as Stripe.Checkout.Session;
         const orderId = session.metadata?.orderId;
+        const analysisSessionId = session.metadata?.analysisSessionId;
 
+        // Handle tiered-analysis payments
+        if (analysisSessionId) {
+          await handleTieredAnalysisPayment(session, analysisSessionId);
+          break;
+        }
+
+        // Handle legacy order-based payments
         if (orderId) {
           // Check if order is already paid (prevent duplicate processing)
           const existingOrder = await prisma.order.findUnique({
@@ -259,4 +267,126 @@ export async function POST(request: NextRequest) {
       { status: 500 }
     );
   }
+}
+
+// =============================================================================
+// TIERED ANALYSIS PAYMENT HANDLER
+// =============================================================================
+
+async function handleTieredAnalysisPayment(
+  session: Stripe.Checkout.Session,
+  analysisSessionId: string
+) {
+  const tier = session.metadata?.tier;
+  const userId = session.metadata?.userId;
+
+  // Check if already processed
+  const existingSession = await prisma.analysisSession.findUnique({
+    where: { id: analysisSessionId },
+  });
+
+  if (!existingSession) {
+    console.error(`Analysis session ${analysisSessionId} not found`);
+    return;
+  }
+
+  if (existingSession.stripePaymentId) {
+    console.log(`Analysis session ${analysisSessionId} already processed, skipping`);
+    return;
+  }
+
+  // Update analysis session with payment info
+  await prisma.analysisSession.update({
+    where: { id: analysisSessionId },
+    data: {
+      stripePaymentId: session.id,
+      paidAmount: session.amount_total || 0,
+    },
+  });
+
+  // Create audit log
+  await prisma.auditLog.create({
+    data: {
+      userId: userId || undefined,
+      action: 'TIERED_ANALYSIS_PAYMENT',
+      resource: 'ANALYSIS_SESSION',
+      details: {
+        sessionId: analysisSessionId,
+        tier,
+        amount: session.amount_total,
+      },
+    },
+  });
+
+  // For premium tier, queue human review if AI is complete
+  if (tier === 'premium' && existingSession.status === 'HUMAN_QUEUED') {
+    await queueHumanReview(existingSession);
+  }
+
+  console.log(`✅ Tiered analysis payment processed: ${analysisSessionId} (${tier})`);
+}
+
+// =============================================================================
+// HUMAN REVIEW QUEUE HANDLER
+// =============================================================================
+
+async function queueHumanReview(analysisSession: any) {
+  // Find available reviewer with matching expertise
+  const targetSchool = analysisSession.targetSchool?.toLowerCase();
+
+  const availableReviewer = await prisma.humanReviewer.findFirst({
+    where: {
+      isActive: true,
+      schoolExpertise: targetSchool ? { has: targetSchool } : undefined,
+    },
+    orderBy: [
+      { totalReviews: 'asc' }, // Prefer reviewers with fewer total reviews for load balancing
+    ],
+  });
+
+  // Calculate due date (48 hours from now)
+  const dueAt = new Date(Date.now() + 48 * 60 * 60 * 1000);
+
+  // Create human review assignment
+  const assignment = await prisma.humanReviewAssignment.create({
+    data: {
+      sessionId: analysisSession.id,
+      reviewerId: availableReviewer?.id,
+      studentEmail: analysisSession.userEmail,
+      targetSchool: analysisSession.targetSchool,
+      essayType: analysisSession.essayType,
+      dueAt,
+      status: availableReviewer ? 'ASSIGNED' : 'QUEUED',
+      assignedAt: availableReviewer ? new Date() : undefined,
+    },
+  });
+
+  // Link to analysis session
+  await prisma.analysisSession.update({
+    where: { id: analysisSession.id },
+    data: { humanReviewId: assignment.id },
+  });
+
+  // Send notification email to student
+  if (analysisSession.userEmail && analysisSession.userEmail !== 'anonymous@temp.com') {
+    try {
+      await sendEmail({
+        to: analysisSession.userEmail,
+        subject: '📝 Your Expert Review is Queued!',
+        html: reviewAssignedEmail(
+          analysisSession.userEmail.split('@')[0],
+          dueAt.toLocaleDateString('en-US', {
+            weekday: 'long',
+            year: 'numeric',
+            month: 'long',
+            day: 'numeric',
+          })
+        ),
+      });
+    } catch (emailError) {
+      console.error('Failed to send review queued email:', emailError);
+    }
+  }
+
+  console.log(`📝 Human review ${availableReviewer ? 'assigned' : 'queued'} for session ${analysisSession.id}`);
 }
