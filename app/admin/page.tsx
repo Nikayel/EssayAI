@@ -83,6 +83,12 @@ export default async function AdminDashboard() {
             <Link href="/admin/users">
               <Button variant="ghost">Users</Button>
             </Link>
+            <Link href="/admin/reviewers">
+              <Button variant="ghost">Reviewers</Button>
+            </Link>
+            <Link href="/admin/config">
+              <Button variant="ghost">Config</Button>
+            </Link>
             <Link href="/admin/analytics">
               <Button variant="ghost">Analytics</Button>
             </Link>

@@ -12,6 +12,14 @@ export const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
  * Package pricing in cents
  */
 export const PRICING = {
+  // ==========================================================================
+  // NEW TIERED ANALYSIS SYSTEM
+  // ==========================================================================
+  ANALYSIS_QUICK: 999, // $9.99 - Quick Score
+  ANALYSIS_STANDARD: 7900, // $79 - Full Analysis
+  ANALYSIS_PREMIUM: 24900, // $249 - Expert Review (includes human)
+
+  // Legacy tiers (kept for backwards compatibility)
   // Standard tiers
   AI_LITE: 900, // $9
   AI_PRO_SINGLE: 2900, // $29
