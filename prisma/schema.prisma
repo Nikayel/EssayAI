@@ -204,6 +204,7 @@ model EssayVersion {
   analyses        AIAnalysis[]
   rewrites        Rewrite[]
   reviews         Review[]
+  analysisHistory AnalysisHistory[]
 
   @@unique([essayId, versionIndex])
   @@index([essayId])
@@ -481,4 +482,145 @@ model Lead {
   @@index([email])
   @@index([source])
   @@map("leads")
+}
+
+// =============================================================================
+// RAG SYSTEM TABLES
+// =============================================================================
+
+// Example Essays - Successful essays for retrieval
+model ExampleEssay {
+  id              String      @id @default(cuid())
+  schoolId        String      // harvard, yale, etc.
+  essayType       String      // PERSONAL_STATEMENT, WHY_US, etc.
+  promptId        String?     // Links to specific prompt
+
+  // Content (anonymized - no PII)
+  contentSnippet  String      @db.Text  // 200-500 word excerpt
+  contentHash     String      @unique   // For deduplication
+
+  // Metadata
+  outcome         String?     // ACCEPTED, WAITLIST, etc.
+  scoreRange      String?     // 90-100, 80-89, etc.
+  themeTags       String[]    // ['overcoming-adversity', 'intellectual-curiosity']
+  spikeCategory   String?     // 'stem-research', 'arts', 'social-impact'
+
+  // What made it work
+  strengthNotes   String?     @db.Text
+  keyTechniques   String[]    // ['in-medias-res', 'circular-structure']
+
+  // Embedding (stored as JSON array of floats)
+  embedding       Json?       // 1536-dimensional vector
+
+  isActive        Boolean     @default(true)
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+
+  @@index([schoolId, essayType])
+  @@index([spikeCategory])
+  @@map("example_essays")
+}
+
+// Feedback Patterns - Common issues with proven solutions
+model FeedbackPattern {
+  id              String      @id @default(cuid())
+
+  // Pattern identification
+  issueType       String      // 'generic_opening', 'weak_reflection', etc.
+  issueCategory   String      // 'structure', 'content', 'style', 'fit'
+  essayType       String?     // Which essay types this applies to
+  schoolId        String?     // School-specific patterns (optional)
+
+  // The pattern
+  patternName     String      // Human-readable name
+  description     String      @db.Text  // Full description
+  exampleBefore   String?     @db.Text  // Original problematic text
+  exampleAfter    String?     @db.Text  // Improved version
+  fixStrategy     String?     @db.Text  // How to fix it
+
+  // Impact data (updated via feedback loop)
+  avgScoreImprovement Float   @default(0)
+  frequency       Int         @default(0)  // How often we've seen this
+  successRate     Float       @default(0)  // % of students who improved
+
+  // Embedding for semantic matching
+  embedding       Json?
+
+  // Severity: 1-5 (5 = critical)
+  severity        Int         @default(3)
+
+  isActive        Boolean     @default(true)
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+
+  @@unique([issueType, essayType, schoolId])
+  @@index([issueCategory])
+  @@index([essayType])
+  @@map("feedback_patterns")
+}
+
+// School Insights - AO quotes, tips, what works
+model SchoolInsight {
+  id              String      @id @default(cuid())
+  schoolId        String
+
+  // Content
+  insightType     String      // 'ao_quote', 'student_tip', 'common_mistake', 'what_works', 'program_detail'
+  content         String      @db.Text
+  source          String?     // Where this came from
+
+  // Applicability
+  essayTypes      String[]    // Which essay types this applies to
+  relevanceScore  Float       @default(3)  // 1-5 importance
+
+  // Embedding for semantic retrieval
+  embedding       Json?
+
+  isActive        Boolean     @default(true)
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+
+  @@index([schoolId])
+  @@index([insightType])
+  @@map("school_insights")
+}
+
+// Analysis History - Store every analysis for feedback loop
+model AnalysisHistory {
+  id              String      @id @default(cuid())
+
+  // Links
+  essayVersionId  String
+  essayVersion    EssayVersion @relation(fields: [essayVersionId], references: [id], onDelete: Cascade)
+  userId          String
+
+  // Essay metadata (for retrieval)
+  schoolId        String?
+  essayType       String
+
+  // Scores achieved
+  overallScore    Float
+  dimensionScores Json        // {authenticity: 5, reflection: 4, ...}
+
+  // What issues were found
+  issuesIdentified String[]   // ['generic_opening', 'weak_reflection']
+  patternsMatched  String[]   // Pattern IDs that matched
+  suggestionsGiven Json?      // Full suggestions array
+
+  // Improvement tracking
+  previousVersionScore Float?  // Score before revision
+  scoreDelta      Float?       // Improvement amount
+
+  // Embedding of the essay (for finding similar)
+  essayEmbedding  Json?
+
+  // RAG context used
+  ragContextUsed  Json?       // {exampleIds: [], patternIds: [], insightIds: []}
+
+  createdAt       DateTime    @default(now())
+
+  @@index([userId])
+  @@index([schoolId, essayType])
+  @@index([createdAt])
+  @@map("analysis_history")
 }
