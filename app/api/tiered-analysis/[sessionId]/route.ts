@@ -1,6 +1,10 @@
 /**
  * Analysis Session API
  * GET /api/tiered-analysis/[sessionId] - Get session status and results
+ *
+ * Security:
+ * - Authenticated users: must own the session or match email
+ * - Guest users: must provide valid access token
  */
 
 import { NextRequest, NextResponse } from 'next/server';
@@ -21,6 +25,8 @@ export async function GET(
 ) {
   try {
     const { sessionId } = await params;
+    const { searchParams } = new URL(request.url);
+    const accessToken = searchParams.get('token');
 
     if (!sessionId) {
       return NextResponse.json({ error: 'Session ID required' }, { status: 400 });
@@ -47,17 +53,26 @@ export async function GET(
       return NextResponse.json({ error: 'Session not found' }, { status: 404 });
     }
 
-    // Check authorization - either authenticated user or email match
+    // Check authorization
     const supabase = await createClient();
     const { data: { user } } = await supabase.auth.getUser();
 
-    const isAuthorized =
-      (user && session.userId === user.id) ||
-      (user && user.email === session.userEmail) ||
-      !session.userId; // Allow access for guest sessions
+    let isAuthorized = false;
+
+    if (user) {
+      // Authenticated user: must own session or match email
+      isAuthorized = session.userId === user.id || user.email === session.userEmail;
+    } else if (!session.userId) {
+      // Guest session: must provide valid access token
+      const storedToken = (session.intakeData as any)?._accessToken;
+      isAuthorized = accessToken && storedToken && accessToken === storedToken;
+    }
 
     if (!isAuthorized) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return NextResponse.json(
+        { error: 'Unauthorized', message: 'Invalid or missing access token' },
+        { status: 401 }
+      );
     }
 
     // Build response based on session status

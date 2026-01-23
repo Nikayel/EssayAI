@@ -9,9 +9,14 @@
  * - progress: Percentage complete
  * - complete: Analysis finished
  * - error: Something went wrong
+ *
+ * Security:
+ * - Guest sessions require access token
+ * - Stream has 5-minute timeout to prevent resource exhaustion
  */
 
 import { NextRequest } from 'next/server';
+import { createClient } from '@/lib/supabase/server';
 import { prisma } from '@/lib/prisma';
 import {
   getAnalysisSteps,
@@ -19,7 +24,7 @@ import {
   createProgressEvent,
   generateThinkingMessage,
 } from '@/lib/analysis/loading-steps';
-import { runTieredAnalysis, validateIntakeForTier } from '@/lib/scoring/tiers';
+import { runTieredAnalysis } from '@/lib/scoring/tiers';
 import { detectAIWriting } from '@/lib/scoring/ai-detection';
 import { detectGenericPhrases } from '@/lib/scoring/generic-phrases';
 import type { AnalysisTier, QuickIntake, FullIntake } from '@/lib/scoring/tiers/types';
@@ -28,6 +33,9 @@ import type { ProgressEvent } from '@/lib/analysis/loading-steps';
 interface RouteParams {
   params: Promise<{ sessionId: string }>;
 }
+
+// Stream timeout: 5 minutes
+const STREAM_TIMEOUT_MS = 5 * 60 * 1000;
 
 // =============================================================================
 // GET - SSE Progress Stream
@@ -38,6 +46,8 @@ export async function GET(
   { params }: RouteParams
 ) {
   const { sessionId } = await params;
+  const { searchParams } = new URL(request.url);
+  const accessToken = searchParams.get('token');
 
   if (!sessionId) {
     return new Response('Session ID required', { status: 400 });
@@ -50,6 +60,23 @@ export async function GET(
 
   if (!session) {
     return new Response('Session not found', { status: 404 });
+  }
+
+  // Check authorization
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+
+  let isAuthorized = false;
+
+  if (user) {
+    isAuthorized = session.userId === user.id || user.email === session.userEmail;
+  } else if (!session.userId) {
+    const storedToken = (session.intakeData as any)?._accessToken;
+    isAuthorized = accessToken && storedToken && accessToken === storedToken;
+  }
+
+  if (!isAuthorized) {
+    return new Response('Unauthorized', { status: 401 });
   }
 
   // If already complete, return result immediately
@@ -81,10 +108,31 @@ export async function GET(
     );
   }
 
-  // Create SSE stream
+  // Create SSE stream with timeout
   const encoder = new TextEncoder();
+  let streamAborted = false;
+  let timeoutHandle: ReturnType<typeof setTimeout> | null = null;
+
   const stream = new ReadableStream({
     async start(controller) {
+      // Set up timeout
+      timeoutHandle = setTimeout(() => {
+        streamAborted = true;
+        try {
+          controller.enqueue(
+            encoder.encode(
+              createProgressEvent({
+                type: 'error',
+                message: 'Analysis timed out. Please refresh and try again.',
+              })
+            )
+          );
+          controller.close();
+        } catch {
+          // Controller may already be closed
+        }
+      }, STREAM_TIMEOUT_MS);
+
       try {
         const essayText = session.essayText;
         const intake = session.intakeData as QuickIntake | FullIntake | any;
@@ -106,6 +154,9 @@ export async function GET(
 
         // Run through steps
         for (const step of steps) {
+          // Check if stream was aborted by timeout
+          if (streamAborted) break;
+
           // Send step start
           sendEvent({
             type: 'step_start',
@@ -120,7 +171,7 @@ export async function GET(
           // For real steps, run actual analysis in the background
           if (step.isRealStep) {
             // Run real analysis based on step
-            const thinkingMessages = await runRealStep(step.id, essayText, intake, sendEvent);
+            await runRealStep(step.id, essayText, intake, sendEvent);
 
             // Wait remaining time after real analysis
             await wait(Math.max(100, duration - 500));
@@ -137,6 +188,9 @@ export async function GET(
           const percent = Math.round((completedSteps.length / steps.length) * 100);
           sendEvent({ type: 'progress', percent: Math.min(percent, 99) });
         }
+
+        // Check abort before final analysis
+        if (streamAborted) return;
 
         // Now run the full analysis
         sendEvent({ type: 'progress', percent: 95 });
@@ -166,19 +220,25 @@ export async function GET(
         sendEvent({ type: 'progress', percent: 100 });
         sendEvent({ type: 'complete', resultUrl: `/api/tiered-analysis/${sessionId}` });
 
+        // Clear timeout
+        if (timeoutHandle) clearTimeout(timeoutHandle);
         controller.close();
 
       } catch (error) {
         console.error('SSE stream error:', error);
-        controller.enqueue(
-          encoder.encode(
-            createProgressEvent({
-              type: 'error',
-              message: 'Analysis failed. Please try again.',
-            })
-          )
-        );
-        controller.close();
+        if (timeoutHandle) clearTimeout(timeoutHandle);
+
+        if (!streamAborted) {
+          controller.enqueue(
+            encoder.encode(
+              createProgressEvent({
+                type: 'error',
+                message: 'Analysis failed. Please try again.',
+              })
+            )
+          );
+          controller.close();
+        }
 
         // Update session status
         await prisma.analysisSession.update({
@@ -186,6 +246,11 @@ export async function GET(
           data: { status: 'FAILED' },
         }).catch(console.error);
       }
+    },
+    cancel() {
+      // Clean up timeout if stream is cancelled by client
+      if (timeoutHandle) clearTimeout(timeoutHandle);
+      streamAborted = true;
     },
   });
 

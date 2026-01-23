@@ -2,6 +2,11 @@
  * Tiered Essay Analysis API
  * POST /api/tiered-analysis - Start a new analysis session
  * GET /api/tiered-analysis - Get pricing info and schema
+ *
+ * Security:
+ * - Rate limiting per user/IP
+ * - Payment verification for paid tiers
+ * - Session access tokens for guest users
  */
 
 import { NextRequest, NextResponse } from 'next/server';
@@ -10,7 +15,42 @@ import { createClient } from '@/lib/supabase/server';
 import { prisma } from '@/lib/prisma';
 import { getTierConfig, config } from '@/lib/config';
 import { runTieredAnalysis, validateIntakeForTier } from '@/lib/scoring/tiers';
+import { stripe } from '@/lib/stripe/config';
+import { nanoid } from 'nanoid';
 import type { AnalysisTier, QuickIntake, FullIntake } from '@/lib/scoring/tiers/types';
+
+// =============================================================================
+// RATE LIMITING
+// =============================================================================
+
+const rateLimitMap = new Map<string, { count: number; resetAt: number }>();
+const RATE_LIMIT_WINDOW_MS = 60 * 60 * 1000; // 1 hour
+const RATE_LIMITS = {
+  quick: 10,      // 10 per hour
+  standard: 5,    // 5 per hour
+  premium: 5,     // 5 per hour
+  anonymous: 3,   // 3 per hour for anonymous
+};
+
+function checkRateLimit(identifier: string, tier: string): { allowed: boolean; remaining: number; resetAt: number } {
+  const now = Date.now();
+  const key = `${identifier}:analysis`;
+  const limit = RATE_LIMITS[tier as keyof typeof RATE_LIMITS] || RATE_LIMITS.anonymous;
+
+  const record = rateLimitMap.get(key);
+
+  if (!record || record.resetAt < now) {
+    rateLimitMap.set(key, { count: 1, resetAt: now + RATE_LIMIT_WINDOW_MS });
+    return { allowed: true, remaining: limit - 1, resetAt: now + RATE_LIMIT_WINDOW_MS };
+  }
+
+  if (record.count >= limit) {
+    return { allowed: false, remaining: 0, resetAt: record.resetAt };
+  }
+
+  record.count++;
+  return { allowed: true, remaining: limit - record.count, resetAt: record.resetAt };
+}
 
 // =============================================================================
 // REQUEST VALIDATION
@@ -98,11 +138,52 @@ const AnalysisRequestSchema = z.object({
   intake: z.union([QuickIntakeSchema, FullIntakeSchema]),
   // User info
   userEmail: z.string().email().optional(),
-  // Payment verification (for non-quick tiers)
-  paymentIntentId: z.string().optional(),
+  // Payment verification - Stripe checkout session ID (required for paid tiers)
+  checkoutSessionId: z.string().optional(),
   // Options
   runAsync: z.boolean().optional().default(false),
 });
+
+// =============================================================================
+// PAYMENT VERIFICATION
+// =============================================================================
+
+async function verifyPayment(checkoutSessionId: string, expectedTier: string): Promise<{
+  verified: boolean;
+  error?: string;
+  paymentIntentId?: string;
+}> {
+  try {
+    const session = await stripe.checkout.sessions.retrieve(checkoutSessionId);
+
+    // Check payment status
+    if (session.payment_status !== 'paid') {
+      return { verified: false, error: 'Payment not completed' };
+    }
+
+    // Check tier matches
+    if (session.metadata?.tier !== expectedTier) {
+      return { verified: false, error: 'Payment tier mismatch' };
+    }
+
+    // Check session hasn't been used already
+    const existingSession = await prisma.analysisSession.findFirst({
+      where: { stripePaymentId: checkoutSessionId },
+    });
+
+    if (existingSession) {
+      return { verified: false, error: 'Payment already used' };
+    }
+
+    return {
+      verified: true,
+      paymentIntentId: session.payment_intent as string,
+    };
+  } catch (error) {
+    console.error('Payment verification failed:', error);
+    return { verified: false, error: 'Payment verification failed' };
+  }
+}
 
 // =============================================================================
 // POST - Start Analysis
@@ -123,7 +204,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const { essayText, tier, intake, userEmail, paymentIntentId, runAsync } = validation.data;
+    const { essayText, tier, intake, userEmail, checkoutSessionId, runAsync } = validation.data;
 
     // Get tier config
     const tierConfig = getTierConfig(tier as AnalysisTier);
@@ -131,9 +212,34 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Invalid tier' }, { status: 400 });
     }
 
-    // Get authenticated user (optional for quick tier)
+    // Get authenticated user
     const supabase = await createClient();
     const { data: { user } } = await supabase.auth.getUser();
+
+    // Get client IP for rate limiting anonymous users
+    const clientIp = request.headers.get('x-forwarded-for')?.split(',')[0] ||
+                     request.headers.get('x-real-ip') ||
+                     'unknown';
+    const rateLimitId = user?.id || clientIp;
+
+    // Check rate limit
+    const rateLimit = checkRateLimit(rateLimitId, user ? tier : 'anonymous');
+    if (!rateLimit.allowed) {
+      return NextResponse.json(
+        {
+          error: 'Rate limit exceeded',
+          message: 'Too many analysis requests. Please try again later.',
+          retryAfter: Math.ceil((rateLimit.resetAt - Date.now()) / 1000),
+        },
+        {
+          status: 429,
+          headers: {
+            'Retry-After': String(Math.ceil((rateLimit.resetAt - Date.now()) / 1000)),
+            'X-RateLimit-Remaining': '0',
+          },
+        }
+      );
+    }
 
     // Email required for Standard/Premium
     const effectiveEmail = userEmail || user?.email;
@@ -153,11 +259,31 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // For non-quick tiers, verify payment (simplified - in production, verify with Stripe)
-    if (tier !== 'quick' && !paymentIntentId) {
-      // Allow without payment for now - in production, require payment verification
-      // return NextResponse.json({ error: 'Payment required for this tier' }, { status: 402 });
+    // PAYMENT VERIFICATION for paid tiers
+    let verifiedPaymentId: string | undefined;
+
+    if (tier !== 'quick') {
+      // Standard and Premium require payment
+      if (!checkoutSessionId) {
+        return NextResponse.json(
+          { error: 'Payment required', message: 'Please complete checkout first.' },
+          { status: 402 }
+        );
+      }
+
+      const paymentVerification = await verifyPayment(checkoutSessionId, tier);
+      if (!paymentVerification.verified) {
+        return NextResponse.json(
+          { error: 'Payment verification failed', message: paymentVerification.error },
+          { status: 402 }
+        );
+      }
+
+      verifiedPaymentId = checkoutSessionId;
     }
+
+    // Generate access token for guest sessions (security)
+    const accessToken = !user ? nanoid(32) : undefined;
 
     // Create analysis session
     const session = await prisma.analysisSession.create({
@@ -165,27 +291,56 @@ export async function POST(request: NextRequest) {
         userId: user?.id,
         userEmail: effectiveEmail || 'anonymous@temp.com',
         tier,
-        paidAmount: tierConfig.priceInCents,
-        stripePaymentId: paymentIntentId,
+        paidAmount: tier === 'quick' ? 0 : tierConfig.priceInCents, // Quick is free preview
+        stripePaymentId: verifiedPaymentId,
         essayText,
-        intakeData: intake,
+        intakeData: {
+          ...intake,
+          _accessToken: accessToken, // Store access token for guest sessions
+        },
         targetSchool: getTargetSchool(intake),
         essayType: getEssayType(intake),
         status: 'ANALYZING',
       },
     });
 
+    // Log audit event
+    await prisma.auditLog.create({
+      data: {
+        userId: user?.id,
+        action: 'ANALYSIS_STARTED',
+        resource: 'ANALYSIS_SESSION',
+        details: {
+          sessionId: session.id,
+          tier,
+          targetSchool: getTargetSchool(intake),
+        },
+      },
+    }).catch(console.error);
+
     // If async, return session ID immediately
     if (runAsync) {
       // Fire and forget the analysis
       runAnalysisAsync(session.id, essayText, tier as AnalysisTier, intake, effectiveEmail);
 
-      return NextResponse.json({
+      const response: any = {
         success: true,
         sessionId: session.id,
         status: 'analyzing',
         progressUrl: `/api/tiered-analysis/${session.id}/progress`,
         message: 'Analysis started. Use progressUrl to track progress via SSE.',
+      };
+
+      // Include access token for guest users
+      if (accessToken) {
+        response.accessToken = accessToken;
+        response.note = 'Save this accessToken - you need it to retrieve results.';
+      }
+
+      return NextResponse.json(response, {
+        headers: {
+          'X-RateLimit-Remaining': String(rateLimit.remaining),
+        },
       });
     }
 
@@ -228,7 +383,7 @@ export async function POST(request: NextRequest) {
       }).catch(console.error);
     }
 
-    return NextResponse.json({
+    const response: any = {
       success: true,
       sessionId: session.id,
       tier,
@@ -236,15 +391,27 @@ export async function POST(request: NextRequest) {
       meta: {
         processingTimeMs: Date.now() - startTime,
       },
+    };
+
+    // Include access token for guest users
+    if (accessToken) {
+      response.accessToken = accessToken;
+    }
+
+    return NextResponse.json(response, {
+      headers: {
+        'X-RateLimit-Remaining': String(rateLimit.remaining),
+      },
     });
 
   } catch (error) {
     console.error('Tiered analysis error:', error);
 
+    // Don't expose internal error details
     return NextResponse.json(
       {
         error: 'Analysis failed',
-        message: error instanceof Error ? error.message : 'Unknown error',
+        message: 'An unexpected error occurred. Please try again.',
       },
       { status: 500 }
     );
@@ -306,7 +473,7 @@ export async function GET() {
         optional: ['isFirstGen', 'intendedMajor'],
       },
       standardPremiumTier: {
-        required: ['essayContext.targetSchool', 'essayContext.essayType'],
+        required: ['essayContext.targetSchool', 'essayContext.essayType', 'checkoutSessionId'],
         recommended: [
           'demographics',
           'academic.intendedMajor',
