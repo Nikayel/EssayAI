@@ -13,7 +13,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { createClient } from '@/lib/supabase/server';
 import { prisma } from '@/lib/prisma';
-import { getTierConfig, config } from '@/lib/config';
+import { getTierConfig, config, TIER_CONFIGS } from '@/lib/config';
 import { runTieredAnalysis, validateIntakeForTier } from '@/lib/scoring/tiers';
 import { stripe } from '@/lib/stripe/config';
 import { nanoid } from 'nanoid';
@@ -348,7 +348,7 @@ export async function POST(request: NextRequest) {
     const result = await runTieredAnalysis(
       essayText,
       tier as AnalysisTier,
-      tier === 'quick' ? (intake as QuickIntake) : (intake as FullIntake),
+      tier === 'quick' ? (intake as QuickIntake) : (intake as unknown as FullIntake),
       {
         sessionId: session.id,
         userEmail: effectiveEmail,
@@ -430,7 +430,7 @@ export async function GET() {
       quick: {
         name: 'Essay Score',
         price: '$9.99',
-        priceInCents: config.pricing.tiers.quick.priceInCents,
+        priceInCents: TIER_CONFIGS.quick.priceInCents,
         features: [
           'Overall score with label',
           '3-5 specific actionable items',
@@ -442,7 +442,7 @@ export async function GET() {
       standard: {
         name: 'Full Analysis',
         price: '$79',
-        priceInCents: config.pricing.tiers.standard.priceInCents,
+        priceInCents: TIER_CONFIGS.standard.priceInCents,
         features: [
           'Everything in Quick',
           'Full dimension breakdown',
@@ -456,7 +456,7 @@ export async function GET() {
       premium: {
         name: 'Expert Review',
         price: '$249',
-        priceInCents: config.pricing.tiers.premium.priceInCents,
+        priceInCents: TIER_CONFIGS.premium.priceInCents,
         features: [
           'Everything in Standard',
           'AI-generated rewrite suggestions',

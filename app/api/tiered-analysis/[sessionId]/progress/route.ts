@@ -289,10 +289,11 @@ async function runRealStep(
       // Run actual cliché detection
       try {
         const result = detectGenericPhrases(essayText);
-        if (result.phrases && result.phrases.length > 0) {
-          const firstCliche = result.phrases[0];
+        const allFlags = [...result.hardFlags, ...result.softFlags];
+        if (allFlags.length > 0) {
+          const firstCliche = allFlags[0];
           const thinking = generateThinkingMessage('cliche_found', {
-            phrase: firstCliche.phrase || firstCliche,
+            phrase: firstCliche.phrase.phrase || firstCliche.match,
             percent: Math.floor(Math.random() * 30) + 20, // 20-50%
           });
           if (thinking) {

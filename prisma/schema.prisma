@@ -865,3 +865,31 @@ enum HumanReviewStatus {
   COMPLETED       // Done
   OVERDUE         // Past due date
 }
+
+// =============================================================================
+// EMAIL MARKETING
+// =============================================================================
+
+/// Email leads collected for marketing
+model EmailLead {
+  id              String    @id @default(cuid())
+  email           String    @unique
+  firstName       String?
+  sources         String[]  // Where they signed up: homepage, pricing, popup, etc.
+  leadMagnets     String[]  // Which resources they downloaded
+  referralCode    String?
+  marketingConsent Boolean  @default(true)
+  unsubscribed    Boolean   @default(false)
+  unsubscribedAt  DateTime?
+  lastActivityAt  DateTime  @default(now())
+  convertedAt     DateTime? // When they became a paying customer
+  convertedUserId String?
+  metadata        Json?     // IP, user agent, etc.
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  @@index([email])
+  @@index([unsubscribed])
+  @@index([createdAt])
+  @@map("email_leads")
+}

@@ -317,7 +317,7 @@ async function scoreOpeningHook(
 
   return {
     score: Math.max(0, Math.min(4, Math.round(score * 10) / 10)),
-    hookType: analysis.hookType,
+    hookType: (analysis.hookType === 'dialogue' ? 'scene' : analysis.hookType) as SpecificityScore['openingHook']['hookType'],
     grabsAttention: analysis.grabsAttention,
     firstSentence: analysis.firstSentence,
     feedback: analysis.feedback,

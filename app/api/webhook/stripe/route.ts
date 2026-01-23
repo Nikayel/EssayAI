@@ -4,6 +4,16 @@ import { prisma } from '@/lib/prisma';
 import { analyzeEssay } from '@/lib/ai/analyzer';
 import { sendEmail, analysisCompleteEmail, reviewAssignedEmail } from '@/lib/email/send';
 import { trackUpsellPurchase } from '@/lib/analytics/track';
+import {
+  logWebhookEvent,
+  isEventProcessed,
+  markEventProcessed,
+  withRetry,
+  classifyError,
+  trackWebhookMetrics,
+  alertWebhookFailure,
+  runAsync,
+} from '@/lib/webhook/utils';
 import Stripe from 'stripe';
 
 /**
@@ -350,11 +360,13 @@ async function queueHumanReview(analysisSession: any) {
   // Create human review assignment
   const assignment = await prisma.humanReviewAssignment.create({
     data: {
-      sessionId: analysisSession.id,
       reviewerId: availableReviewer?.id,
       studentEmail: analysisSession.userEmail,
+      essayText: analysisSession.essayText,
       targetSchool: analysisSession.targetSchool,
       essayType: analysisSession.essayType,
+      intakeData: analysisSession.intakeData,
+      aiAnalysis: analysisSession.aiResult || {},
       dueAt,
       status: availableReviewer ? 'ASSIGNED' : 'QUEUED',
       assignedAt: availableReviewer ? new Date() : undefined,

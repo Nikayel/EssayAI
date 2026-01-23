@@ -4,7 +4,7 @@
  */
 
 import type { StudentIntake, EssayAnalysisResult, BenchmarkComparison } from './types';
-import type { StudentProfile, RAGContext, AnalysisHistory } from '../rag/types';
+import type { StudentProfile, RetrievedContext, AnalysisHistoryEntry } from '../rag/types';
 
 // =============================================================================
 // CONVERT INTAKE TO STUDENT PROFILE (for RAG compatibility)
@@ -89,7 +89,7 @@ export function studentProfileToIntake(
       immigrationStory: profile.immigrationStory,
       geographicContext: profile.geographicContext || 'suburban',
       schoolType: profile.schoolType || 'public',
-      familyResponsibilities: profile.familyResponsibilities || [],
+      familyResponsibilities: (profile.familyResponsibilities || []) as ('none' | 'caregiving' | 'work_to_support' | 'sibling_care' | 'translation')[],
     },
     academic: {
       intendedMajor: profile.intendedMajor || '',
@@ -114,7 +114,7 @@ export function studentProfileToIntake(
       workExperience: profile.workExperience?.map(w => ({
         job: w.job,
         hoursPerWeek: w.hoursPerWeek,
-        reasonForWorking: w.reasonForWorking as StudentIntake['activities']['workExperience'][0]['reasonForWorking'],
+        reasonForWorking: w.reasonForWorking as 'financial_necessity' | 'career_exploration' | 'family_business' | 'personal_growth',
       })),
       leadershipRoles: profile.leadershipRoles || [],
       summerExperiences: profile.summerExperiences,
@@ -145,11 +145,11 @@ export function scoringResultToAnalysisHistory(
   result: EssayAnalysisResult,
   essayVersionId: string,
   userId: string
-): Omit<AnalysisHistory, 'id' | 'createdAt'> {
+): AnalysisHistoryEntry {
   return {
     essayVersionId,
     userId,
-    analysisType: 'scoring_engine',
+    essayType: 'scoring',
     overallScore: result.overallScore,
     dimensionScores: {
       authenticity: result.dimensions.authenticity.totalScore,
@@ -158,24 +158,13 @@ export function scoringResultToAnalysisHistory(
       specificity: result.dimensions.specificity.totalScore,
       risk: result.dimensions.risk.totalScore,
     },
-    issuesFound: result.topIssues.map(i => ({
-      type: i.dimension.toLowerCase(),
-      description: i.issue,
-      severity: 'medium',
-      location: undefined,
-    })),
-    patternsMatched: [], // Would be filled from RAG retrieval
+    issuesIdentified: result.topIssues.map(i => i.issue),
+    patternsMatched: [],
     ragContextUsed: {
-      exampleEssays: [],
-      feedbackPatterns: [],
-      schoolInsights: [],
+      exampleIds: [],
+      patternIds: [],
+      insightIds: [],
     },
-    sanitizationReport: {
-      trustScore: 100, // Scoring engine is deterministic
-      modificationsApplied: [],
-      originalResponse: result,
-    },
-    processingTimeMs: result.metadata.processingTimeMs,
   };
 }
 
@@ -184,7 +173,7 @@ export function scoringResultToAnalysisHistory(
 // =============================================================================
 
 export interface RAGEnhancedScoringOptions {
-  ragContext?: RAGContext;
+  ragContext?: RetrievedContext;
   similarEssays?: Array<{
     score: number;
     school: string;

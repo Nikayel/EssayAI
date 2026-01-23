@@ -143,22 +143,22 @@ export const BLUNT_TEMPLATES = {
     could_be_anywhere: (school: string) => ({
       headline: `This essay could be sent to any school`,
       explanation: `You mention ${school} but say nothing specific. AOs can tell when you copy-paste.`,
-      aoThought: '"We're clearly their backup school."',
+      aoThought: `"We're clearly their backup school."`,
       fix: `Name a specific program, professor, course, or tradition at ${school}. Research for 30 minutes.`,
     }),
 
     name_dropping: (school: string) => ({
       headline: `Name-dropping ${school} programs without substance`,
-      explanation: 'Mentioning programs isn\'t enough. Anyone can Google a list.',
-      aoThought: '"Surface-level research. Not genuinely interested."',
-      fix: 'Explain WHY that specific program matters to YOUR story. Connect it to your experience.',
+      explanation: `Mentioning programs isn't enough. Anyone can Google a list.`,
+      aoThought: `"Surface-level research. Not genuinely interested."`,
+      fix: `Explain WHY that specific program matters to YOUR story. Connect it to your experience.`,
     }),
 
     prestige_focused: (school: string) => ({
       headline: `You sound like you want ${school} for prestige, not fit`,
-      explanation: 'Phrases like "best school," "prestigious," or "world-renowned" are red flags.',
-      aoThought: '"This student wants our name, not our education."',
-      fix: 'Focus on what you\'ll DO at the school, not what the school\'s reputation will do for you.',
+      explanation: `Phrases like "best school," "prestigious," or "world-renowned" are red flags.`,
+      aoThought: `"This student wants our name, not our education."`,
+      fix: `Focus on what you'll DO at the school, not what the school's reputation will do for you.`,
     }),
   },
 
@@ -299,7 +299,7 @@ export function generateBluntFeedback(
 
   const template = specific
     ? categoryTemplates[specific as keyof typeof categoryTemplates]
-    : categoryTemplates.generic;
+    : (categoryTemplates as Record<string, unknown>)['generic'];
 
   if (!template) return null;
 
@@ -460,10 +460,4 @@ function determineSeverity(issueType: string): BluntFeedback['severity'] {
   return 'minor';
 }
 
-// =============================================================================
-// EXPORTS
-// =============================================================================
-
-export {
-  BLUNT_TEMPLATES,
-};
+// BLUNT_TEMPLATES is exported inline at declaration

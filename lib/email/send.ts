@@ -1,6 +1,13 @@
 import { Resend } from 'resend';
 
+// Re-export all templates from the centralized template file
+export * from './templates';
+
 const resend = new Resend(process.env.RESEND_API_KEY);
+
+// Retry configuration
+const MAX_RETRIES = 3;
+const RETRY_DELAY_MS = 1000;
 
 export interface EmailParams {
   to: string;
@@ -9,27 +16,59 @@ export interface EmailParams {
 }
 
 /**
- * Send email via Resend
+ * Send email via Resend with retry logic
  */
-export async function sendEmail(params: EmailParams) {
-  try {
-    const { data, error } = await resend.emails.send({
-      from: 'EssayEdge AI <noreply@essayedgeai.com>',
-      to: params.to,
-      subject: params.subject,
-      html: params.html,
-    });
+export async function sendEmail(params: EmailParams): Promise<{ success: boolean; data?: any; error?: any }> {
+  let lastError: any;
 
-    if (error) {
-      console.error('Email send error:', error);
-      throw error;
+  for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
+    try {
+      const { data, error } = await resend.emails.send({
+        from: 'EssayEdge AI <noreply@essayedgeai.com>',
+        to: params.to,
+        subject: params.subject,
+        html: params.html,
+      });
+
+      if (error) {
+        lastError = error;
+        console.error(`Email send error (attempt ${attempt}/${MAX_RETRIES}):`, error);
+
+        // Don't retry for certain errors
+        if (isNonRetryableError(error)) {
+          return { success: false, error };
+        }
+
+        if (attempt < MAX_RETRIES) {
+          await sleep(RETRY_DELAY_MS * attempt);
+          continue;
+        }
+      }
+
+      return { success: true, data };
+    } catch (error) {
+      lastError = error;
+      console.error(`Email send failed (attempt ${attempt}/${MAX_RETRIES}):`, error);
+
+      if (attempt < MAX_RETRIES) {
+        await sleep(RETRY_DELAY_MS * attempt);
+      }
     }
-
-    return { success: true, data };
-  } catch (error) {
-    console.error('Email send failed:', error);
-    return { success: false, error };
   }
+
+  console.error('Email send failed after all retries:', lastError);
+  return { success: false, error: lastError };
+}
+
+function isNonRetryableError(error: any): boolean {
+  // Don't retry validation errors, invalid recipients, etc.
+  const nonRetryableCodes = ['validation_error', 'invalid_to_address', 'unsubscribed'];
+  return nonRetryableCodes.includes(error?.name?.toLowerCase()) ||
+         nonRetryableCodes.includes(error?.code?.toLowerCase());
+}
+
+function sleep(ms: number): Promise<void> {
+  return new Promise(resolve => setTimeout(resolve, ms));
 }
 
 /**

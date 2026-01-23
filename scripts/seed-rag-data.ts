@@ -96,7 +96,7 @@ async function seedFeedbackPatterns(): Promise<number> {
           severity: pattern.severity,
           essayType: pattern.essayType || null,
           schoolId: pattern.schoolId || null,
-          embedding: embedding,
+          embedding: embedding as any,
           avgScoreImprovement: 0,
           frequency: 0,
           successRate: 0,
@@ -151,7 +151,7 @@ async function seedSchoolInsights(): Promise<number> {
           source: insight.source || null,
           essayTypes: insight.essayTypes,
           relevanceScore: insight.relevanceScore,
-          embedding: embedding,
+          embedding: embedding as any,
           isActive: true,
         },
       });
@@ -208,7 +208,7 @@ async function seedExampleEssays(): Promise<number> {
           spikeCategory: essay.spikeCategory,
           strengthNotes: essay.strengthNotes,
           keyTechniques: essay.keyTechniques,
-          embedding: embedding,
+          embedding: embedding as any,
           isActive: true,
         },
       });

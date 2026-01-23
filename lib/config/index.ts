@@ -129,7 +129,7 @@ export async function setConfigOverride(
   updatedBy?: string
 ): Promise<void> {
   // Import prisma lazily to avoid circular deps
-  const { prisma } = await import('@/lib/db');
+  const { prisma } = await import('@/lib/prisma');
 
   await prisma.configOverride.upsert({
     where: { key: path },
@@ -154,7 +154,7 @@ export async function setConfigOverride(
 async function getConfigOverride(path: string): Promise<unknown | null> {
   try {
     // Import prisma lazily to avoid circular deps
-    const { prisma } = await import('@/lib/db');
+    const { prisma } = await import('@/lib/prisma');
 
     const override = await prisma.configOverride.findUnique({
       where: { key: path },

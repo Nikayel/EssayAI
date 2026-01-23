@@ -224,14 +224,18 @@ export async function analyzeEssayWithRAG(
   );
 
   // Step 9: Prioritize suggestions based on profile
-  if (profile?.biggestWorry && analysis.suggestions.top5) {
-    analysis.suggestions.top5 = prioritizeSuggestions(
-      analysis.suggestions.top5.map(s => ({
-        ...s,
-        estimated_impact: 'medium' as const,
-      })),
+  if (profile?.biggestWorry && analysis.suggestions?.top5) {
+    const suggestionsWithImpact = analysis.suggestions.top5.map(s => ({
+      ...s,
+      estimated_impact: 'medium' as const,
+      why_it_matters: (s as any).why_it_matters || 'Improves essay quality',
+      example_edit: (s as any).example_edit || '',
+    }));
+    const prioritized = prioritizeSuggestions(
+      suggestionsWithImpact as any,
       profile.biggestWorry
-    ) as typeof analysis.suggestions.top5;
+    );
+    analysis.suggestions.top5 = prioritized as any;
   }
 
   // Step 10: Store in analysis history for feedback loop

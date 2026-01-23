@@ -541,7 +541,7 @@ async function generateBenchmark(
   let similarEssaysCount: number | null = null;
 
   try {
-    const { prisma } = await import('@/lib/db');
+    const { prisma } = await import('@/lib/prisma');
 
     // Query actual analysis history for similar scores
     const similarCount = await prisma.analysisHistory.count({
@@ -600,9 +600,4 @@ function isIntakeComplete(intake: StudentIntake): boolean {
   return hasBasics && hasVoice;
 }
 
-// =============================================================================
-// EXPORTS
-// =============================================================================
-
-export { analyzeEssay };
-export type { ScoringOptions };
+// Exports defined inline at declaration

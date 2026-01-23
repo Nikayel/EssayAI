@@ -450,21 +450,31 @@ function AIDetectionCard({ result }: { result: StandardAnalysisResult }) {
   );
 }
 
+const DIMENSION_META: Record<string, { name: string; maxScore: number }> = {
+  authenticity: { name: 'Authenticity & Voice', maxScore: 25 },
+  insight: { name: 'Insight & Reflection', maxScore: 25 },
+  schoolFit: { name: 'School Fit', maxScore: 20 },
+  specificity: { name: 'Specificity & Detail', maxScore: 20 },
+  risk: { name: 'Risk Assessment', maxScore: 10 },
+};
+
 function DimensionBreakdown({ dimensions }: { dimensions: StandardAnalysisResult['dimensions'] }) {
   return (
     <div className="space-y-4">
-      {Object.entries(dimensions).map(([key, dim]) => (
-        <div key={key} className="p-4 border rounded-lg">
-          <div className="flex items-center justify-between mb-2">
-            <span className="font-medium">{dim.name}</span>
-            <span className="font-bold text-lg">
-              {dim.totalScore}/{dim.maxScore}
-            </span>
+      {Object.entries(dimensions).map(([key, dim]) => {
+        const meta = DIMENSION_META[key] || { name: key, maxScore: 25 };
+        return (
+          <div key={key} className="p-4 border rounded-lg">
+            <div className="flex items-center justify-between mb-2">
+              <span className="font-medium">{meta.name}</span>
+              <span className="font-bold text-lg">
+                {dim.totalScore}/{meta.maxScore}
+              </span>
+            </div>
+            <Progress value={(dim.totalScore / meta.maxScore) * 100} className="h-2 mb-2" />
           </div>
-          <Progress value={(dim.totalScore / dim.maxScore) * 100} className="h-2 mb-2" />
-          <p className="text-sm text-gray-600">{dim.summary}</p>
-        </div>
-      ))}
+        );
+      })}
     </div>
   );
 }

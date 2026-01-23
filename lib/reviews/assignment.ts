@@ -43,7 +43,7 @@ export async function queueForHumanReview(
   sessionId: string,
   data: ReviewData
 ): Promise<ReviewAssignment> {
-  const { prisma } = await import('@/lib/db');
+  const { prisma } = await import('@/lib/prisma');
 
   const dueAt = new Date(Date.now() + 48 * 60 * 60 * 1000); // 48 hours
 
@@ -107,7 +107,7 @@ export async function queueForHumanReview(
 // =============================================================================
 
 async function findAvailableReviewer(targetSchool?: string) {
-  const { prisma } = await import('@/lib/db');
+  const { prisma } = await import('@/lib/prisma');
 
   // Find active reviewers with capacity
   const reviewers = await prisma.humanReviewer.findMany({
@@ -186,7 +186,7 @@ export async function markReviewComplete(
   reviewerId: string,
   notes?: string
 ): Promise<void> {
-  const { prisma } = await import('@/lib/db');
+  const { prisma } = await import('@/lib/prisma');
 
   await prisma.humanReviewAssignment.update({
     where: { id: assignmentId },
@@ -212,7 +212,7 @@ export async function markReviewComplete(
 // =============================================================================
 
 export async function getReviewerQueue(reviewerId: string): Promise<ReviewAssignment[]> {
-  const { prisma } = await import('@/lib/db');
+  const { prisma } = await import('@/lib/prisma');
 
   const assignments = await prisma.humanReviewAssignment.findMany({
     where: {
@@ -246,7 +246,7 @@ export async function getReviewerQueue(reviewerId: string): Promise<ReviewAssign
 // =============================================================================
 
 export async function getAssignmentDetails(assignmentId: string) {
-  const { prisma } = await import('@/lib/db');
+  const { prisma } = await import('@/lib/prisma');
 
   const assignment = await prisma.humanReviewAssignment.findUnique({
     where: { id: assignmentId },
@@ -273,8 +273,4 @@ export async function getAssignmentDetails(assignmentId: string) {
   };
 }
 
-// =============================================================================
-// EXPORTS
-// =============================================================================
-
-export type { ReviewData };
+// ReviewData exported inline at declaration
