@@ -13,6 +13,7 @@ import type {
   BenchmarkComparison,
   AnalysisMetadata,
   ScoreLabel,
+  SchoolScoringConfig,
 } from './types';
 
 import { scoreAuthenticity } from './scorers/authenticity';
@@ -22,7 +23,7 @@ import { scoreSpecificity } from './scorers/specificity';
 import { scoreRisk } from './scorers/risk';
 import { parseText } from './text-utils';
 import { getSchoolConfig, generateSchoolFeedback, detectSchoolKeywords } from './school-configs';
-import { SCORE_THRESHOLDS } from './types';
+import { config, getScoreLabel as getScoreLabelFromConfig } from '@/lib/config';
 
 // =============================================================================
 // MAIN ANALYSIS FUNCTION
@@ -59,16 +60,27 @@ export async function analyzeEssay(
     scoreRisk(essayText, intake),
   ]);
 
-  // Calculate overall score
-  const overallScore =
-    authenticityScore.totalScore +
-    insightScore.totalScore +
-    schoolFitScore.totalScore +
-    specificityScore.totalScore +
-    riskScore.totalScore;
+  // Get school-specific weights (or use defaults)
+  const schoolConfig = getSchoolConfig(intake.essayContext?.targetSchool);
+  const weights = schoolConfig?.weights ?? config.scoring.defaultWeights;
+  const maxScores = config.scoring.dimensionMaxScores;
 
-  // Get score label
-  const scoreLabel = getScoreLabel(overallScore);
+  // Calculate overall score using school-specific weights
+  // Normalize each dimension to 0-1, multiply by weight, sum to 100
+  const overallScore = calculateWeightedScore(
+    {
+      authenticity: authenticityScore.totalScore,
+      insight: insightScore.totalScore,
+      schoolFit: schoolFitScore.totalScore,
+      specificity: specificityScore.totalScore,
+      risk: riskScore.totalScore,
+    },
+    weights,
+    maxScores
+  );
+
+  // Get score label using centralized config
+  const scoreLabel = getScoreLabelFromConfig(overallScore);
 
   // Generate annotations
   const annotations = options.includeAnnotations !== false
@@ -127,7 +139,9 @@ export async function analyzeEssay(
     topIssues,
     strengths,
     schoolFeedback,
-    benchmark: options.includeBenchmark ? await generateBenchmark(overallScore) : undefined,
+    benchmark: options.includeBenchmark
+      ? await generateBenchmark(overallScore, intake.essayContext?.targetSchool)
+      : undefined,
     metadata,
   };
 }
@@ -136,12 +150,43 @@ export async function analyzeEssay(
 // HELPER FUNCTIONS
 // =============================================================================
 
-function getScoreLabel(score: number): ScoreLabel {
-  if (score >= SCORE_THRESHOLDS.exceptional.min) return 'exceptional';
-  if (score >= SCORE_THRESHOLDS.strong.min) return 'strong';
-  if (score >= SCORE_THRESHOLDS.competitive.min) return 'competitive';
-  if (score >= SCORE_THRESHOLDS.developing.min) return 'developing';
-  return 'needs_work';
+/**
+ * Calculate weighted overall score using school-specific weights
+ * Each dimension is normalized to 0-1, multiplied by weight, summed to 100
+ */
+function calculateWeightedScore(
+  scores: {
+    authenticity: number;
+    insight: number;
+    schoolFit: number;
+    specificity: number;
+    risk: number;
+  },
+  weights: {
+    authenticity: number;
+    insight: number;
+    schoolFit: number;
+    specificity: number;
+    risk: number;
+  },
+  maxScores: {
+    authenticity: number;
+    insight: number;
+    schoolFit: number;
+    specificity: number;
+    risk: number;
+  }
+): number {
+  // Normalize each score to 0-1, apply weight
+  const authenticityNorm = (scores.authenticity / maxScores.authenticity) * weights.authenticity;
+  const insightNorm = (scores.insight / maxScores.insight) * weights.insight;
+  const schoolFitNorm = (scores.schoolFit / maxScores.schoolFit) * weights.schoolFit;
+  const specificityNorm = (scores.specificity / maxScores.specificity) * weights.specificity;
+  const riskNorm = (scores.risk / maxScores.risk) * weights.risk;
+
+  // Sum and scale to 100
+  const totalWeighted = authenticityNorm + insightNorm + schoolFitNorm + specificityNorm + riskNorm;
+  return Math.round(totalWeighted * 100 * 10) / 10; // Round to 1 decimal
 }
 
 function generateScoreSummary(
@@ -473,9 +518,16 @@ function generateSchoolSpecificFeedback(
   };
 }
 
-async function generateBenchmark(score: number): Promise<BenchmarkComparison> {
-  // In production, this would query actual data
-  // For now, return estimated percentiles
+/**
+ * Generate benchmark comparison
+ * Uses real data when available, otherwise provides honest estimates
+ */
+async function generateBenchmark(
+  score: number,
+  schoolId?: string
+): Promise<BenchmarkComparison> {
+  // Calculate percentile based on score thresholds
+  // This is an estimate based on typical score distributions
   let percentile = 50;
 
   if (score >= 90) percentile = 95;
@@ -485,14 +537,52 @@ async function generateBenchmark(score: number): Promise<BenchmarkComparison> {
   else if (score >= 50) percentile = 35;
   else percentile = 20;
 
+  // Try to get real comparison data from database
+  let similarEssaysCount: number | null = null;
+
+  try {
+    const { prisma } = await import('@/lib/db');
+
+    // Query actual analysis history for similar scores
+    const similarCount = await prisma.analysisHistory.count({
+      where: {
+        overallScore: {
+          gte: score - 5,
+          lte: score + 5,
+        },
+        ...(schoolId && { schoolId: schoolId.toLowerCase() }),
+      },
+    });
+
+    // Only show if we have meaningful data (>10 essays)
+    if (similarCount >= 10) {
+      similarEssaysCount = similarCount;
+    }
+  } catch {
+    // Database not available, continue without real data
+  }
+
+  // Generate key differences based on score
+  const keyDifferences: string[] = [];
+
+  if (score < 60) {
+    keyDifferences.push('Higher-scoring essays show clear personal transformation');
+  }
+  if (score < 70) {
+    keyDifferences.push('Stronger essays use specific, concrete details instead of generalizations');
+  }
+  if (score < 75) {
+    keyDifferences.push('Top essays avoid generic phrases and demonstrate authentic voice');
+  }
+  if (score < 80) {
+    keyDifferences.push('Exceptional essays have memorable openings that hook readers immediately');
+  }
+
   return {
     percentile,
-    similarSuccessfulEssays: Math.floor(Math.random() * 50) + 10,
-    keyDifferences: [
-      score < 70 ? 'Successful essays have more specific details' : '',
-      score < 60 ? 'Top essays show clearer growth arcs' : '',
-      score < 80 ? 'Stronger essays avoid common cliches' : '',
-    ].filter(Boolean),
+    // Only include count if we have real data, otherwise null (not fake numbers)
+    similarSuccessfulEssays: similarEssaysCount ?? 0,
+    keyDifferences: keyDifferences.slice(0, 3),
     improvementPotential: Math.max(0, 90 - score),
   };
 }
