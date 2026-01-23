@@ -109,6 +109,51 @@ model Profile {
   howHeardAboutUs    String?           // Attribution tracking
   isOnboarded        Boolean   @default(false)
 
+  // =========================================================================
+  // ENHANCED INTAKE - Demographics & Background
+  // =========================================================================
+  isFirstGen              Boolean?          // First-generation college student
+  familyEducationLevel    String?           // no_college, some_college, bachelors, graduate
+  householdIncome         String?           // <30k, 30-75k, 75-150k, 150k+, prefer_not_say
+  isInternational         Boolean?          // International student
+  countryOfOrigin         String?           // Country of citizenship
+  primaryLanguage         String?           // Primary language at home
+  immigrationStory        String?           // citizen, immigrant_self, immigrant_parent, visa, undocumented
+  geographicContext       String?           // rural, suburban, urban
+  schoolType              String?           // public, private, charter, magnet, homeschool, international
+  familyResponsibilities  String[]          // caregiving, work_to_support, sibling_care, translation
+
+  // =========================================================================
+  // ENHANCED INTAKE - Academic Context
+  // =========================================================================
+  academicInterests       String[]          // Areas of intellectual curiosity
+  intellectualPassion     String?   @db.Text // "What keeps you up at night?"
+  hasResearchExperience   Boolean?          // Research experience
+  researchDescription     String?   @db.Text // Description of research
+  academicChallenges      String?   @db.Text // Context for grade dips, etc.
+
+  // =========================================================================
+  // ENHANCED INTAKE - Activities & Experience (structured JSON)
+  // =========================================================================
+  activitiesStructured    Json?             // Array of {name, role, hours, years, impact}
+  workExperience          Json?             // Array of {job, hours, reason}
+  leadershipRoles         String[]          // Leadership positions held
+  summerExperiences       String?   @db.Text // How they use unstructured time
+
+  // =========================================================================
+  // ENHANCED INTAKE - Personal Identity & Story
+  // =========================================================================
+  identityFactors         String[]          // race_ethnicity, gender, lgbtq, disability, etc.
+  significantChallenges   String?   @db.Text // Major obstacles overcome
+  uniquePerspective       String?   @db.Text // "What makes you different?"
+  whatAOsShouldKnow       String?   @db.Text // "What's not in your app?"
+
+  // =========================================================================
+  // ENHANCED INTAKE - Voice Calibration
+  // =========================================================================
+  writingStyle            String?           // formal, conversational, storytelling, analytical
+  usesHumor               Boolean?          // Do they use humor in writing?
+
   // Referral program
   referralCode       String?   @unique // User's unique referral code
 
