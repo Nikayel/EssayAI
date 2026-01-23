@@ -21,6 +21,7 @@ import {
   type StudentProfile,
   type RetrievedContext,
 } from './index';
+import { sanitizeAnalysisOutput, type SanitizationResult } from './output-sanitizer';
 
 // =============================================================================
 // TYPES
@@ -58,10 +59,12 @@ export interface RAGAnalysisResponse extends AnalysisResponse {
     avg_improvement: number;
     evidence?: string;
   }>;
-  validation: {
-    confidence: number;
-    issues_count: number;
-    evidence_verified: boolean;
+  // Code-level anti-hallucination results
+  sanitization: {
+    trust_score: number;        // 0-100, higher = more trustworthy
+    was_modified: boolean;      // True if LLM output was sanitized
+    modifications_count: number; // Number of hallucinations removed
+    modifications: string[];    // List of what was modified
   };
 }
 
@@ -158,9 +161,32 @@ export async function analyzeEssayWithRAG(
   }
 
   // Step 5: Parse and validate response
-  const analysis = parseAndValidate(content.text);
+  const rawAnalysis = parseAndValidate(content.text);
 
-  // Step 5.5: Validate output for hallucination (anti-hallucination guardrail)
+  // Step 5.5: CODE-LEVEL ANTI-HALLUCINATION (cannot be bypassed by prompts)
+  // This is the HARD enforcement layer - it actually modifies the output
+  const sanitizationResult: SanitizationResult = sanitizeAnalysisOutput(
+    rawAnalysis,
+    {
+      essayText: cleanedText,
+      allowedPatternIds: retrievedContext.feedbackPatterns.map(p => p.id),
+      allowedExampleIds: retrievedContext.exampleEssays.map(e => e.id),
+      schoolId,
+    }
+  );
+
+  // Use the SANITIZED analysis, not the raw LLM output
+  const analysis = sanitizationResult.sanitized;
+
+  // Log what was modified (for monitoring, not blocking)
+  if (sanitizationResult.wasModified) {
+    console.warn(
+      `Output sanitized (trust score: ${sanitizationResult.trustScore}/100):`,
+      sanitizationResult.modifications.map(m => `${m.type}: ${m.reason}`).join('; ')
+    );
+  }
+
+  // Additional soft validation (for metrics, already enforced above)
   const outputValidation = validateAnalysisOutput(
     analysis,
     cleanedText,
@@ -169,17 +195,6 @@ export async function analyzeEssayWithRAG(
       exampleIds: retrievedContext.exampleEssays.map(e => e.id),
     }
   );
-
-  // Log any issues (don't fail, but track for monitoring)
-  if (outputValidation.issues.length > 0) {
-    console.warn('Output validation issues:', outputValidation.issues);
-  }
-
-  // Verify quoted evidence actually exists in essay
-  const evidenceCheck = verifyQuotedEvidence(analysis, cleanedText);
-  if (!evidenceCheck.verified) {
-    console.warn('Potential hallucinated quotes:', evidenceCheck.missingQuotes);
-  }
 
   // Step 6: Recalculate overall score for consistency
   const calculatedScore = calculateOverallScore({
@@ -269,10 +284,12 @@ export async function analyzeEssayWithRAG(
       sample_size: benchmarks.sampleSize,
     },
     pattern_matches: patternMatches,
-    validation: {
-      confidence: outputValidation.confidence,
-      issues_count: outputValidation.issues.length,
-      evidence_verified: evidenceCheck.verified,
+    // Code-level anti-hallucination results (HARD enforcement, not prompt-based)
+    sanitization: {
+      trust_score: sanitizationResult.trustScore,
+      was_modified: sanitizationResult.wasModified,
+      modifications_count: sanitizationResult.modifications.length,
+      modifications: sanitizationResult.modifications.map(m => `${m.type}: ${m.reason}`),
     },
   };
 

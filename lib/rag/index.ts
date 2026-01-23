@@ -70,6 +70,16 @@ export {
   SEED_EXAMPLE_ESSAYS,
 } from './seed-data';
 
+// Output Sanitizer (Code-Level Anti-Hallucination)
+export {
+  sanitizeAnalysisOutput,
+  quoteExistsInEssay,
+  createSafeDefault,
+  type SanitizationResult,
+  type SanitizationModification,
+  type SanitizationContext,
+} from './output-sanitizer';
+
 // RAG-Enhanced Analyzer
 export {
   analyzeEssayWithRAG,
