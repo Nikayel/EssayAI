@@ -88,6 +88,38 @@ const INJECTION_PATTERNS_SUSPICIOUS = [
 ];
 
 /**
+ * Advanced injection patterns - encoding/unicode tricks
+ */
+const INJECTION_PATTERNS_ADVANCED = [
+  // Base64 encoded commands (common trick)
+  /(?:aWdub3Jl|Zm9yZ2V0|b3ZlcnJpZGU|cHJldGVuZA)/i, // base64 for ignore, forget, override, pretend
+  // Zero-width characters (used to hide text)
+  /[\u200B\u200C\u200D\uFEFF]/,
+  // Homoglyph attacks (Cyrillic lookalikes)
+  /[АВСЕНІКМОРТХасеіорхуАа]/,  // Cyrillic letters that look like Latin
+  // Markdown/formatting exploits
+  /\[system\]/i,
+  /<!--[\s\S]*?-->/,  // HTML comments
+  // Unicode direction overrides
+  /[\u202A-\u202E\u2066-\u2069]/,
+  // Invisible separators
+  /[\u2028\u2029]/,
+  // Context window stuffing
+  /(.)\1{50,}/,  // Same character 50+ times
+];
+
+/**
+ * Output manipulation attempts
+ */
+const OUTPUT_MANIPULATION_PATTERNS = [
+  /return\s+this\s+(exact|specific)/i,
+  /output\s+(must|should)\s+be\s+exactly/i,
+  /json\s*:\s*\{/i,
+  /start\s+(your\s+)?(response|answer)\s+with/i,
+  /end\s+(your\s+)?(response|answer)\s+with/i,
+];
+
+/**
  * PII patterns
  * Match with caution - names/places are common in essays
  */
@@ -314,6 +346,37 @@ function checkPromptInjection(text: string): GuardrailViolation[] {
         evidence: match[0].slice(0, 50),
       });
       break; // One is enough to block
+    }
+  }
+
+  // Advanced patterns - encoding/unicode tricks
+  if (violations.length === 0) {
+    for (const pattern of INJECTION_PATTERNS_ADVANCED) {
+      const match = text.match(pattern);
+      if (match) {
+        violations.push({
+          type: 'prompt_injection',
+          severity: 'block',
+          message: 'Detected obfuscated content or encoding tricks',
+          evidence: '[hidden characters detected]',
+        });
+        break;
+      }
+    }
+  }
+
+  // Output manipulation attempts
+  if (violations.length === 0) {
+    for (const pattern of OUTPUT_MANIPULATION_PATTERNS) {
+      const match = text.match(pattern);
+      if (match) {
+        violations.push({
+          type: 'prompt_injection',
+          severity: 'warn',
+          message: 'Detected attempt to manipulate output format',
+          evidence: match[0].slice(0, 50),
+        });
+      }
     }
   }
 
@@ -586,5 +649,192 @@ export function validateEssayType(essayType: string): boolean {
 // =============================================================================
 // EXPORTS
 // =============================================================================
+
+// =============================================================================
+// OUTPUT GUARDRAILS (Validate Claude's responses)
+// =============================================================================
+
+/**
+ * Output validation result
+ */
+export interface OutputValidationResult {
+  valid: boolean;
+  issues: OutputIssue[];
+  sanitizedOutput?: unknown;
+  confidence: number;
+}
+
+interface OutputIssue {
+  type: 'hallucination' | 'format_error' | 'unsafe_content' | 'inconsistency';
+  message: string;
+  field?: string;
+}
+
+/**
+ * Validate Claude's analysis output for hallucination and safety
+ */
+export function validateAnalysisOutput(
+  output: unknown,
+  essayText: string,
+  retrievedContext?: { patternIds?: string[]; exampleIds?: string[] }
+): OutputValidationResult {
+  const issues: OutputIssue[] = [];
+
+  // Must be an object
+  if (!output || typeof output !== 'object') {
+    return {
+      valid: false,
+      issues: [{ type: 'format_error', message: 'Output is not a valid object' }],
+      confidence: 0,
+    };
+  }
+
+  const result = output as Record<string, unknown>;
+
+  // 1. Validate required fields exist
+  const requiredFields = ['meta', 'scores', 'suggestions', 'overall'];
+  for (const field of requiredFields) {
+    if (!(field in result)) {
+      issues.push({
+        type: 'format_error',
+        message: `Missing required field: ${field}`,
+        field,
+      });
+    }
+  }
+
+  // 2. Check for hallucinated pattern references
+  if (result.patterns_matched && Array.isArray(result.patterns_matched)) {
+    for (const pattern of result.patterns_matched as Array<{ pattern_id?: string; evidence?: string }>) {
+      // Check if evidence actually exists in essay
+      if (pattern.evidence && !essayText.toLowerCase().includes(pattern.evidence.toLowerCase().slice(0, 30))) {
+        issues.push({
+          type: 'hallucination',
+          message: `Pattern evidence not found in essay text`,
+          field: 'patterns_matched',
+        });
+      }
+
+      // Check if pattern_id is from retrieved context (if we have it)
+      if (retrievedContext?.patternIds && pattern.pattern_id) {
+        if (!retrievedContext.patternIds.includes(pattern.pattern_id)) {
+          issues.push({
+            type: 'hallucination',
+            message: `Referenced pattern not in retrieved context: ${pattern.pattern_id}`,
+            field: 'patterns_matched',
+          });
+        }
+      }
+    }
+  }
+
+  // 3. Check for unrealistic scores
+  if (result.scores && typeof result.scores === 'object') {
+    const scores = result.scores as Record<string, { score?: number }>;
+    for (const [dimension, data] of Object.entries(scores)) {
+      if (data?.score !== undefined) {
+        if (data.score < 0 || data.score > 6) {
+          issues.push({
+            type: 'inconsistency',
+            message: `Score out of range (0-6): ${dimension} = ${data.score}`,
+            field: `scores.${dimension}`,
+          });
+        }
+      }
+    }
+  }
+
+  // 4. Check overall score consistency
+  if (result.overall && typeof result.overall === 'object') {
+    const overall = result.overall as { score_100?: number };
+    if (overall.score_100 !== undefined) {
+      if (overall.score_100 < 0 || overall.score_100 > 100) {
+        issues.push({
+          type: 'inconsistency',
+          message: `Overall score out of range: ${overall.score_100}`,
+          field: 'overall.score_100',
+        });
+      }
+    }
+  }
+
+  // 5. Check for unsafe content in suggestions
+  if (result.suggestions && typeof result.suggestions === 'object') {
+    const suggestions = result.suggestions as { top_priorities?: Array<{ how_to_fix?: string }> };
+    if (suggestions.top_priorities && Array.isArray(suggestions.top_priorities)) {
+      for (const suggestion of suggestions.top_priorities) {
+        if (suggestion.how_to_fix) {
+          // Check if suggestion writes content for student (violation)
+          const writesContent = /here('s| is) (what|the text|your new|a better)/i.test(suggestion.how_to_fix);
+          if (writesContent) {
+            issues.push({
+              type: 'unsafe_content',
+              message: 'Suggestion appears to write content for student instead of coaching',
+              field: 'suggestions.top_priorities',
+            });
+          }
+        }
+      }
+    }
+  }
+
+  // 6. Check for potential jailbreak in output
+  const outputStr = JSON.stringify(result);
+  for (const pattern of HARMFUL_PATTERNS) {
+    if (pattern.test(outputStr)) {
+      issues.push({
+        type: 'unsafe_content',
+        message: 'Output contains potentially harmful content',
+      });
+    }
+  }
+
+  // Calculate confidence based on issues
+  const confidence = Math.max(0, 100 - issues.length * 20);
+
+  return {
+    valid: issues.filter(i => i.type === 'format_error').length === 0,
+    issues,
+    sanitizedOutput: issues.length === 0 ? result : undefined,
+    confidence,
+  };
+}
+
+/**
+ * Check if quoted text in output actually exists in essay (anti-hallucination)
+ */
+export function verifyQuotedEvidence(
+  output: unknown,
+  essayText: string
+): { verified: boolean; missingQuotes: string[] } {
+  const missingQuotes: string[] = [];
+  const essayLower = essayText.toLowerCase();
+
+  // Extract all quoted strings from output
+  const outputStr = JSON.stringify(output);
+  const quotePattern = /"([^"]{10,100})"/g;
+  let match;
+
+  while ((match = quotePattern.exec(outputStr)) !== null) {
+    const quote = match[1];
+    // Skip if it looks like a field name or common phrase
+    if (quote.includes(':') || quote.includes('_') || /^(high|medium|low|score|N\/A)$/i.test(quote)) {
+      continue;
+    }
+
+    // Check if this quote exists in the essay (fuzzy match)
+    const quoteLower = quote.toLowerCase();
+    const firstWords = quoteLower.split(' ').slice(0, 4).join(' ');
+
+    if (quoteLower.length > 20 && !essayLower.includes(firstWords)) {
+      missingQuotes.push(quote.slice(0, 50));
+    }
+  }
+
+  return {
+    verified: missingQuotes.length === 0,
+    missingQuotes,
+  };
+}
 
 export { CONFIG as GUARDRAIL_CONFIG };

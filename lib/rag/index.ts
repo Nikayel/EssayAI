@@ -19,13 +19,17 @@ export {
   cleanExpiredCache,
 } from './embeddings';
 
-// Guardrails
+// Guardrails (Input & Output)
 export {
   runGuardrails,
   quickSafetyCheck,
   validateSchoolId,
   validateEssayType,
   GUARDRAIL_CONFIG,
+  // Output validation (anti-hallucination)
+  validateAnalysisOutput,
+  verifyQuotedEvidence,
+  type OutputValidationResult,
 } from './guardrails';
 
 // Retrieval

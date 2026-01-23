@@ -96,12 +96,13 @@ export function buildEnhancedPrompt(
 // =============================================================================
 
 /**
- * Build student profile section
+ * Build student profile section with cultural sensitivity guidance
  */
 function buildProfileSection(profile?: StudentProfile): string {
   if (!profile) return '';
 
   const parts: string[] = [];
+  const culturalGuidance: string[] = [];
 
   if (profile.spike) {
     parts.push(`Main narrative/spike: ${profile.spike}`);
@@ -119,9 +120,50 @@ function buildProfileSection(profile?: StudentProfile): string {
     parts.push(`Graduation: ${profile.graduationYear}`);
   }
 
+  // Handle diversity context with sensitivity
+  if (profile.isInternational) {
+    parts.push(`International student${profile.countryOfOrigin ? ` from ${profile.countryOfOrigin}` : ''}`);
+    culturalGuidance.push(
+      '- Honor different cultural storytelling traditions (e.g., collectivist vs. individualist framing)',
+      '- Appreciate unique perspectives that international experience brings',
+      '- Do not penalize non-native English patterns if meaning is clear',
+      '- Recognize that humility/modesty may be cultural, not lack of confidence'
+    );
+  }
+
+  if (profile.isFirstGen) {
+    parts.push('First-generation college student');
+    culturalGuidance.push(
+      '- Acknowledge that discussing family challenges/responsibilities shows maturity',
+      '- Work-related experiences may be as formative as traditional extracurriculars',
+      '- Different types of "leadership" are valid (family, work, community)',
+      '- May need to explain cultural contexts that are unfamiliar to readers'
+    );
+  }
+
+  if (profile.primaryLanguage && profile.primaryLanguage.toLowerCase() !== 'english') {
+    parts.push(`Primary language: ${profile.primaryLanguage}`);
+    culturalGuidance.push(
+      '- Multilingual students may have unique voice blends - preserve these',
+      '- Some phrasing may reflect native language influence - honor if authentic'
+    );
+  }
+
+  if (profile.culturalContext) {
+    parts.push(`Background: ${profile.culturalContext}`);
+  }
+
+  if (profile.socioeconomicContext === 'low-income') {
+    culturalGuidance.push(
+      '- Financial challenges and work obligations are valid essay topics',
+      '- Fewer traditional resources ≠ less impressive achievements',
+      '- Context matters - evaluate achievements within student\'s circumstances'
+    );
+  }
+
   if (parts.length === 0) return '';
 
-  return `
+  let section = `
 ## STUDENT CONTEXT
 ${parts.map(p => `- ${p}`).join('\n')}
 
@@ -130,6 +172,17 @@ Use this context to:
 - Prioritize feedback related to their main concern
 - Check if essay connects to their key activities
 `;
+
+  if (culturalGuidance.length > 0) {
+    section += `
+## CULTURAL SENSITIVITY GUIDANCE
+${culturalGuidance.join('\n')}
+
+IMPORTANT: Apply an equity lens. Different backgrounds bring different but equally valid perspectives.
+`;
+  }
+
+  return section;
 }
 
 /**
@@ -248,7 +301,7 @@ Use these insights to:
 // =============================================================================
 
 /**
- * Build system prompt
+ * Build system prompt with anti-hallucination and grounding rules
  */
 function buildSystemPrompt(schoolName?: string): string {
   const schoolContext = schoolName
@@ -257,20 +310,46 @@ function buildSystemPrompt(schoolName?: string): string {
 
   return `You are an expert college admissions counselor with 15+ years of experience reviewing essays.${schoolContext}
 
-CRITICAL RULES:
-1. NEVER write content for the student - provide coaching only
-2. PRESERVE the student's authentic voice in all suggestions
-3. PROVIDE specific, actionable feedback with examples
-4. REFERENCE retrieved context when relevant
-5. Return ONLY valid JSON matching the schema
-6. Prioritize feedback that aligns with student's narrative/spike
+## CRITICAL RULES - MUST FOLLOW
 
-You have access to:
-- Successful example essays for comparison
-- Common patterns with proven improvement data
-- School-specific insights from admissions sources
+### Anti-Hallucination (MOST IMPORTANT)
+1. ONLY quote text that ACTUALLY EXISTS in the essay - never fabricate quotes
+2. ONLY reference patterns, examples, and insights from the RETRIEVED CONTEXT
+3. If you're uncertain about something, say "based on the essay" not "the student said"
+4. NEVER invent specific details about the student (names, places, activities) not in the essay
+5. When referencing patterns, use ONLY pattern IDs from the context provided
+6. If no patterns match, return an empty patterns_matched array - don't make up matches
 
-Use this context to provide data-driven, personalized feedback.`;
+### Coaching vs Writing
+7. NEVER write content for the student - provide coaching guidance only
+8. DO NOT give full sentence rewrites - give direction and let them write
+9. BAD: "Change your opening to: 'The morning sun...'"
+10. GOOD: "Consider opening with a sensory detail from that morning"
+
+### Voice & Cultural Sensitivity
+11. PRESERVE the student's authentic voice - don't impose "proper" academic English
+12. RESPECT cultural differences in storytelling and expression
+13. International students may have different narrative styles - this is valid
+14. First-generation college students may discuss challenges differently - honor their perspective
+15. Avoid assumptions about socioeconomic background
+
+### Grounding & Evidence
+16. Every claim must tie back to specific text from the essay
+17. Use "evidence" field to quote the EXACT text you're referencing
+18. If you can't find evidence for an issue, don't report that issue
+19. Base scores ONLY on what's present in the essay, not what's missing
+
+### Output Integrity
+20. Return ONLY valid JSON - no markdown, no explanation outside JSON
+21. If unsure about a score, err toward the middle (3) with honest rationale
+22. Never claim certainty about admissions outcomes - use probabilistic language
+
+## YOUR RESOURCES
+- Successful example essays for comparison (use their techniques, don't copy their content)
+- Common patterns with proven improvement data (reference by ID when detected)
+- School-specific insights from admissions sources (ground suggestions in these)
+
+Analyze thoughtfully. Ground everything in evidence. Coach, don't write.`;
 }
 
 /**

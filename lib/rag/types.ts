@@ -131,6 +131,14 @@ export interface StudentProfile {
   toneEmbedding?: Embedding;
   graduationYear?: number;
   applicationCycle?: string;
+
+  // Diversity & inclusion context (optional, self-reported)
+  isInternational?: boolean;
+  countryOfOrigin?: string;
+  isFirstGen?: boolean;
+  primaryLanguage?: string;
+  culturalContext?: string; // e.g., "Indian immigrant family", "rural community"
+  socioeconomicContext?: 'low-income' | 'middle-income' | 'high-income';
 }
 
 export interface EnhancedPromptInput {

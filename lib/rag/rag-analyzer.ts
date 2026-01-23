@@ -10,6 +10,8 @@ import type { AnalysisResponse } from '@/types/ai';
 
 import {
   runGuardrails,
+  validateAnalysisOutput,
+  verifyQuotedEvidence,
   retrieveAllContext,
   buildEnhancedPrompt,
   storeAnalysisHistory,
@@ -56,6 +58,11 @@ export interface RAGAnalysisResponse extends AnalysisResponse {
     avg_improvement: number;
     evidence?: string;
   }>;
+  validation: {
+    confidence: number;
+    issues_count: number;
+    evidence_verified: boolean;
+  };
 }
 
 // =============================================================================
@@ -153,6 +160,27 @@ export async function analyzeEssayWithRAG(
   // Step 5: Parse and validate response
   const analysis = parseAndValidate(content.text);
 
+  // Step 5.5: Validate output for hallucination (anti-hallucination guardrail)
+  const outputValidation = validateAnalysisOutput(
+    analysis,
+    cleanedText,
+    {
+      patternIds: retrievedContext.feedbackPatterns.map(p => p.id),
+      exampleIds: retrievedContext.exampleEssays.map(e => e.id),
+    }
+  );
+
+  // Log any issues (don't fail, but track for monitoring)
+  if (outputValidation.issues.length > 0) {
+    console.warn('Output validation issues:', outputValidation.issues);
+  }
+
+  // Verify quoted evidence actually exists in essay
+  const evidenceCheck = verifyQuotedEvidence(analysis, cleanedText);
+  if (!evidenceCheck.verified) {
+    console.warn('Potential hallucinated quotes:', evidenceCheck.missingQuotes);
+  }
+
   // Step 6: Recalculate overall score for consistency
   const calculatedScore = calculateOverallScore({
     authenticity: analysis.scores.authenticity.score,
@@ -241,6 +269,11 @@ export async function analyzeEssayWithRAG(
       sample_size: benchmarks.sampleSize,
     },
     pattern_matches: patternMatches,
+    validation: {
+      confidence: outputValidation.confidence,
+      issues_count: outputValidation.issues.length,
+      evidence_verified: evidenceCheck.verified,
+    },
   };
 
   return ragResponse;
