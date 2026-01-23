@@ -3,7 +3,17 @@
  * Main entry point for the 5-dimension scoring system
  */
 
-// Types
+// =============================================================================
+// MAIN ENGINE - Primary export
+// =============================================================================
+
+export { analyzeEssay } from './engine';
+export type { ScoringOptions } from './engine';
+
+// =============================================================================
+// TYPES
+// =============================================================================
+
 export type {
   StudentIntake,
   Activity,
@@ -30,14 +40,32 @@ export type {
   FlaggedPhrase,
 } from './types';
 
-// Constants
+// =============================================================================
+// CONSTANTS
+// =============================================================================
+
 export {
   SCORE_THRESHOLDS,
   DEFAULT_WEIGHTS,
   DIMENSION_MAX_SCORES,
 } from './types';
 
-// Generic Phrase Detection
+// =============================================================================
+// INDIVIDUAL SCORERS (for advanced use cases)
+// =============================================================================
+
+export {
+  scoreAuthenticity,
+  scoreInsight,
+  scoreSchoolFit,
+  scoreSpecificity,
+  scoreRisk,
+} from './scorers';
+
+// =============================================================================
+// GENERIC PHRASE DETECTION
+// =============================================================================
+
 export {
   HARD_FLAG_PHRASES,
   SOFT_FLAG_PHRASES,
@@ -51,7 +79,10 @@ export {
   calculateClicheScore,
 } from './generic-phrases';
 
-// School Configurations
+// =============================================================================
+// SCHOOL CONFIGURATIONS
+// =============================================================================
+
 export {
   SCHOOL_CONFIGS,
   getSchoolConfig,
@@ -61,7 +92,51 @@ export {
   generateSchoolFeedback,
 } from './school-configs';
 
-// Utility functions
+// =============================================================================
+// RAG INTEGRATION
+// =============================================================================
+
+export {
+  intakeToStudentProfile,
+  studentProfileToIntake,
+  scoringResultToAnalysisHistory,
+  enhanceWithRAGContext,
+  calculateScoringMetrics,
+} from './rag-integration';
+
+export type {
+  RAGEnhancedScoringOptions,
+  ScoringMetrics,
+} from './rag-integration';
+
+// =============================================================================
+// TEXT UTILITIES (for custom analysis)
+// =============================================================================
+
+export {
+  parseText,
+  calculateFleschKincaid,
+  findPatternSpans,
+  calculateShowTellRatio,
+  calculateSpecificity,
+  analyzeOpeningHook,
+  analyzeStructure,
+  classifySentence,
+  normalizeToScore,
+  combineScores,
+  applyDeductions,
+} from './text-utils';
+
+export type {
+  ParsedText,
+  SentenceType,
+  HookType,
+  PatternMatch,
+} from './text-utils';
+
+// =============================================================================
+// UTILITY FUNCTIONS
+// =============================================================================
 
 /**
  * Calculate overall score from dimension scores

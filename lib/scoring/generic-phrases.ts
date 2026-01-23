@@ -699,6 +699,12 @@ export const SURFACE_EPIPHANY_PATTERNS: GenericPhrase[] = [
 ];
 
 // =============================================================================
+// EXTENDED PHRASES IMPORT
+// =============================================================================
+
+import { ALL_EXTENDED_PHRASES } from './extended-phrases';
+
+// =============================================================================
 // COMBINED EXPORT
 // =============================================================================
 
@@ -708,10 +714,14 @@ export const ALL_GENERIC_PHRASES: GenericPhrase[] = [
   ...THESAURUS_ABUSE_PATTERNS,
   ...VAGUE_LANGUAGE_PATTERNS,
   ...SURFACE_EPIPHANY_PATTERNS,
+  ...ALL_EXTENDED_PHRASES,
 ];
 
 export const HARD_FLAGS = ALL_GENERIC_PHRASES.filter(p => p.severity === 'hard');
 export const SOFT_FLAGS = ALL_GENERIC_PHRASES.filter(p => p.severity === 'soft');
+
+// Total phrase count for reference
+export const TOTAL_PHRASE_COUNT = ALL_GENERIC_PHRASES.length;
 
 /**
  * Check essay text against all generic phrase patterns
