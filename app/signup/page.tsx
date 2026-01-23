@@ -4,12 +4,16 @@ import { Auth } from '@supabase/auth-ui-react';
 import { ThemeSupa } from '@supabase/auth-ui-shared';
 import { createClient } from '@/lib/supabase/client';
 import { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 
 export default function SignupPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [supabase] = useState(() => createClient());
+
+  // Get referral code from URL if present
+  const referralCode = searchParams.get('ref');
 
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
@@ -21,12 +25,22 @@ export default function SignupPage() {
           body: JSON.stringify({ userId: session.user.id, email: session.user.email }),
         });
 
-        router.push('/dashboard/new');
+        // Track referral if present
+        if (referralCode) {
+          await fetch('/api/referral/track', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ code: referralCode }),
+          });
+        }
+
+        // Redirect to onboarding to collect critical user info
+        router.push('/onboarding');
       }
     });
 
     return () => subscription.unsubscribe();
-  }, [supabase, router]);
+  }, [supabase, router, referralCode]);
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white flex items-center justify-center px-4">

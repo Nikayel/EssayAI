@@ -1,17 +1,25 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 
 export function EssaySubmissionWizard() {
+  const searchParams = useSearchParams();
   const [step, setStep] = useState(1);
+
+  // Read URL params for pre-filling from portfolio
+  const schoolFromUrl = searchParams.get('school') || '';
+  const schoolIdFromUrl = searchParams.get('schoolId') || '';
+
   const [formData, setFormData] = useState({
     // Step 1: Basic Info
     essayType: 'PERSONAL_STATEMENT',
     targetSchool: '',
+    targetSchoolId: '', // Links to portfolio TargetSchool
     wordLimit: 650,
     prompt: '',
 
@@ -21,6 +29,17 @@ export function EssaySubmissionWizard() {
     // Step 3: Package Selection
     package: 'AI_LITE',
   });
+
+  // Pre-fill from URL params on mount
+  useEffect(() => {
+    if (schoolFromUrl || schoolIdFromUrl) {
+      setFormData(prev => ({
+        ...prev,
+        targetSchool: schoolFromUrl || prev.targetSchool,
+        targetSchoolId: schoolIdFromUrl || prev.targetSchoolId,
+      }));
+    }
+  }, [schoolFromUrl, schoolIdFromUrl]);
 
   const [wordCount, setWordCount] = useState(0);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -54,11 +73,21 @@ export function EssaySubmissionWizard() {
   const handleSubmit = async () => {
     setIsSubmitting(true);
     try {
+      // Transform field names to match API schema
+      const apiPayload = {
+        type: formData.essayType,           // essayType → type
+        promptText: formData.prompt,         // prompt → promptText
+        targetSchool: formData.targetSchool,
+        targetSchoolId: formData.targetSchoolId || undefined,
+        wordLimit: formData.wordLimit,
+        content: formData.content,
+      };
+
       // Create essay first
       const essayRes = await fetch('/api/essays', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData),
+        body: JSON.stringify(apiPayload),
       });
 
       if (!essayRes.ok) throw new Error('Failed to create essay');

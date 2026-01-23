@@ -12,9 +12,22 @@ export default function LoginPage() {
   const [supabase] = useState(() => createClient());
 
   useEffect(() => {
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (event === 'SIGNED_IN' && session) {
-        router.push('/dashboard');
+        // Check if user has completed onboarding
+        try {
+          const res = await fetch('/api/profile/status');
+          const data = await res.json();
+
+          if (data.isOnboarded) {
+            router.push('/dashboard');
+          } else {
+            router.push('/onboarding');
+          }
+        } catch {
+          // Fallback to dashboard (which will handle redirect if needed)
+          router.push('/dashboard');
+        }
       }
     });
 
