@@ -124,6 +124,7 @@ export interface RetrievedContext {
 // =============================================================================
 
 export interface StudentProfile {
+  // Core narrative
   spike?: string;
   topActivities?: string[];
   biggestWorry?: string;
@@ -132,13 +133,53 @@ export interface StudentProfile {
   graduationYear?: number;
   applicationCycle?: string;
 
-  // Diversity & inclusion context (optional, self-reported)
+  // Demographics & Background
   isInternational?: boolean;
   countryOfOrigin?: string;
   isFirstGen?: boolean;
   primaryLanguage?: string;
   culturalContext?: string; // e.g., "Indian immigrant family", "rural community"
   socioeconomicContext?: 'low-income' | 'middle-income' | 'high-income';
+  familyEducationLevel?: 'no_college' | 'some_college' | 'bachelors' | 'graduate';
+  immigrationStory?: 'citizen' | 'immigrant_self' | 'immigrant_parent' | 'visa' | 'undocumented' | 'prefer_not_say';
+  geographicContext?: 'rural' | 'suburban' | 'urban';
+  schoolType?: 'public' | 'private' | 'charter' | 'magnet' | 'homeschool' | 'international';
+  familyResponsibilities?: string[];
+
+  // Academic Context
+  intendedMajor?: string;
+  academicInterests?: string[];
+  intellectualPassion?: string;
+  hasResearchExperience?: boolean;
+  researchDescription?: string;
+  academicChallenges?: string;
+
+  // Activities & Experience
+  activitiesStructured?: Array<{
+    name: string;
+    role: string;
+    hoursPerWeek: number;
+    weeksPerYear: number;
+    yearsInvolved: number;
+    impact: string;
+  }>;
+  workExperience?: Array<{
+    job: string;
+    hoursPerWeek: number;
+    reasonForWorking: string;
+  }>;
+  leadershipRoles?: string[];
+  summerExperiences?: string;
+
+  // Personal Identity & Story
+  identityFactors?: string[];
+  significantChallenges?: string;
+  uniquePerspective?: string;
+  whatAOsShouldKnow?: string;
+
+  // Voice Calibration
+  writingStyle?: 'formal' | 'conversational' | 'storytelling' | 'analytical';
+  usesHumor?: boolean;
 }
 
 export interface EnhancedPromptInput {
