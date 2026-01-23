@@ -4,6 +4,7 @@
  */
 
 import { prisma } from '../prisma';
+import { Prisma } from '@prisma/client';
 import { generateEmbedding } from './embeddings';
 import type {
   AnalysisHistoryEntry,
@@ -88,11 +89,11 @@ export async function storeAnalysisHistory(
       dimensionScores: entry.dimensionScores,
       issuesIdentified: entry.issuesIdentified,
       patternsMatched: entry.patternsMatched,
-      suggestionsGiven: entry.suggestionsGiven || null,
-      previousVersionScore: previousVersionScore || entry.previousVersionScore || null,
-      scoreDelta: scoreDelta || entry.scoreDelta || null,
-      essayEmbedding: essayEmbedding || null,
-      ragContextUsed: entry.ragContextUsed || null,
+      suggestionsGiven: entry.suggestionsGiven || Prisma.DbNull,
+      previousVersionScore: previousVersionScore ?? entry.previousVersionScore ?? null,
+      scoreDelta: scoreDelta ?? entry.scoreDelta ?? null,
+      essayEmbedding: essayEmbedding || Prisma.DbNull,
+      ragContextUsed: entry.ragContextUsed || Prisma.DbNull,
     },
   });
 

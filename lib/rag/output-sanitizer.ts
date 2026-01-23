@@ -430,9 +430,8 @@ function createSafeDefault(): AnalysisResponse {
     },
     overall: {
       score_100: 50,
-      recommendation: 'Analysis could not be completed. Please try again.',
-      highlights: [],
-      action_items: ['Retry analysis'],
+      summary: 'Analysis could not be completed. Please try again.',
+      next_actions_checklist: ['Retry analysis'],
     },
   };
 }
@@ -442,7 +441,6 @@ function createSafeDefault(): AnalysisResponse {
 // =============================================================================
 
 export {
-  sanitizeAnalysisOutput,
   quoteExistsInEssay,
   normalizeText,
   createSafeDefault,

@@ -99,7 +99,7 @@ export async function generateEmbedding(
 
   // Validate embedding dimensions
   if (!validateEmbedding(embedding, EMBEDDING_DIMENSIONS)) {
-    throw new Error(`Invalid embedding: expected ${EMBEDDING_DIMENSIONS} dimensions, got ${embedding.length}`);
+    throw new Error(`Invalid embedding: expected ${EMBEDDING_DIMENSIONS} dimensions, got ${(embedding as number[]).length}`);
   }
 
   // Cache the result
