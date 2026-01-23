@@ -121,6 +121,9 @@ export default async function PortfolioPage() {
             <Link href="/dashboard/portfolio">
               <Button variant="ghost" className="bg-gray-100">Portfolio</Button>
             </Link>
+            <Link href="/dashboard/orders">
+              <Button variant="ghost">Orders</Button>
+            </Link>
             <Link href="/profile">
               <Button variant="ghost">Profile</Button>
             </Link>

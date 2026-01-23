@@ -2,6 +2,7 @@ import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
 import { prisma } from '@/lib/prisma';
 import { ProfileForm } from '@/components/profile/profile-form';
+import { ReferralCard } from '@/components/referral/referral-card';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
@@ -88,6 +89,11 @@ export default async function ProfilePage() {
             </div>
           </CardContent>
         </Card>
+
+        {/* Referral Program */}
+        <div className="mt-6">
+          <ReferralCard />
+        </div>
       </main>
     </div>
   );

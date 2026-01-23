@@ -7,6 +7,7 @@ const CreateEssaySchema = z.object({
   type: z.enum(['PERSONAL_STATEMENT', 'WHY_US', 'SUPPLEMENTAL', 'ACTIVITY', 'OTHER']),
   promptText: z.string().min(10),
   targetSchool: z.string().optional(),
+  targetSchoolId: z.string().optional(), // Links to portfolio TargetSchool
   wordLimit: z.number().optional(),
   content: z.string().min(50),
 });
@@ -36,6 +37,7 @@ export async function POST(request: NextRequest) {
         type: validated.type,
         promptText: validated.promptText,
         targetSchool: validated.targetSchool,
+        targetSchoolId: validated.targetSchoolId, // Link to portfolio
         wordLimit: validated.wordLimit,
         versions: {
           create: {

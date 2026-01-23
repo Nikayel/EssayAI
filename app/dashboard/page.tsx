@@ -160,6 +160,9 @@ export default async function DashboardPage() {
           <h1 className="text-2xl font-bold">EssayEdge AI</h1>
           <div className="flex gap-4 items-center">
             <span className="text-sm text-gray-600">{user.email}</span>
+            <Link href="/dashboard/portfolio">
+              <Button variant="ghost">Portfolio</Button>
+            </Link>
             <Link href="/dashboard/orders">
               <Button variant="ghost">Orders</Button>
             </Link>

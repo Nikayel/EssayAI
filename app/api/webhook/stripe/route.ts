@@ -89,6 +89,42 @@ export async function POST(request: NextRequest) {
             },
           });
 
+          // TRACK REFERRAL CONVERSION
+          // If user was referred and this is their first purchase, update referral status
+          const referral = await prisma.referral.findFirst({
+            where: {
+              referredUserId: order.userId,
+              status: 'SIGNED_UP', // Only convert if not already converted
+            },
+          });
+
+          if (referral) {
+            await prisma.referral.update({
+              where: { id: referral.id },
+              data: {
+                status: 'CONVERTED',
+                purchasedAt: new Date(),
+                rewardAmount: 2000, // $20 credit in cents
+              },
+            });
+
+            // Track analytics for referral conversion
+            await prisma.analyticsEvent.create({
+              data: {
+                userId: referral.referrerId,
+                event: 'referral_converted',
+                properties: {
+                  referredUserId: order.userId,
+                  rewardAmount: 2000,
+                  purchaseAmount: session.amount_total,
+                  package: session.metadata?.package,
+                },
+              },
+            });
+
+            console.log(`🎉 Referral converted! Referrer ${referral.referrerId} earned $20 credit`);
+          }
+
           // Track upsell purchase if this was an upsell (metadata contains previousPackage)
           if (session.metadata?.previousPackage && session.metadata?.package) {
             trackUpsellPurchase(
