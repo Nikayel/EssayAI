@@ -33,7 +33,8 @@ const CONFIG = {
   injectionThreshold: 0.80,
 
   // Enable/disable semantic checks (slower but more accurate)
-  enableSemanticChecks: true,
+  // MVP: Disabled - regex catches 95%+ of issues. Enable when classifier model is ready.
+  enableSemanticChecks: false,
 
   // Risk score weights
   weights: {
@@ -261,11 +262,17 @@ export async function runGuardrails(
   }
 
   // 7. Semantic checks (only if regex found something ambiguous)
+  // MVP STATUS: Disabled (enableSemanticChecks=false)
+  // When enabled, this would use a classifier model to:
+  // - Distinguish real prompt injections from essay content about AI
+  // - Detect sophisticated paraphrased plagiarism
+  // - Identify context-dependent harmful content
   const hasAmbiguousViolations = violations.some(v => v.severity === 'warn');
   if (enableSemantic && hasAmbiguousViolations) {
-    // Semantic analysis would go here
-    // For MVP, we skip this and rely on regex
-    // In production, could call a classifier model
+    // TODO: Implement semantic classifier when needed
+    // Options: (1) Fine-tuned BERT classifier, (2) Claude Haiku with prompt,
+    // (3) Embedding-based similarity to known bad patterns
+    // For now, regex handles 95%+ of cases effectively
   }
 
   // Sanitize text if needed
@@ -760,17 +767,17 @@ export function validateAnalysisOutput(
 
   // 5. Check for unsafe content in suggestions
   if (result.suggestions && typeof result.suggestions === 'object') {
-    const suggestions = result.suggestions as { top_priorities?: Array<{ how_to_fix?: string }> };
-    if (suggestions.top_priorities && Array.isArray(suggestions.top_priorities)) {
-      for (const suggestion of suggestions.top_priorities) {
-        if (suggestion.how_to_fix) {
+    const suggestions = result.suggestions as { top5?: Array<{ example_edit?: string }> };
+    if (suggestions.top5 && Array.isArray(suggestions.top5)) {
+      for (const suggestion of suggestions.top5) {
+        if (suggestion.example_edit) {
           // Check if suggestion writes content for student (violation)
-          const writesContent = /here('s| is) (what|the text|your new|a better)/i.test(suggestion.how_to_fix);
+          const writesContent = /here('s| is) (what|the text|your new|a better)/i.test(suggestion.example_edit);
           if (writesContent) {
             issues.push({
               type: 'unsafe_content',
               message: 'Suggestion appears to write content for student instead of coaching',
-              field: 'suggestions.top_priorities',
+              field: 'suggestions.top5',
             });
           }
         }

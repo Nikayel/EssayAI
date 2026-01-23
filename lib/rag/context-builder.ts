@@ -53,7 +53,7 @@ export function buildEnhancedPrompt(
   } = input;
 
   // Get school data if available
-  const school = schoolId ? getIvySchool(schoolId) : null;
+  const school = schoolId ? getIvySchool(schoolId) : undefined;
   const schoolFacts = schoolId ? getSchoolFactsForPrompt(schoolId) : '';
 
   // Build context sections
@@ -476,12 +476,17 @@ Return valid JSON:
     "patterns_detected": ["pattern_ids that matched"]
   },
   "scores": {
-    "authenticity": {"score": 0-6, "rationale": "..."},${schoolFitSection}
-    "reflection": {"score": 0-6, "rationale": "..."},
-    "structure": {"score": 0-6, "rationale": "..."},
-    "specificity": {"score": 0-6, "rationale": "...", "generic_phrases": []},
-    "clarity": {"score": 0-6, "rationale": "..."},
-    "mechanics": {"score": 0-6, "rationale": "..."}
+    "authenticity": {"score": 0-6, "rationales": ["..."]},${schoolFitSection}
+    "reflection": {"score": 0-6, "rationales": ["..."]},
+    "structure": {"score": 0-6, "rationales": ["..."]},
+    "specificity_fit": {"score": 0-6, "rationales": ["..."]},
+    "clarity_style": {"score": 0-6, "rationales": ["..."]},
+    "mechanics": {"score": 0-6, "rationales": ["..."]}
+  },
+  "commons_check": {
+    "about_applicant": {"flag": true/false, "evidence": []},
+    "buzzwords_cliches": {"flag": true/false, "phrases": []},
+    "genericness": {"flag": true/false, "evidence": []}
   },${schoolFitAnalysis}
   "patterns_matched": [
     {
@@ -491,27 +496,21 @@ Return valid JSON:
       "suggested_fix": "..."
     }
   ],
-  "benchmarks": {
-    "compared_to_examples": "how this essay compares to retrieved examples",
-    "strengths_shared": ["techniques used well"],
-    "gaps_identified": ["areas where examples excel"]
-  },
   "suggestions": {
-    "top_priorities": [
+    "top5": [
       {
-        "issue": "...",
-        "why_matters": "...",
-        "how_to_fix": "...",
-        "example": "...",
-        "estimated_impact": "high/medium/low"
+        "issue": "specific issue found",
+        "why_it_matters": "impact on admissions",
+        "example_edit": "coaching suggestion (NOT a rewrite)"
       }
     ],
-    "sentence_edits": [{"original": "...", "suggested": "...", "reason": "..."}]
+    "outline_fix": ["structural suggestions"],
+    "sentence_level": [{"from": "original", "to": "suggestion"}]
   },
   "overall": {
-    "score_100": <weighted>,
-    "summary": "2-3 sentences",
-    "strengths": ["top 2"],
+    "score_100": <weighted 0-100>,
+    "recommendation": "2-3 sentence summary",
+    "highlights": ["top 2 strengths"],
     "action_items": ["prioritized next steps"]
   }
 }`;

@@ -490,11 +490,61 @@ Return JSON:
     throw new Error('Unexpected response type');
   }
 
-  const parsed = JSON.parse(content.text.match(/\{[\s\S]*\}/)?.[0] || '{}');
+  // Extract JSON with proper error handling
+  const jsonMatch = content.text.match(/\{[\s\S]*\}/);
+  if (!jsonMatch) {
+    console.error('Failed to extract JSON from commons check response:', content.text.slice(0, 200));
+    // Return safe defaults instead of throwing
+    return {
+      commons_check: getDefaultCommonsCheck(),
+      quick_tips: ['Unable to perform automated check - manual review recommended'],
+      risk_score: guardrailResult.riskScore,
+    };
+  }
+
+  let parsed;
+  try {
+    parsed = JSON.parse(jsonMatch[0]);
+  } catch (parseError) {
+    console.error('Failed to parse commons check JSON:', parseError);
+    return {
+      commons_check: getDefaultCommonsCheck(),
+      quick_tips: ['Unable to parse analysis - manual review recommended'],
+      risk_score: guardrailResult.riskScore,
+    };
+  }
+
+  // Validate we have the expected structure
+  if (!parsed.commons_check || typeof parsed.commons_check !== 'object') {
+    console.warn('Commons check response missing expected structure');
+    return {
+      commons_check: getDefaultCommonsCheck(),
+      quick_tips: parsed.quick_tips || [],
+      risk_score: guardrailResult.riskScore,
+    };
+  }
 
   return {
     commons_check: parsed.commons_check,
     quick_tips: parsed.quick_tips || [],
     risk_score: guardrailResult.riskScore,
+  };
+}
+
+/**
+ * Get default commons check flags (all false)
+ */
+function getDefaultCommonsCheck(): AnalysisResponse['commons_check'] {
+  return {
+    about_applicant: { flag: false },
+    jargon_overuse: { flag: false },
+    goals_articulated: { flag: false },
+    school_alignment: { flag: false },
+    buzzwords_cliches: { flag: false },
+    genericness: { flag: false },
+    trauma_without_reflection: { flag: false },
+    exaggeration: { flag: false },
+    tone_drift: { flag: false },
+    ethics_risks: { flag: false },
   };
 }
