@@ -109,6 +109,9 @@ model Profile {
   howHeardAboutUs    String?           // Attribution tracking
   isOnboarded        Boolean   @default(false)
 
+  // Referral program
+  referralCode       String?   @unique // User's unique referral code
+
   createdAt       DateTime  @default(now())
   updatedAt       DateTime  @updatedAt
 

@@ -140,6 +140,15 @@ export default async function DashboardPage() {
     redirect('/login');
   }
 
+  // Check if user has completed onboarding
+  const profile = await prisma.profile.findUnique({
+    where: { userId: user.id },
+  });
+
+  if (!profile?.isOnboarded) {
+    redirect('/onboarding');
+  }
+
   const essays = await getEssays(user.id);
   const qaSessions = await getQASessions(user.id);
 

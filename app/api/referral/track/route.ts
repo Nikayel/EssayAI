@@ -35,20 +35,21 @@ export async function POST(request: NextRequest) {
         },
       });
     } else {
-      // Find the referrer by code
-      const referrerReferral = await prisma.referral.findFirst({
-        where: { code },
+      // Find the referrer by their profile's referral code
+      const referrerProfile = await prisma.profile.findFirst({
+        where: { referralCode: code },
       });
 
-      if (referrerReferral) {
+      if (referrerProfile) {
         // Create new referral record
         await prisma.referral.create({
           data: {
-            referrerId: referrerReferral.referrerId,
+            referrerId: referrerProfile.userId,
             referredEmail: user.email || '',
             referredUserId: user.id,
             code,
             status: 'SIGNED_UP',
+            rewardAmount: 2000, // $20 credit in cents
             convertedAt: new Date(),
           },
         });

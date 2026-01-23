@@ -12,22 +12,34 @@ export async function GET() {
   }
 
   try {
-    // Get or create referral code for this user
-    let referrals = await prisma.referral.findMany({
-      where: { referrerId: user.id },
+    // Get or create profile with referral code
+    let profile = await prisma.profile.findUnique({
+      where: { userId: user.id },
     });
 
-    // Generate a unique referral code if user doesn't have one
-    // We check for existing referrals with a unique code belonging to this user
-    let code = referrals[0]?.code;
+    let code = profile?.referralCode;
 
+    // Generate and save referral code if user doesn't have one
     if (!code) {
-      // Generate new unique code
       code = nanoid(8).toUpperCase();
 
-      // Create a placeholder referral to store the code
-      // This will be updated when someone uses the link
+      // Upsert profile with referral code
+      profile = await prisma.profile.upsert({
+        where: { userId: user.id },
+        create: {
+          userId: user.id,
+          referralCode: code,
+        },
+        update: {
+          referralCode: code,
+        },
+      });
     }
+
+    // Get referral stats
+    const referrals = await prisma.referral.findMany({
+      where: { referrerId: user.id },
+    });
 
     // Calculate stats
     const totalReferred = referrals.length;

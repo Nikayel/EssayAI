@@ -4,7 +4,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { SocialProofBanner } from '@/components/marketing/social-proof-banner';
 import { DeadlineUrgency } from '@/components/marketing/deadline-urgency';
 import { ReviewerShowcase } from '@/components/marketing/reviewer-showcase';
-import { Shield, Clock, Star, CheckCircle, ArrowRight } from 'lucide-react';
+import { TrustBadges } from '@/components/marketing/trust-badges';
+import { CheckCircle, ArrowRight } from 'lucide-react';
 
 export default function Home() {
   return (
@@ -49,20 +50,7 @@ export default function Home() {
         </p>
 
         {/* Trust badges */}
-        <div className="flex justify-center gap-8 mb-8 text-sm text-gray-600">
-          <div className="flex items-center gap-2">
-            <Shield className="w-5 h-5 text-green-600" />
-            <span>Your essay stays private</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <Clock className="w-5 h-5 text-blue-600" />
-            <span>Results in 60 seconds</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <Star className="w-5 h-5 text-yellow-500" />
-            <span>4.9/5 student rating</span>
-          </div>
-        </div>
+        <TrustBadges className="mb-8" />
 
         <div className="flex gap-4 justify-center">
           <Link href="/signup">
