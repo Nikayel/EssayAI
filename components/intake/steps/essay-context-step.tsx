@@ -130,7 +130,7 @@ export function EssayContextStep({
         <Label htmlFor="essayType">Essay Type *</Label>
         <Select
           value={formData.essayType}
-          onValueChange={(value) => setFormData(prev => ({ ...prev, essayType: value }))}
+          onValueChange={(value) => setFormData(prev => ({ ...prev, essayType: value as StudentIntake['essayContext']['essayType'] }))}
         >
           <SelectTrigger>
             <SelectValue placeholder="Select essay type" />
@@ -178,7 +178,7 @@ export function EssayContextStep({
         <Label htmlFor="draftNumber">Which Draft Is This?</Label>
         <Select
           value={formData.draftNumber}
-          onValueChange={(value) => setFormData(prev => ({ ...prev, draftNumber: value }))}
+          onValueChange={(value) => setFormData(prev => ({ ...prev, draftNumber: value as StudentIntake['essayContext']['draftNumber'] }))}
         >
           <SelectTrigger>
             <SelectValue placeholder="Select draft number" />
@@ -200,7 +200,7 @@ export function EssayContextStep({
         <Label htmlFor="biggestConcern">What's Your Biggest Concern?</Label>
         <Select
           value={formData.biggestConcern}
-          onValueChange={(value) => setFormData(prev => ({ ...prev, biggestConcern: value }))}
+          onValueChange={(value) => setFormData(prev => ({ ...prev, biggestConcern: value as StudentIntake['essayContext']['biggestConcern'] }))}
         >
           <SelectTrigger>
             <SelectValue placeholder="Select your main concern" />

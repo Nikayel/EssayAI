@@ -8,7 +8,7 @@ import { z } from 'zod';
 import { analyzeEssay, studentProfileToIntake, enhanceWithRAGContext } from '@/lib/scoring';
 import type { StudentIntake, EssayTypeEnum } from '@/lib/scoring';
 import { createClient } from '@/lib/supabase/server';
-import prisma from '@/lib/prisma';
+import { prisma } from '@/lib/prisma';
 
 // =============================================================================
 // REQUEST VALIDATION
@@ -67,7 +67,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(
         {
           error: 'Invalid request',
-          details: validation.error.errors,
+          details: validation.error.issues,
         },
         { status: 400 }
       );
@@ -177,8 +177,8 @@ export async function POST(request: NextRequest) {
         await prisma.analyticsEvent.create({
           data: {
             userId: user.id,
-            eventType: 'essay_scored',
-            eventData: {
+            event: 'essay_scored',
+            properties: {
               overallScore: enhancedResult.overallScore,
               scoreLabel: enhancedResult.scoreLabel,
               targetSchool: essayContext.targetSchool,
@@ -271,15 +271,15 @@ async function getRAGContext(
     // Query similar essays from RAG database
     const similarEssays = await prisma.exampleEssay.findMany({
       where: {
-        school: { contains: targetSchool, mode: 'insensitive' },
+        schoolId: { contains: targetSchool, mode: 'insensitive' },
         essayType: essayType,
         outcome: 'accepted',
       },
       take: 10,
       select: {
         scoreRange: true,
-        school: true,
-        themes: true,
+        schoolId: true,
+        themeTags: true,
       },
     });
 
@@ -297,15 +297,25 @@ async function getRAGContext(
     });
 
     return {
-      similarEssays: similarEssays.map(e => ({
-        score: e.scoreRange ? (e.scoreRange[0] + e.scoreRange[1]) / 2 : 75,
-        school: e.school,
-        themes: e.themes,
-      })),
+      similarEssays: similarEssays.map(e => {
+        // Parse scoreRange string like "90-100" to get average
+        let score = 75;
+        if (e.scoreRange) {
+          const parts = e.scoreRange.split('-').map(Number);
+          if (parts.length === 2 && !isNaN(parts[0]) && !isNaN(parts[1])) {
+            score = (parts[0] + parts[1]) / 2;
+          }
+        }
+        return {
+          score,
+          school: e.schoolId,
+          themes: e.themeTags,
+        };
+      }),
       feedbackPatterns: feedbackPatterns.map(p => ({
         issueType: p.issueType,
         successRate: p.successRate,
-        fixStrategy: p.fixStrategy,
+        fixStrategy: p.fixStrategy ?? '',
       })),
     };
   } catch (error) {
