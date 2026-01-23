@@ -32,14 +32,13 @@ export async function POST(
     }
 
     const body = await request.json();
-    const { reviewerNotes, summary, reviewerId } = body;
+    const { summaryText, reviewerId } = body;
 
     // Update review and mark as delivered
     const review = await prisma.review.update({
       where: { id },
       data: {
-        reviewerNotes,
-        summary,
+        summaryText,
         status: 'DELIVERED',
         reviewerId,
         deliveredAt: new Date(),

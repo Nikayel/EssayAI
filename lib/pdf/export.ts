@@ -117,11 +117,11 @@ export function generatePDFReport(data: EssayExportData): jsPDF {
     }
 
     doc.setFontSize(11);
-    doc.setFont(undefined, 'bold');
+    doc.setFont('helvetica', 'bold');
     doc.text(`${idx + 1}. ${suggestion.issue}`, 20, yPos);
     yPos += 6;
 
-    doc.setFont(undefined, 'normal');
+    doc.setFont('helvetica', 'normal');
     doc.setFontSize(9);
 
     const whyLines = doc.splitTextToSize(`Why it matters: ${suggestion.why_it_matters}`, 170);

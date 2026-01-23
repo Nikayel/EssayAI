@@ -31,14 +31,13 @@ export async function PATCH(
     }
 
     const body = await request.json();
-    const { reviewerNotes, summary, status, reviewerId } = body;
+    const { summaryText, status, reviewerId } = body;
 
     // Update review
     const review = await prisma.review.update({
       where: { id },
       data: {
-        reviewerNotes,
-        summary,
+        summaryText,
         status: status || 'IN_PROGRESS',
         reviewerId,
       },

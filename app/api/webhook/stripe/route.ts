@@ -174,7 +174,7 @@ export async function POST(request: NextRequest) {
                 await sendEmail({
                   to: order.user.email,
                   subject: '✨ Your Analysis is Ready!',
-                  html: analysisCompleteEmail(userName, order.essay.type.replace(/_/g, ' '), Math.round(analysisResult.overall.score_100)),
+                  html: analysisCompleteEmail(userName, order.essay?.type.replace(/_/g, ' ') || 'Essay', Math.round(analysisResult.overall.score_100)),
                 });
 
                 // If human review package, create review assignment

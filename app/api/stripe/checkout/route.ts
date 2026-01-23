@@ -41,7 +41,7 @@ export async function POST(request: NextRequest) {
       data: {
         userId: user.id,
         package: validated.package,
-        price,
+        amount: price,
         status: 'PENDING',
         essayId: validated.essayId,
       },
@@ -93,7 +93,7 @@ export async function POST(request: NextRequest) {
 
     if (error instanceof z.ZodError) {
       return NextResponse.json(
-        { error: 'Validation error', details: error.errors },
+        { error: 'Validation error', details: error.issues },
         { status: 400 }
       );
     }

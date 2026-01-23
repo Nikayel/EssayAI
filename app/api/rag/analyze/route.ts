@@ -136,7 +136,7 @@ export async function POST(request: NextRequest) {
     const analysis = await prisma.aIAnalysis.create({
       data: {
         versionId: version.id,
-        analysisJson: analysisResult as unknown as Record<string, unknown>,
+        analysisJson: JSON.parse(JSON.stringify(analysisResult)),
         overallScore: analysisResult.overall.score_100,
         modelRef: 'claude-3-5-sonnet-20241022-rag',
         commonsFlags: {
@@ -170,7 +170,7 @@ export async function POST(request: NextRequest) {
 
     if (error instanceof z.ZodError) {
       return NextResponse.json(
-        { error: 'Validation error', details: error.errors },
+        { error: 'Validation error', details: error.issues },
         { status: 400 }
       );
     }
