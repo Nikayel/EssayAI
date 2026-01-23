@@ -99,10 +99,67 @@ model Profile {
   toneSample      String?   @db.Text
   toneEmbedding   Json?     // Store embeddings as JSON array
 
+  // INTAKE FLOW - Critical context for better analysis
+  graduationYear     Int?              // 2025, 2026, etc.
+  applicationCycle   String?           // "2025-2026"
+  spike              String?   @db.Text // Main narrative/theme across apps
+  topActivities      String[]          // Top 3-5 activities/achievements
+  biggestWorry       String?           // What concerns them most
+  previousReviews    Boolean?          // Has anyone else reviewed?
+  howHeardAboutUs    String?           // Attribution tracking
+  isOnboarded        Boolean   @default(false)
+
   createdAt       DateTime  @default(now())
   updatedAt       DateTime  @updatedAt
 
+  targetSchools   TargetSchool[]
+
   @@map("profiles")
+}
+
+// Portfolio: Track all target schools with deadlines
+model TargetSchool {
+  id              String      @id @default(cuid())
+  profileId       String
+  profile         Profile     @relation(fields: [profileId], references: [id], onDelete: Cascade)
+
+  schoolName      String
+  deadlineType    DeadlineType
+  deadline        DateTime
+  status          ApplicationStatus @default(NOT_STARTED)
+  priority        Int         @default(5) // 1-10, higher = more important
+  notes           String?     @db.Text
+
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+
+  // Link essays to this target school
+  essays          Essay[]     @relation("TargetSchoolEssays")
+
+  @@unique([profileId, schoolName])
+  @@index([profileId])
+  @@index([deadline])
+  @@map("target_schools")
+}
+
+enum DeadlineType {
+  EARLY_DECISION
+  EARLY_ACTION
+  REGULAR_DECISION
+  ROLLING
+  RESTRICTIVE_EA
+}
+
+enum ApplicationStatus {
+  NOT_STARTED
+  IN_PROGRESS
+  ESSAYS_DRAFTING
+  ESSAYS_COMPLETE
+  SUBMITTED
+  ACCEPTED
+  REJECTED
+  WAITLISTED
+  DEFERRED
 }
 
 model Essay {
@@ -115,6 +172,10 @@ model Essay {
   targetSchool    String?
   wordLimit       Int?
 
+  // Link to portfolio target school
+  targetSchoolId  String?
+  targetSchoolRef TargetSchool? @relation("TargetSchoolEssays", fields: [targetSchoolId], references: [id])
+
   createdAt       DateTime    @default(now())
   updatedAt       DateTime    @updatedAt
 
@@ -122,6 +183,7 @@ model Essay {
   orders          Order[]
 
   @@index([userId])
+  @@index([targetSchoolId])
   @@map("essays")
 }
 
@@ -275,12 +337,24 @@ model Reviewer {
   id              String      @id @default(cuid())
   userId          String      @unique
 
+  // Profile info for social proof
+  displayName     String?
+  photoUrl        String?
   bio             String?     @db.Text
-  credentials     String?     @db.Text
-  rating          Float?
+  credentials     String?     @db.Text // "Former Harvard AO", "English PhD"
+  title           String?     // "Senior Essay Coach"
+  yearsExperience Int?
+
+  // Stats for social proof
+  rating          Float?      // Average rating from students
+  reviewCount     Int         @default(0) // Total essays reviewed
+  successStories  Int         @default(0) // Students accepted to target school
+
   capacity        Int         @default(5) // Weekly review capacity
   specialties     String[]    // e.g., ["PERSONAL_STATEMENT", "WHY_US"]
+  ivyExpertise    String[]    // e.g., ["harvard", "yale", "princeton"]
   isActive        Boolean     @default(true)
+  isFeatured      Boolean     @default(false) // Show on landing page
 
   createdAt       DateTime    @default(now())
   updatedAt       DateTime    @updatedAt
@@ -356,4 +430,52 @@ model AnalyticsEvent {
   @@index([userId])
   @@index([createdAt])
   @@map("analytics_events")
+}
+
+// Referral Program
+model Referral {
+  id              String      @id @default(cuid())
+  referrerId      String      // User who referred
+  referredEmail   String      // Email of person invited
+  referredUserId  String?     // Set when they sign up
+  code            String      @unique // Unique referral code
+
+  status          ReferralStatus @default(PENDING)
+  rewardAmount    Int?        // Credit in cents earned
+  rewardClaimed   Boolean     @default(false)
+
+  createdAt       DateTime    @default(now())
+  convertedAt     DateTime?   // When referral signed up
+  purchasedAt     DateTime?   // When referral made first purchase
+
+  @@index([referrerId])
+  @@index([referredEmail])
+  @@index([code])
+  @@map("referrals")
+}
+
+enum ReferralStatus {
+  PENDING       // Invited but not signed up
+  SIGNED_UP     // Signed up but no purchase
+  CONVERTED     // Made a purchase - reward earned
+  EXPIRED       // Link expired (30 days)
+}
+
+// Lead capture for free resources / email list
+model Lead {
+  id              String      @id @default(cuid())
+  email           String      @unique
+  name            String?
+  source          String      // Where they came from (essay_examples, deadline_calc, etc.)
+
+  userId          String?     // Set if they create account
+  convertedAt     DateTime?   // When they became a paying customer
+
+  metadata        Json?       // Extra info (school interest, grade, etc.)
+
+  createdAt       DateTime    @default(now())
+
+  @@index([email])
+  @@index([source])
+  @@map("leads")
 }
