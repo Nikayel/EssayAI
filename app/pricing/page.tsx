@@ -4,6 +4,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Badge } from '@/components/ui/badge';
 import { PACKAGE_INFO } from '@/lib/stripe/config';
 import { Check, Sparkles, Users, Zap, PenTool, ArrowRight } from 'lucide-react';
+import { MobileNav } from '@/components/layout/mobile-nav';
 
 export default function PricingPage() {
   const formatPrice = (cents: number) => {
@@ -21,7 +22,7 @@ export default function PricingPage() {
             </div>
             <span className="text-xl font-bold text-neutral-900">IvyWay</span>
           </Link>
-          <nav className="flex gap-4">
+          <nav className="hidden md:flex gap-4">
             <Link href="/login">
               <Button variant="outline">Log In</Button>
             </Link>
@@ -29,11 +30,12 @@ export default function PricingPage() {
               <Button>Get Started</Button>
             </Link>
           </nav>
+          <MobileNav />
         </div>
       </header>
 
       {/* Pricing Header */}
-      <section className="container mx-auto px-4 py-16 text-center">
+      <section className="container mx-auto px-4 py-10 sm:py-16 text-center">
         <Badge variant="default" size="lg" className="mb-4">
           <Sparkles className="w-3.5 h-3.5" />
           Simple Pricing
@@ -86,7 +88,7 @@ export default function PricingPage() {
           </Card>
 
           {/* Tier 2: AI Pro - MOST POPULAR */}
-          <Card className="border-2 border-brand-500 relative shadow-xl shadow-brand-500/10 scale-105">
+          <Card className="border-2 border-brand-500 relative shadow-xl shadow-brand-500/10 md:scale-105">
             <div className="absolute -top-4 left-1/2 -translate-x-1/2 bg-gradient-to-r from-brand-500 to-brand-600 text-white px-6 py-1.5 rounded-full text-sm font-semibold">
               Most Popular
             </div>

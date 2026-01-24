@@ -163,8 +163,8 @@ export function OnboardingWizard() {
   return (
     <div className="max-w-2xl mx-auto py-8 px-4">
       {/* Progress */}
-      <div className="mb-8">
-        <div className="flex justify-between text-sm text-gray-600 mb-2">
+      <div className="mb-6 sm:mb-8">
+        <div className="flex justify-between text-sm text-neutral-600 dark:text-neutral-400 mb-2">
           <span>Step {step} of {totalSteps}</span>
           <span>{Math.round(progress)}% complete</span>
         </div>
@@ -191,8 +191,8 @@ export function OnboardingWizard() {
                   onClick={() => updateField('graduationYear', year)}
                   className={`p-4 rounded-lg border-2 text-lg font-semibold transition-all ${
                     data.graduationYear === year
-                      ? 'border-brand-500 bg-brand-50 text-blue-700'
-                      : 'border-gray-200 hover:border-gray-300'
+                      ? 'border-brand-500 bg-brand-50 text-brand-700 dark:bg-brand-900/20 dark:text-brand-300'
+                      : 'border-neutral-200 hover:border-neutral-300 dark:border-neutral-700 dark:hover:border-neutral-600'
                   }`}
                 >
                   Class of {year}
@@ -225,7 +225,7 @@ export function OnboardingWizard() {
                 {index > 0 && (
                   <button
                     onClick={() => removeSchool(index)}
-                    className="absolute top-2 right-2 text-gray-400 hover:text-red-500"
+                    className="absolute top-2 right-2 text-neutral-400 hover:text-error-500 dark:text-neutral-500 dark:hover:text-error-400"
                   >
                     <X className="w-5 h-5" />
                   </button>
@@ -244,11 +244,11 @@ export function OnboardingWizard() {
                   </datalist>
                 </div>
 
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
                     <Label>Deadline Type</Label>
                     <select
-                      className="w-full px-3 py-2 border rounded-md"
+                      className="w-full px-3 py-2 border rounded-md dark:bg-neutral-800 dark:border-neutral-700"
                       value={school.deadlineType}
                       onChange={(e) => updateSchool(index, 'deadlineType', e.target.value)}
                     >
@@ -275,11 +275,13 @@ export function OnboardingWizard() {
             </Button>
 
             {getDaysUntilDeadline() !== null && (
-              <div className={`p-4 rounded-lg ${
-                getDaysUntilDeadline()! <= 14 ? 'bg-red-50 border-red-200' : 'bg-blue-50 border-blue-200'
-              } border`}>
+              <div className={`p-4 rounded-lg border ${
+                getDaysUntilDeadline()! <= 14
+                  ? 'bg-error-50 border-error-200 dark:bg-error-900/20 dark:border-error-800'
+                  : 'bg-brand-50 border-brand-200 dark:bg-brand-900/20 dark:border-brand-800'
+              }`}>
                 <div className="flex items-center gap-2">
-                  <Calendar className={`w-5 h-5 ${getDaysUntilDeadline()! <= 14 ? 'text-red-600' : 'text-brand-600'}`} />
+                  <Calendar className={`w-5 h-5 ${getDaysUntilDeadline()! <= 14 ? 'text-error-600 dark:text-error-400' : 'text-brand-600 dark:text-brand-400'}`} />
                   <span className="font-semibold">
                     {getDaysUntilDeadline()! <= 0
                       ? 'Your earliest deadline has passed!'
@@ -313,11 +315,11 @@ export function OnboardingWizard() {
           <CardContent className="space-y-6">
             <div>
               <Label className="text-base">What's your "spike" or main theme?</Label>
-              <p className="text-sm text-gray-500 mb-2">
+              <p className="text-sm text-neutral-500 dark:text-neutral-400 mb-2">
                 The central narrative that ties your application together (1-2 sentences)
               </p>
               <textarea
-                className="w-full px-3 py-2 border rounded-md min-h-[80px]"
+                className="w-full px-3 py-2 border rounded-md min-h-[80px] dark:bg-neutral-800 dark:border-neutral-700"
                 placeholder="Example: 'I'm a first-gen student who discovered my passion for biotech through my grandmother's battle with cancer, which I've pursued through research and founding a health education nonprofit...'"
                 value={data.spike}
                 onChange={(e) => updateField('spike', e.target.value)}
@@ -326,7 +328,7 @@ export function OnboardingWizard() {
 
             <div>
               <Label className="text-base">Your top 3 activities/achievements</Label>
-              <p className="text-sm text-gray-500 mb-2">
+              <p className="text-sm text-neutral-500 dark:text-neutral-400 mb-2">
                 We'll check if your essay mentions these or misses opportunities
               </p>
               {[0, 1, 2].map(i => (
@@ -367,8 +369,8 @@ export function OnboardingWizard() {
                 onClick={() => updateField('biggestWorry', worry)}
                 className={`w-full p-4 rounded-lg border-2 text-left transition-all ${
                   data.biggestWorry === worry
-                    ? 'border-brand-500 bg-brand-50'
-                    : 'border-gray-200 hover:border-gray-300'
+                    ? 'border-brand-500 bg-brand-50 dark:bg-brand-900/20'
+                    : 'border-neutral-200 hover:border-neutral-300 dark:border-neutral-700 dark:hover:border-neutral-600'
                 }`}
               >
                 {worry}
@@ -377,11 +379,13 @@ export function OnboardingWizard() {
 
             <div>
               <Label>Has anyone reviewed your essays before?</Label>
-              <div className="grid grid-cols-2 gap-3 mt-2">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-2">
                 <button
                   onClick={() => updateField('previousReviews', true)}
                   className={`p-3 rounded-lg border-2 ${
-                    data.previousReviews === true ? 'border-brand-500 bg-brand-50' : 'border-gray-200'
+                    data.previousReviews === true
+                      ? 'border-brand-500 bg-brand-50 dark:bg-brand-900/20'
+                      : 'border-neutral-200 dark:border-neutral-700'
                   }`}
                 >
                   Yes
@@ -389,7 +393,9 @@ export function OnboardingWizard() {
                 <button
                   onClick={() => updateField('previousReviews', false)}
                   className={`p-3 rounded-lg border-2 ${
-                    data.previousReviews === false ? 'border-brand-500 bg-brand-50' : 'border-gray-200'
+                    data.previousReviews === false
+                      ? 'border-brand-500 bg-brand-50 dark:bg-brand-900/20'
+                      : 'border-neutral-200 dark:border-neutral-700'
                   }`}
                 >
                   No, this is my first review
@@ -424,8 +430,8 @@ export function OnboardingWizard() {
                 onClick={() => updateField('howHeardAboutUs', source)}
                 className={`w-full p-4 rounded-lg border-2 text-left transition-all ${
                   data.howHeardAboutUs === source
-                    ? 'border-brand-500 bg-brand-50'
-                    : 'border-gray-200 hover:border-gray-300'
+                    ? 'border-brand-500 bg-brand-50 dark:bg-brand-900/20'
+                    : 'border-neutral-200 hover:border-neutral-300 dark:border-neutral-700 dark:hover:border-neutral-600'
                 }`}
               >
                 {source}

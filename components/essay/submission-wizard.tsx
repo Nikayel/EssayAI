@@ -220,7 +220,7 @@ export function EssaySubmissionWizard() {
               <Label htmlFor="content">Essay Content *</Label>
               <textarea
                 id="content"
-                className="w-full mt-1 px-3 py-2 border rounded-md min-h-[400px] font-serif"
+                className="w-full mt-1 px-3 py-2 border rounded-md min-h-[200px] sm:min-h-[400px] font-serif"
                 placeholder="Start typing or paste your essay here..."
                 value={formData.content}
                 onChange={handleContentChange}

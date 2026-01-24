@@ -273,13 +273,13 @@ export default async function DashboardPage() {
         )}
 
         {/* Essays Header */}
-        <div className="flex justify-between items-center mb-8">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6 sm:mb-8">
           <div>
-            <h1 className="text-3xl font-bold text-neutral-900">My Essays</h1>
+            <h1 className="text-2xl sm:text-3xl font-bold text-neutral-900">My Essays</h1>
             <p className="text-neutral-500 mt-1">Track progress and view feedback</p>
           </div>
           <Link href="/dashboard/new">
-            <Button size="lg">
+            <Button size="lg" className="w-full sm:w-auto">
               <Plus className="w-4 h-4" />
               New Essay
             </Button>
@@ -346,16 +346,16 @@ export default async function DashboardPage() {
                     </div>
                   </CardHeader>
                   <CardContent>
-                    <div className="flex justify-between items-center">
-                      <div className="flex items-center gap-6">
-                        <div className="flex items-center gap-4 text-sm">
+                    <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                      <div className="flex flex-wrap items-center gap-3 sm:gap-6">
+                        <div className="flex items-center gap-2 sm:gap-4 text-sm">
                           <span className="text-neutral-500">{wordCount} words</span>
                           <span className="text-neutral-400">|</span>
                           <span className="text-neutral-500">v{latestVersion?.versionIndex || 1}</span>
                         </div>
                         {score !== null && (
                           <div className="flex items-center gap-3">
-                            <div className="w-24">
+                            <div className="w-20 sm:w-24">
                               <Progress value={score} size="sm" />
                             </div>
                             <span className="text-sm font-semibold text-neutral-900">
@@ -366,15 +366,15 @@ export default async function DashboardPage() {
                       </div>
 
                       {status.status !== 'PAYMENT_PENDING' ? (
-                        <Link href={`/dashboard/essay/${essay.id}`}>
-                          <Button variant="outline" size="sm">
+                        <Link href={`/dashboard/essay/${essay.id}`} className="w-full sm:w-auto">
+                          <Button variant="outline" size="sm" className="w-full sm:w-auto">
                             View Details
                             <ArrowRight className="w-4 h-4" />
                           </Button>
                         </Link>
                       ) : (
-                        <Link href={`/pricing?essay=${essay.id}`}>
-                          <Button variant="premium" size="sm">
+                        <Link href={`/pricing?essay=${essay.id}`} className="w-full sm:w-auto">
+                          <Button variant="premium" size="sm" className="w-full sm:w-auto">
                             Complete Payment
                             <ArrowRight className="w-4 h-4" />
                           </Button>
@@ -389,10 +389,10 @@ export default async function DashboardPage() {
         )}
 
         {/* Referral Section */}
-        <section className="mt-12">
+        <section className="mt-8 sm:mt-12">
           <div className="flex items-center gap-2 mb-4">
-            <Gift className="w-5 h-5 text-green-600" />
-            <h2 className="text-xl font-semibold text-neutral-900">Invite Friends</h2>
+            <Gift className="w-5 h-5 text-success-600 dark:text-success-400" />
+            <h2 className="text-lg sm:text-xl font-semibold text-neutral-900">Invite Friends</h2>
           </div>
           <ReferralCard />
         </section>

@@ -6,6 +6,7 @@ import { SocialProofBanner } from '@/components/marketing/social-proof-banner';
 import { DeadlineUrgency } from '@/components/marketing/deadline-urgency';
 import { ReviewerShowcase } from '@/components/marketing/reviewer-showcase';
 import { TrustBadges } from '@/components/marketing/trust-badges';
+import { MobileNav } from '@/components/layout/mobile-nav';
 import {
   CheckCircle,
   ArrowRight,
@@ -38,6 +39,8 @@ export default function Home() {
             </div>
             <span className="text-xl font-bold text-neutral-900">IvyWay</span>
           </Link>
+
+          {/* Desktop Navigation */}
           <nav className="hidden md:flex items-center gap-2">
             <Link href="/pricing">
               <Button variant="ghost" size="sm">Pricing</Button>
@@ -56,6 +59,9 @@ export default function Home() {
               </Button>
             </Link>
           </nav>
+
+          {/* Mobile Navigation */}
+          <MobileNav />
         </div>
       </header>
 
@@ -65,7 +71,7 @@ export default function Home() {
         <div className="absolute inset-0 bg-gradient-hero" />
         <div className="absolute inset-0 bg-gradient-mesh opacity-40" />
 
-        <div className="relative container mx-auto px-4 pt-16 pb-24 md:pt-24 md:pb-32">
+        <div className="relative container mx-auto px-4 pt-12 pb-16 md:pt-24 md:pb-32">
           {/* Social Proof Banner */}
           <div className="mb-10">
             <SocialProofBanner />
@@ -141,7 +147,7 @@ export default function Home() {
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 sm:gap-3">
                   {[
                     { label: 'Authenticity', desc: 'Voice & genuine story' },
                     { label: 'Reflection', desc: 'Depth of insight' },
@@ -150,7 +156,7 @@ export default function Home() {
                     { label: 'Clarity', desc: 'Clear communication' },
                     { label: 'Ethics', desc: 'Appropriate content' },
                   ].map((item, i) => (
-                    <div key={i} className="p-3 rounded-xl bg-white/60 border border-brand-200/30">
+                    <div key={i} className="p-2 sm:p-3 rounded-xl bg-white/60 border border-brand-200/30">
                       <p className="font-semibold text-neutral-900 text-sm">{item.label}</p>
                       <p className="text-xs text-neutral-500">{item.desc}</p>
                     </div>
@@ -263,17 +269,18 @@ export default function Home() {
           </div>
 
           <div className="max-w-4xl mx-auto">
-            {/* Comparison Table */}
-            <div className="overflow-hidden rounded-2xl border border-neutral-200">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="bg-neutral-50">
-                    <th className="text-left p-4 font-semibold text-neutral-600">Feature</th>
-                    <th className="text-center p-4 font-semibold text-neutral-600">Grammarly</th>
-                    <th className="text-center p-4 font-semibold text-neutral-600">ChatGPT</th>
-                    <th className="text-center p-4 font-semibold text-brand-600 bg-brand-50">IvyWay</th>
-                  </tr>
-                </thead>
+            {/* Comparison Table - scrollable on mobile */}
+            <div className="overflow-x-auto -mx-4 px-4 sm:mx-0 sm:px-0">
+              <div className="min-w-[500px] overflow-hidden rounded-2xl border border-neutral-200">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="bg-neutral-50">
+                      <th className="text-left p-3 sm:p-4 font-semibold text-neutral-600 whitespace-nowrap">Feature</th>
+                      <th className="text-center p-3 sm:p-4 font-semibold text-neutral-600 whitespace-nowrap">Grammarly</th>
+                      <th className="text-center p-3 sm:p-4 font-semibold text-neutral-600 whitespace-nowrap">ChatGPT</th>
+                      <th className="text-center p-3 sm:p-4 font-semibold text-brand-600 bg-brand-50 whitespace-nowrap">IvyWay</th>
+                    </tr>
+                  </thead>
                 <tbody className="divide-y divide-neutral-100">
                   <tr>
                     <td className="p-4 text-neutral-900">Built for college essays</td>
