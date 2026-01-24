@@ -97,6 +97,7 @@ export function buildEnhancedPrompt(
 
 /**
  * Build student profile section with cultural sensitivity guidance
+ * Comprehensive coverage of diverse student backgrounds
  */
 function buildProfileSection(profile?: StudentProfile): string {
   if (!profile) return '';
@@ -120,45 +121,160 @@ function buildProfileSection(profile?: StudentProfile): string {
     parts.push(`Graduation: ${profile.graduationYear}`);
   }
 
-  // Handle diversity context with sensitivity
+  // =========================================================================
+  // CULTURAL SENSITIVITY CONTEXTS
+  // Each context adds specific guidance for fair, equitable evaluation
+  // =========================================================================
+
+  // INTERNATIONAL STUDENTS
   if (profile.isInternational) {
     parts.push(`International student${profile.countryOfOrigin ? ` from ${profile.countryOfOrigin}` : ''}`);
     culturalGuidance.push(
-      '- Honor different cultural storytelling traditions (e.g., collectivist vs. individualist framing)',
+      '- Honor different cultural storytelling traditions (collectivist vs. individualist framing)',
       '- Appreciate unique perspectives that international experience brings',
       '- Do not penalize non-native English patterns if meaning is clear',
-      '- Recognize that humility/modesty may be cultural, not lack of confidence'
+      '- Recognize that humility/modesty may be cultural, not lack of confidence',
+      '- Cross-cultural experiences and adaptation stories are valuable',
+      '- Different educational systems may shape how students present achievements'
     );
   }
 
+  // FIRST-GENERATION COLLEGE STUDENTS
   if (profile.isFirstGen) {
     parts.push('First-generation college student');
     culturalGuidance.push(
       '- Acknowledge that discussing family challenges/responsibilities shows maturity',
       '- Work-related experiences may be as formative as traditional extracurriculars',
       '- Different types of "leadership" are valid (family, work, community)',
-      '- May need to explain cultural contexts that are unfamiliar to readers'
+      '- May need to explain cultural contexts unfamiliar to typical readers',
+      '- Navigating systems without guidance is itself an achievement',
+      '- Family obligations (translating, caregiving, working) demonstrate responsibility'
     );
   }
 
+  // MULTILINGUAL STUDENTS
   if (profile.primaryLanguage && profile.primaryLanguage.toLowerCase() !== 'english') {
     parts.push(`Primary language: ${profile.primaryLanguage}`);
     culturalGuidance.push(
       '- Multilingual students may have unique voice blends - preserve these',
-      '- Some phrasing may reflect native language influence - honor if authentic'
+      '- Some phrasing may reflect native language influence - honor if authentic',
+      '- Code-switching and multilingual identity can be essay strengths',
+      '- Do NOT suggest "more sophisticated vocabulary" - their voice is valid'
     );
   }
 
-  if (profile.culturalContext) {
-    parts.push(`Background: ${profile.culturalContext}`);
-  }
-
+  // LOW-INCOME / SOCIOECONOMIC CONTEXT
   if (profile.socioeconomicContext === 'low-income') {
+    parts.push('Low-income background');
     culturalGuidance.push(
       '- Financial challenges and work obligations are valid essay topics',
       '- Fewer traditional resources ≠ less impressive achievements',
-      '- Context matters - evaluate achievements within student\'s circumstances'
+      '- Context matters - evaluate achievements within student\'s circumstances',
+      '- Part-time jobs, financial responsibility show maturity',
+      '- Limited access to test prep, tutoring, or counselors is context, not excuse',
+      '- Resourcefulness in overcoming barriers is itself noteworthy'
     );
+  }
+
+  // RURAL STUDENTS
+  if (profile.isRural || profile.schoolType === 'rural') {
+    parts.push('Rural/small-town background');
+    culturalGuidance.push(
+      '- Rural students may have fewer formal extracurriculars - this is environmental, not lack of initiative',
+      '- 4-H, FFA, church groups, farm work, family businesses are valid activities',
+      '- Geographic isolation can limit access to traditional "impressive" opportunities',
+      '- Community involvement in small towns often looks different than urban areas',
+      '- Self-directed learning and resourcefulness are strengths',
+      '- Long commutes, limited internet, or working on family land are valid contexts',
+      '- Small school = fewer AP classes available, not less rigor'
+    );
+  }
+
+  // HOMESCHOOLED STUDENTS
+  if (profile.isHomeschooled || profile.schoolType === 'homeschool') {
+    parts.push('Homeschooled');
+    culturalGuidance.push(
+      '- Homeschool students may present achievements differently - this is valid',
+      '- Self-directed learning and curriculum design show initiative',
+      '- Unconventional educational paths can be strengths, not weaknesses',
+      '- May have deep expertise in specific areas vs. broad traditional coursework',
+      '- Community involvement, co-ops, and online courses are valid educational contexts',
+      '- Family-based learning experiences are legitimate',
+      '- Do not assume homeschool = socially isolated or religiously motivated'
+    );
+  }
+
+  // STUDENTS WITH DISABILITIES
+  if (profile.hasDisability || profile.accommodations) {
+    parts.push('Student with disability/health condition');
+    culturalGuidance.push(
+      '- Disclosure of disability in essays is a personal choice - respect either decision',
+      '- If disclosed, focus on growth, adaptation, and perspective gained',
+      '- Do NOT suggest they need to "overcome" or frame disability as tragedy',
+      '- Avoid "inspiration porn" framing (e.g., "despite their disability...")',
+      '- Chronic illness, mental health, invisible disabilities are valid topics',
+      '- Accommodations used are not weaknesses to explain away',
+      '- The student decides how central disability is to their identity/narrative',
+      '- Executive function challenges may affect essay structure - evaluate ideas, not just organization'
+    );
+  }
+
+  // UNDOCUMENTED STUDENTS
+  if (profile.isUndocumented || profile.immigrationStatus === 'undocumented') {
+    parts.push('Undocumented/DACA student');
+    culturalGuidance.push(
+      '- Immigration status disclosure is deeply personal - respect the student\'s choice',
+      '- If disclosed, this context shapes their entire experience - honor that',
+      '- Limited access to financial aid, work permits, driver\'s licenses affects opportunities',
+      '- Fear and uncertainty are real daily experiences - essays may reflect this',
+      '- Do NOT suggest they need to "prove" their worthiness to be in the US',
+      '- Community organizing, advocacy work are valid and impressive activities',
+      '- Resilience in navigating systems is itself an achievement',
+      '- Avoid language that others or diminishes their belonging'
+    );
+  }
+
+  // LGBTQ+ STUDENTS
+  if (profile.isLGBTQ) {
+    parts.push('LGBTQ+ student');
+    culturalGuidance.push(
+      '- Coming out stories are valid but not required - don\'t assume this is their "main" identity',
+      '- LGBTQ+ identity intersects with other identities - honor complexity',
+      '- If essay touches on identity, evaluate depth of reflection, not just disclosure',
+      '- Advocacy, community building, finding chosen family are valid themes',
+      '- Some students may be out in essays but not to family - respect privacy',
+      '- Do NOT suggest they need to explain or justify their identity'
+    );
+  }
+
+  // MILITARY/VETERAN FAMILY
+  if (profile.isMilitaryFamily) {
+    parts.push('Military family background');
+    culturalGuidance.push(
+      '- Frequent moves affect extracurricular continuity - this is context, not weakness',
+      '- Adapting to new schools/communities repeatedly shows resilience',
+      '- Military values (service, discipline, sacrifice) may shape worldview',
+      '- Deployment-related stress and family separation are valid topics',
+      '- May have attended many different schools with varying resources'
+    );
+  }
+
+  // FOSTER CARE / SYSTEM-INVOLVED YOUTH
+  if (profile.isFosterCare || profile.isSystemInvolved) {
+    parts.push('Foster care/system-involved background');
+    culturalGuidance.push(
+      '- Stability disruptions affect academic and extracurricular records',
+      '- Survival and self-advocacy in difficult circumstances is achievement',
+      '- May have gaps in traditional support systems (family, counselors)',
+      '- Aging out of foster care while applying to college is enormously challenging',
+      '- Do NOT expect gratitude narratives or "I made it despite..." framing',
+      '- Privacy about specific circumstances should be respected'
+    );
+  }
+
+  // GENERAL CULTURAL CONTEXT
+  if (profile.culturalContext) {
+    parts.push(`Background: ${profile.culturalContext}`);
   }
 
   if (parts.length === 0) return '';
@@ -171,6 +287,7 @@ Use this context to:
 - Ensure suggestions align with student's overall narrative
 - Prioritize feedback related to their main concern
 - Check if essay connects to their key activities
+- Evaluate achievements within the student's specific circumstances
 `;
 
   if (culturalGuidance.length > 0) {
@@ -178,7 +295,12 @@ Use this context to:
 ## CULTURAL SENSITIVITY GUIDANCE
 ${culturalGuidance.join('\n')}
 
-IMPORTANT: Apply an equity lens. Different backgrounds bring different but equally valid perspectives.
+CRITICAL PRINCIPLES:
+1. Apply an equity lens - different backgrounds bring different but equally valid perspectives
+2. Evaluate achievements in context - a rural student leading 4-H is as valid as urban student leading Model UN
+3. Do NOT impose mainstream/privileged norms on diverse experiences
+4. Voice authenticity matters more than "polished" academic writing
+5. The student's identity is theirs to define and present as they choose
 `;
   }
 

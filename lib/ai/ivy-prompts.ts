@@ -1,6 +1,15 @@
 /**
  * Ivy League-Specific AI Prompts
  * DRY principle: Composable prompt builders using school data
+ *
+ * Score Anchors (0-6 scale) - Calibrated for Ivy-level competition:
+ * 0: Missing or fundamentally flawed - would hurt application
+ * 1: Significant weaknesses - not competitive for Ivy admissions
+ * 2: Below Ivy expectations - would blend into the pile
+ * 3: Meets minimum - acceptable but won't help stand out in Ivy pool
+ * 4: Solid - competitive, demonstrates potential fit
+ * 5: Strong - memorable, would make AO want to advocate
+ * 6: Exceptional - top 5% of Ivy applicant essays
  */
 
 import {
@@ -11,17 +20,32 @@ import {
 } from '../data/ivy-league';
 
 // ============================================================================
+// SCORE ANCHORS - Ivy-calibrated definitions
+// ============================================================================
+
+export const IVY_SCORE_ANCHORS = {
+  0: 'Missing or fundamentally flawed - would hurt application',
+  1: 'Significant weaknesses - not competitive for Ivy admissions',
+  2: 'Below Ivy expectations - would blend into the pile',
+  3: 'Meets minimum - acceptable but won\'t stand out in Ivy pool',
+  4: 'Solid - competitive, demonstrates potential fit',
+  5: 'Strong - memorable, AO would want to advocate',
+  6: 'Exceptional - top 5% of Ivy applicant essays',
+} as const;
+
+// ============================================================================
 // CONSTANTS - Single source of truth for scoring weights
 // ============================================================================
 
 export const IVY_RUBRIC_WEIGHTS = {
-  authenticity: 0.20,
-  schoolFit: 0.20,      // Higher weight for Ivy essays
-  reflection: 0.15,
-  structure: 0.15,
-  specificity: 0.15,
-  clarity: 0.10,
-  mechanics: 0.05,
+  authenticity: 0.20,     // Is this genuinely the student?
+  schoolFit: 0.20,        // Demonstrated research and genuine connection
+  reflection: 0.15,       // Growth mindset, self-awareness
+  structure: 0.12,        // Flow and organization
+  specificity: 0.15,      // Concrete details, not generic
+  clarity: 0.10,          // Clear expression
+  mechanics: 0.03,        // Minimal weight - Ivy applicants rarely have issues here
+  uniqueness: 0.05,       // "So What?" test - what does this reveal?
 } as const;
 
 export const FIT_CATEGORY_WEIGHTS: Record<FitSignal['category'], number> = {
@@ -36,31 +60,77 @@ export const FIT_CATEGORY_WEIGHTS: Record<FitSignal['category'], number> = {
 // SYSTEM PROMPTS - Composable and reusable
 // ============================================================================
 
-const BASE_SYSTEM_CONTEXT = `You are an expert college admissions counselor with 15+ years reviewing essays for Ivy League universities. You have read thousands of successful applications and understand what makes essays stand out.
+const BASE_SYSTEM_CONTEXT = `You are an expert college admissions counselor with 15+ years reviewing essays for Ivy League universities. You have personally read 10,000+ applications and served on admissions committees. You know exactly what makes essays stand out in a pool of 50,000+ applicants.
+
+SCORING SCALE (0-6, calibrated for Ivy competition):
+- 0: Missing or fundamentally flawed - would hurt application
+- 1: Significant weaknesses - not competitive for Ivy admissions
+- 2: Below Ivy expectations - would blend into the pile
+- 3: Meets minimum - acceptable but won't stand out in Ivy pool
+- 4: Solid - competitive, demonstrates potential fit
+- 5: Strong - memorable, AO would want to advocate for this student
+- 6: Exceptional - top 5% of Ivy applicant essays
+
+THE "SO WHAT?" TEST (CRITICAL - apply to every essay):
+Ask yourself: "After reading this essay, do I know something meaningful about this student that I couldn't learn from their activities list, transcript, or recommendations?"
+- If the essay just DESCRIBES activities/achievements: It fails the test
+- If the essay reveals HOW THEY THINK, WHAT THEY VALUE, or WHO THEY ARE: It passes
 
 CRITICAL RULES:
-1. NEVER write content for the student - provide coaching only
-2. PRESERVE the student's authentic voice
-3. PROVIDE specific, actionable feedback
+1. NEVER write content for the student - provide coaching direction only
+2. PRESERVE the student's authentic voice - don't impose "proper" English
+3. PROVIDE specific, actionable feedback grounded in the text
 4. REFERENCE the specific school's values and culture
-5. Return ONLY valid JSON matching the schema`;
+5. Apply cultural sensitivity - international students, first-gen, etc. may express things differently
+6. Return ONLY valid JSON matching the schema`;
 
 export const IVY_ANALYSIS_SYSTEM_PROMPT = `${BASE_SYSTEM_CONTEXT}
 
-You are analyzing an essay for an Ivy League school. Focus on:
-- School-specific fit and demonstrated research
-- Authentic voice and genuine reflection
-- Specific details vs. generic statements
-- Alignment with school values and culture`;
+You are analyzing an essay for an Ivy League school. Your evaluation must address:
+
+1. THE "SO WHAT?" TEST
+   - Does this essay reveal something meaningful we couldn't learn elsewhere?
+   - Would this make an AO remember this student 3 hours later?
+
+2. SCHOOL-SPECIFIC FIT
+   - Has the student done real research on this school?
+   - Do their reasons feel genuine or could they apply to any top school?
+   - Do they reference specific programs, professors, opportunities?
+
+3. AUTHENTIC VOICE
+   - Does this sound like a 17-18 year old wrote it?
+   - Is the vocabulary natural or does it feel thesaurus-heavy?
+   - Are there moments of genuine personality?
+
+4. REFLECTION DEPTH
+   - Does the student show growth and self-awareness?
+   - Do they demonstrate how they think, not just what they did?
+
+5. SPECIFICITY VS. GENERIC
+   - Are there concrete details, sensory moments, specific examples?
+   - Could another student have written this exact essay?`;
 
 export const IVY_FIT_SYSTEM_PROMPT = `${BASE_SYSTEM_CONTEXT}
 
 You are evaluating how well this essay demonstrates fit with a specific Ivy League school.
+
+WHAT REAL FIT LOOKS LIKE:
+- Student references a specific professor's research and explains why it matters to them
+- Student mentions a unique program/initiative and connects it to their goals
+- Student shows understanding of the school's culture beyond rankings
+- Student's values genuinely align with the institution's mission
+
+WHAT FAKE FIT LOOKS LIKE (flag these):
+- Generic praise that could apply to any top school ("world-class faculty")
+- Name-dropping without substance
+- Copying language from the school's website without personal connection
+- "I've dreamed of attending X since I was young" without specific reasons
+
 Score based on:
-- Evidence of school research (programs, professors, courses)
-- Alignment with school values and mission
-- Cultural fit signals
-- Specificity of "why this school" reasoning`;
+- Evidence of genuine school research (specific, not googleable in 5 minutes)
+- Alignment with school values and mission (with personal connection)
+- Cultural fit signals (do they understand what makes this school different?)
+- Specificity of "why this school" reasoning (would this essay work for a competitor?)`;
 
 // ============================================================================
 // PROMPT BUILDERS - DRY composable functions
@@ -163,20 +233,27 @@ function buildAnalysisOutputSchema(): string {
     "word_count": <number>,
     "prompt": "<prompt_text>"
   },
+  "so_what_test": {
+    "passes": true/false,
+    "uniqueness_contribution": "What does this essay reveal that we couldn't learn from activities/transcript?",
+    "memorable_elements": ["Specific moments/details that would stick with an AO"],
+    "missing_depth": "If fails, what deeper insight about the student is missing?"
+  },
   "scores": {
-    "authenticity": {"score": 0-6, "rationale": "<why>"},
-    "school_fit": {"score": 0-6, "rationale": "<why>", "evidence": ["<quoted>"]},
+    "authenticity": {"score": 0-6, "rationale": "<why>", "voice_moments": ["<quotes showing authentic voice>"]},
+    "school_fit": {"score": 0-6, "rationale": "<why>", "evidence": ["<quoted school references>"]},
     "reflection": {"score": 0-6, "rationale": "<why>"},
     "structure": {"score": 0-6, "rationale": "<why>"},
-    "specificity": {"score": 0-6, "rationale": "<why>", "generic_phrases": ["<phrases>"]},
+    "specificity": {"score": 0-6, "rationale": "<why>", "generic_phrases": ["<phrases to make specific>"]},
     "clarity": {"score": 0-6, "rationale": "<why>"},
     "mechanics": {"score": 0-6, "rationale": "<why>"}
   },
   "school_fit_analysis": {
-    "demonstrated_research": ["<specific school references found>"],
-    "value_alignment": ["<how essay aligns with school values>"],
-    "missing_opportunities": ["<what could strengthen school fit>"],
-    "red_flags": ["<problematic elements>"],
+    "demonstrated_research": ["<specific school references found - programs, professors, initiatives>"],
+    "value_alignment": ["<how essay genuinely aligns with school values>"],
+    "missing_opportunities": ["<specific things about this school they could reference>"],
+    "red_flags": ["<generic praise, name-dropping without substance, copied website language>"],
+    "could_work_for_competitor": true/false,
     "fit_score": 0-100
   },
   "commons_check": {
@@ -184,20 +261,24 @@ function buildAnalysisOutputSchema(): string {
     "generic_language": {"flag": true/false, "phrases": []},
     "school_specific": {"flag": true/false, "evidence": []},
     "cliches": {"flag": true/false, "phrases": []},
-    "voice_authentic": {"flag": true/false, "notes": ""}
+    "voice_authentic": {"flag": true/false, "notes": ""},
+    "so_what_fails": {"flag": true/false, "notes": "Why this essay doesn't pass the So What test"}
   },
   "suggestions": {
     "top_priorities": [
-      {"issue": "", "why_matters": "", "how_to_fix": "", "example": ""}
+      {"issue": "", "why_matters_for_ivy": "", "coaching_direction": "", "do_not_write": "Remember: suggest direction, don't write for them"}
     ],
-    "school_fit_improvements": ["<specific ways to improve school fit>"],
-    "sentence_edits": [{"original": "", "suggested": "", "reason": ""}]
+    "school_fit_improvements": ["<specific ways to improve fit - reference actual programs/people>"],
+    "so_what_improvements": ["<how to make this essay reveal something meaningful>"],
+    "sentence_edits": [{"original": "", "direction": "", "reason": ""}]
   },
   "overall": {
     "score_100": <weighted_score>,
     "summary": "<2-3 sentence summary>",
+    "passes_so_what_test": true/false,
     "strengths": ["<top 2 strengths>"],
-    "action_items": ["<prioritized next steps>"]
+    "action_items": ["<prioritized next steps>"],
+    "honest_assessment": "<Would this essay help or hurt their application at this specific school?>"
   }
 }`;
 }
@@ -348,12 +429,17 @@ interface IvyScores {
   specificity: number;
   clarity: number;
   mechanics: number;
+  uniqueness?: number; // "So What?" test score
 }
 
 /**
  * Calculate weighted overall score for Ivy essays
+ * Weights calibrated for Ivy-level competition
  */
 export function calculateIvyScore(scores: IvyScores): number {
+  // Default uniqueness to average of authenticity and reflection if not provided
+  const uniquenessScore = scores.uniqueness ?? Math.round((scores.authenticity + scores.reflection) / 2);
+
   const weightedSum =
     scores.authenticity * IVY_RUBRIC_WEIGHTS.authenticity +
     scores.schoolFit * IVY_RUBRIC_WEIGHTS.schoolFit +
@@ -361,7 +447,8 @@ export function calculateIvyScore(scores: IvyScores): number {
     scores.structure * IVY_RUBRIC_WEIGHTS.structure +
     scores.specificity * IVY_RUBRIC_WEIGHTS.specificity +
     scores.clarity * IVY_RUBRIC_WEIGHTS.clarity +
-    scores.mechanics * IVY_RUBRIC_WEIGHTS.mechanics;
+    scores.mechanics * IVY_RUBRIC_WEIGHTS.mechanics +
+    uniquenessScore * IVY_RUBRIC_WEIGHTS.uniqueness;
 
   // Convert from 0-6 scale to 0-100
   return Math.round((weightedSum / 6) * 100);

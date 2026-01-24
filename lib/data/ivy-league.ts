@@ -16,6 +16,11 @@ export interface IvySchool {
   essayPrompts: EssayPrompt[];
   fitSignals: FitSignal[];
   avoidSignals: string[];
+  // New fields for enhanced guidance
+  aoInsights: AOInsight[];
+  scoringNotes: SchoolScoringNotes[];
+  whatMakesThisSchoolDifferent: string;
+  studentBodyCharacter: string;
 }
 
 export interface EssayPrompt {
@@ -32,6 +37,27 @@ export interface FitSignal {
   category: 'academic' | 'extracurricular' | 'values' | 'culture' | 'location';
   signal: string;
   weight: number; // 1-5
+}
+
+/**
+ * Admissions Officer Insights
+ * Based on public interviews, panels, and documented admissions practices
+ * NOTE: These are educational summaries, not direct quotes
+ */
+export interface AOInsight {
+  type: 'what_works' | 'common_mistake' | 'reader_perspective' | 'differentiation';
+  content: string;
+  source?: string; // e.g., "AO panel 2024", "Admissions blog"
+}
+
+/**
+ * School-specific scoring adjustments
+ * How this school weights different essay elements differently from generic rubric
+ */
+export interface SchoolScoringNotes {
+  dimension: string;
+  adjustment: 'higher' | 'lower' | 'critical';
+  reason: string;
 }
 
 export const IVY_LEAGUE_SCHOOLS: IvySchool[] = [
@@ -144,6 +170,52 @@ export const IVY_LEAGUE_SCHOOLS: IvySchool[] = [
       'generic "top school" references',
       'focusing only on career outcomes',
     ],
+    aoInsights: [
+      {
+        type: 'what_works',
+        content: 'Harvard readers spend about 8 minutes per application. They want to quickly understand WHO you are, not just WHAT you did. The best essays make readers feel like they know you personally.',
+        source: 'Harvard admissions presentations',
+      },
+      {
+        type: 'reader_perspective',
+        content: 'AOs read in "committee" where your application is presented by one reader to others. Your essay needs to give that reader something memorable to SAY about you.',
+        source: 'Former Harvard AO interviews',
+      },
+      {
+        type: 'common_mistake',
+        content: 'Many students write about Harvard\'s resources as if they\'re unique. Mentioning "world-class professors" or "amazing opportunities" tells us nothing - every top school has those.',
+        source: 'Harvard admissions blog',
+      },
+      {
+        type: 'differentiation',
+        content: 'Harvard looks for "citizen-leaders" - people who will contribute to communities, not just achieve individually. Show how you\'ve already done this, not just how you plan to.',
+        source: 'Harvard mission and admissions criteria',
+      },
+      {
+        type: 'what_works',
+        content: 'The 200-word supplement is brutal. Every word counts. The best responses feel like a conversation, not a pitch. Be specific about ONE way you\'d contribute.',
+        source: 'Admissions counselor guidance',
+      },
+    ],
+    scoringNotes: [
+      {
+        dimension: 'authenticity',
+        adjustment: 'critical',
+        reason: 'Harvard receives 50,000+ apps. Authentic voice is the only way to stand out from polished, similar-sounding essays.',
+      },
+      {
+        dimension: 'school_fit',
+        adjustment: 'lower',
+        reason: 'Harvard\'s supplement is short (200 words). They care more about who you are than "why Harvard" specifically.',
+      },
+      {
+        dimension: 'reflection',
+        adjustment: 'higher',
+        reason: 'Harvard values intellectual vitality - show how you THINK, not just what you\'ve done.',
+      },
+    ],
+    whatMakesThisSchoolDifferent: 'Harvard\'s House system creates intimate communities within a large university. The General Education program ensures breadth. But the real differentiator is the alumni network and the expectation that graduates will lead in their fields.',
+    studentBodyCharacter: 'Driven, ambitious, often "spiky" with deep expertise in one area. Harvard students tend to have national-level achievements or unique perspectives that stand out even in a talented pool.',
   },
 
   // YALE
@@ -271,6 +343,52 @@ export const IVY_LEAGUE_SCHOOLS: IvySchool[] = [
       'focusing only on academics, ignoring community',
       'not knowing residential college system',
     ],
+    aoInsights: [
+      {
+        type: 'what_works',
+        content: 'Yale explicitly values creativity and artistic expression alongside academics. Students who thrive here often have a creative outlet - theater, music, writing, visual arts.',
+        source: 'Yale admissions presentations',
+      },
+      {
+        type: 'reader_perspective',
+        content: 'The residential college system is CENTRAL to Yale identity. If you can\'t articulate how you\'d contribute to a residential community, you haven\'t understood Yale.',
+        source: 'Yale AO interviews',
+      },
+      {
+        type: 'common_mistake',
+        content: 'The "Why Yale" is only 125 words. Students waste precious words on generic praise. Get specific immediately - name ONE thing and explain why it matters to YOU.',
+        source: 'Yale admissions guidance',
+      },
+      {
+        type: 'differentiation',
+        content: 'Yale students are known for being well-rounded AND deeply passionate. The "short takes" reveal personality - be genuine, not calculated.',
+        source: 'Yale student and AO perspectives',
+      },
+      {
+        type: 'what_works',
+        content: 'New Haven engagement matters. Yale invests heavily in its city. Showing awareness of town-gown dynamics and interest in community engagement resonates.',
+        source: 'Yale mission and community focus',
+      },
+    ],
+    scoringNotes: [
+      {
+        dimension: 'authenticity',
+        adjustment: 'critical',
+        reason: 'Yale\'s "short takes" are designed specifically to reveal personality. Trying too hard to be clever backfires.',
+      },
+      {
+        dimension: 'school_fit',
+        adjustment: 'critical',
+        reason: 'At 125 words, the "Why Yale" must be laser-focused. Generic answers are immediately obvious.',
+      },
+      {
+        dimension: 'structure',
+        adjustment: 'lower',
+        reason: 'Yale\'s prompts are short and varied. Perfect structure matters less than genuine voice.',
+      },
+    ],
+    whatMakesThisSchoolDifferent: 'Yale\'s residential college system creates tight-knit communities. The arts scene (Yale Rep, School of Drama, Whiffenpoofs) is world-class. Yale has a more collaborative, less competitive culture than some peers.',
+    studentBodyCharacter: 'Creative, collaborative, community-oriented. Yale students often have strong artistic or creative interests alongside academics. They value intellectual discourse but in a more relaxed, less cutthroat environment.',
   },
 
   // PRINCETON
@@ -379,6 +497,52 @@ export const IVY_LEAGUE_SCHOOLS: IvySchool[] = [
       'service without reflection',
       'not mentioning undergraduate focus',
     ],
+    aoInsights: [
+      {
+        type: 'what_works',
+        content: 'Princeton\'s Honor Code is non-negotiable. Every student pledges integrity on every exam. Essays that demonstrate genuine ethical commitment resonate deeply.',
+        source: 'Princeton admissions and Honor Committee',
+      },
+      {
+        type: 'reader_perspective',
+        content: 'Princeton is the smallest Ivy with the most undergraduate focus. They want students who specifically want a smaller, teaching-focused community - not students who see it as a Harvard backup.',
+        source: 'Princeton AO interviews',
+      },
+      {
+        type: 'common_mistake',
+        content: 'The service essay is where most students fail. Resume-padding service doesn\'t work. Princeton wants reflection on WHY service matters, not a list of volunteer hours.',
+        source: 'Princeton admissions blog',
+      },
+      {
+        type: 'differentiation',
+        content: 'The senior thesis is a defining Princeton experience. Every student writes one. Show you\'re excited about deep, independent scholarly work.',
+        source: 'Princeton academic culture',
+      },
+      {
+        type: 'what_works',
+        content: 'Princeton\'s "voice" prompts (what brings you joy, what song, what skill) are meant to reveal YOU. Overthinking these is the #1 mistake - just answer honestly.',
+        source: 'Princeton admissions guidance',
+      },
+    ],
+    scoringNotes: [
+      {
+        dimension: 'ethics_originality',
+        adjustment: 'critical',
+        reason: 'Princeton\'s Honor Code makes integrity central. Any hint of exaggeration or inauthenticity is a red flag.',
+      },
+      {
+        dimension: 'reflection',
+        adjustment: 'higher',
+        reason: 'The service essay demands genuine reflection, not just description of activities.',
+      },
+      {
+        dimension: 'specificity_fit',
+        adjustment: 'higher',
+        reason: 'Princeton wants students who specifically want Princeton\'s model: small, undergraduate-focused, thesis-based.',
+      },
+    ],
+    whatMakesThisSchoolDifferent: 'Princeton is the most undergraduate-focused Ivy. No grad students teaching classes. Every student writes a senior thesis. The Honor Code creates a culture of trust where exams are unproctored.',
+    studentBodyCharacter: 'Scholarly, earnest, service-oriented. Princeton students tend to be genuinely intellectual (not just achievement-oriented) and committed to the "nation\'s service" mission. Less pre-professional than Penn or Columbia.',
   },
 
   // COLUMBIA
@@ -488,6 +652,52 @@ export const IVY_LEAGUE_SCHOOLS: IvySchool[] = [
       'not understanding Core Curriculum',
       'treating Columbia as backup to other Ivies',
     ],
+    aoInsights: [
+      {
+        type: 'what_works',
+        content: 'Columbia\'s Core Curriculum is the heart of the school. EVERY student reads the same great books, discusses the same ideas. Show you understand and want this shared intellectual experience.',
+        source: 'Columbia admissions presentations',
+      },
+      {
+        type: 'reader_perspective',
+        content: 'NYC is not a selling point by itself - it\'s a given. What matters is HOW you\'d use the city as an educational resource: internships, museums, communities, not nightlife.',
+        source: 'Columbia AO guidance',
+      },
+      {
+        type: 'common_mistake',
+        content: 'The book list isn\'t just about showing you read - it\'s about showing intellectual range and genuine curiosity. All classics or all trendy books both miss the point.',
+        source: 'Columbia admissions blog',
+      },
+      {
+        type: 'differentiation',
+        content: 'Columbia is more intellectually intense and urban than other Ivies. Students here WANT that rigor. Don\'t apply if you want a leafy campus or easy grades.',
+        source: 'Columbia student perspectives',
+      },
+      {
+        type: 'what_works',
+        content: 'Morningside Heights is a specific community. References to the neighborhood, the relationship between campus and Harlem, show you understand Columbia\'s urban context.',
+        source: 'Columbia community focus',
+      },
+    ],
+    scoringNotes: [
+      {
+        dimension: 'specificity_fit',
+        adjustment: 'critical',
+        reason: 'Columbia\'s Core is unique. Essays must show genuine engagement with the Core\'s philosophy, not just lip service.',
+      },
+      {
+        dimension: 'reflection',
+        adjustment: 'higher',
+        reason: 'The Core is about great ideas. Columbia wants students who genuinely engage with ideas, not just credentials.',
+      },
+      {
+        dimension: 'structure',
+        adjustment: 'higher',
+        reason: 'Columbia values rigorous thinking. Well-organized arguments matter more here than at some peers.',
+      },
+    ],
+    whatMakesThisSchoolDifferent: 'The Core Curriculum is a shared intellectual experience - everyone reads Homer, Plato, Woolf, Du Bois together. NYC is integrated into education. The campus is urban, not pastoral.',
+    studentBodyCharacter: 'Intellectually intense, urban, diverse. Columbia students thrive on rigor and city energy. More pre-professional than Princeton or Brown, but with genuine intellectual depth. Global perspectives are common.',
   },
 
   // BROWN
@@ -597,6 +807,52 @@ export const IVY_LEAGUE_SCHOOLS: IvySchool[] = [
       'not understanding self-directed learning',
       'purely pre-professional focus',
     ],
+    aoInsights: [
+      {
+        type: 'what_works',
+        content: 'Brown\'s Open Curriculum requires genuine intellectual self-direction. The best essays show students who have ALREADY demonstrated they can create their own learning path, not just those who want "freedom."',
+        source: 'Brown admissions presentations',
+      },
+      {
+        type: 'reader_perspective',
+        content: 'Brown looks for students who take intellectual risks. Playing it safe academically - only taking classes you know you\'ll ace - is counter to Brown\'s culture.',
+        source: 'Brown AO interviews',
+      },
+      {
+        type: 'common_mistake',
+        content: 'Saying you want the Open Curriculum because you "hate requirements" is a red flag. Brown wants students who will USE freedom productively, not avoid challenge.',
+        source: 'Brown admissions blog',
+      },
+      {
+        type: 'differentiation',
+        content: 'Brown-RISD partnership is unique. If you have creative interests, this is a major differentiator. You can literally take art classes at one of the best design schools in the world.',
+        source: 'Brown-RISD programs',
+      },
+      {
+        type: 'what_works',
+        content: 'Providence is a small city but Brown students love it. Showing awareness of the Providence community - local organizations, city engagement - demonstrates fit.',
+        source: 'Brown community focus',
+      },
+    ],
+    scoringNotes: [
+      {
+        dimension: 'authenticity',
+        adjustment: 'critical',
+        reason: 'Brown explicitly values "authenticity" in admissions. Polished, over-edited essays feel out of place.',
+      },
+      {
+        dimension: 'specificity_fit',
+        adjustment: 'critical',
+        reason: 'Open Curriculum means you must show HOW you\'d use it. Vague enthusiasm isn\'t enough.',
+      },
+      {
+        dimension: 'reflection',
+        adjustment: 'higher',
+        reason: 'Self-directed learning requires self-awareness. Brown wants students who know themselves.',
+      },
+    ],
+    whatMakesThisSchoolDifferent: 'The Open Curriculum is truly unique - no required courses outside your concentration. This attracts creative, self-directed learners. The RISD partnership enables art/design crossover. Culture is collaborative, not competitive.',
+    studentBodyCharacter: 'Creative, self-directed, nonconformist. Brown students often resist traditional paths. The culture is genuinely collaborative - grading is less competitive than at peer schools. Strong arts and social justice presence.',
   },
 
   // DARTMOUTH
@@ -688,6 +944,52 @@ export const IVY_LEAGUE_SCHOOLS: IvySchool[] = [
       'not understanding D-Plan',
       'ignoring outdoor culture entirely',
     ],
+    aoInsights: [
+      {
+        type: 'what_works',
+        content: 'Dartmouth is the smallest Ivy and proud of it. Students here chose a rural, close-knit community ON PURPOSE. Show you understand and want this - don\'t apologize for applying to a "smaller" school.',
+        source: 'Dartmouth admissions presentations',
+      },
+      {
+        type: 'reader_perspective',
+        content: 'The D-Plan (quarter system with terms off) is central to Dartmouth. It enables study abroad, internships, and unique experiences. Show you understand how you\'d use it.',
+        source: 'Dartmouth AO interviews',
+      },
+      {
+        type: 'common_mistake',
+        content: 'First-Year Trips is THE defining Dartmouth experience. 95% of students do it. If you can\'t enthusiastically discuss spending a week in the wilderness with strangers, Dartmouth might not be for you.',
+        source: 'Dartmouth culture and traditions',
+      },
+      {
+        type: 'differentiation',
+        content: 'Dartmouth Outing Club is the oldest and largest college outing club in America. Outdoor culture isn\'t a side thing - it\'s central to Dartmouth identity.',
+        source: 'Dartmouth DOC',
+      },
+      {
+        type: 'what_works',
+        content: 'Dartmouth has fierce school spirit (the Big Green). Traditions like Winter Carnival, Green Key, homecoming matter. Students who embrace tradition thrive here.',
+        source: 'Dartmouth student life',
+      },
+    ],
+    scoringNotes: [
+      {
+        dimension: 'school_fit',
+        adjustment: 'critical',
+        reason: 'Dartmouth\'s size and location are intentional choices. Essays must show genuine fit with small-town, outdoor culture.',
+      },
+      {
+        dimension: 'authenticity',
+        adjustment: 'higher',
+        reason: 'Dartmouth\'s close-knit community means you\'ll actually know everyone. Authentic personality matters.',
+      },
+      {
+        dimension: 'structure',
+        adjustment: 'lower',
+        reason: 'Dartmouth culture is more casual. Over-polished essays can feel out of place.',
+      },
+    ],
+    whatMakesThisSchoolDifferent: 'Smallest Ivy, rural location, quarter system (D-Plan). The outdoor culture is genuine - students really do ski, hike, and embrace New Hampshire winters. Undergraduate focus rivals Princeton\'s.',
+    studentBodyCharacter: 'Outdoorsy, community-oriented, tradition-loving. Dartmouth students actively chose a small-town experience. Strong athletics culture, school spirit, and tight-knit community. Less urban/cosmopolitan than peers.',
   },
 
   // CORNELL
@@ -761,6 +1063,52 @@ export const IVY_LEAGUE_SCHOOLS: IvySchool[] = [
       'generic Cornell essay without college specificity',
       'not understanding land-grant mission',
     ],
+    aoInsights: [
+      {
+        type: 'what_works',
+        content: 'Cornell has SEVEN undergraduate colleges, each with different admissions and culture. The #1 thing readers look for: do you actually understand the college you\'re applying to?',
+        source: 'Cornell admissions presentations',
+      },
+      {
+        type: 'reader_perspective',
+        content: 'Each Cornell college has its own admissions committee. A Hotel School reader knows hospitality. An Engineering reader knows engineering. Don\'t fake expertise.',
+        source: 'Cornell AO interviews',
+      },
+      {
+        type: 'common_mistake',
+        content: 'Writing a generic "Why Cornell" essay instead of "Why THIS College at Cornell" is the most common mistake. The 650-word essay is about your specific college.',
+        source: 'Cornell admissions blog',
+      },
+      {
+        type: 'differentiation',
+        content: '"Any person, any study" is Cornell\'s founding motto. It\'s a land-grant institution - accessibility and practical application are core values, not just rhetoric.',
+        source: 'Cornell mission and history',
+      },
+      {
+        type: 'what_works',
+        content: 'Cornell is in Ithaca, not near anything. Students who thrive here embrace the isolation - the gorges, the natural beauty, the self-contained community.',
+        source: 'Cornell location and culture',
+      },
+    ],
+    scoringNotes: [
+      {
+        dimension: 'specificity_fit',
+        adjustment: 'critical',
+        reason: 'Cornell essays MUST be college-specific. Generic Cornell essays are immediately flagged.',
+      },
+      {
+        dimension: 'authenticity',
+        adjustment: 'higher',
+        reason: 'Each college has its own culture. Authenticity about why THIS college matters.',
+      },
+      {
+        dimension: 'reflection',
+        adjustment: 'higher',
+        reason: 'The 650-word limit is generous. Cornell wants depth of thought about your fit.',
+      },
+    ],
+    whatMakesThisSchoolDifferent: 'Seven distinct colleges under one university - from Hotel School to Agriculture to Engineering. Land-grant mission means practical application and accessibility. Largest Ivy by enrollment.',
+    studentBodyCharacter: 'Diverse by design - different colleges attract very different students. Engineering is rigorous, Hotel is hospitality-focused, Arts & Sciences is liberal arts. United by a love for Ithaca\'s natural beauty.',
   },
 
   // PENN (UPenn)
@@ -854,6 +1202,52 @@ export const IVY_LEAGUE_SCHOOLS: IvySchool[] = [
       'not understanding cross-school nature',
       'ignoring civic engagement aspect',
     ],
+    aoInsights: [
+      {
+        type: 'what_works',
+        content: 'Penn\'s "One University" policy means you can take classes across all four schools. The best essays show how you\'d COMBINE resources - Wharton + Engineering, or College + Nursing.',
+        source: 'Penn admissions presentations',
+      },
+      {
+        type: 'reader_perspective',
+        content: 'Penn is more pre-professional than most Ivies and proud of it. "I want to make an impact in the real world" is valued here. Don\'t pretend to be purely academic if you\'re not.',
+        source: 'Penn AO interviews',
+      },
+      {
+        type: 'common_mistake',
+        content: 'Wharton applicants often focus only on business prestige. Penn wants to see how you\'ll use Wharton\'s resources to CONTRIBUTE, not just advance your career.',
+        source: 'Wharton admissions blog',
+      },
+      {
+        type: 'differentiation',
+        content: 'West Philadelphia engagement is a major Penn value. The university invests heavily in its neighborhood. Showing awareness of Penn\'s civic role resonates.',
+        source: 'Penn Compact and community focus',
+      },
+      {
+        type: 'what_works',
+        content: 'Penn entrepreneurship culture is real - more startups come from Penn than most peers. If you have entrepreneurial interests, this is the place to highlight them.',
+        source: 'Penn Center for Innovation',
+      },
+    ],
+    scoringNotes: [
+      {
+        dimension: 'specificity_fit',
+        adjustment: 'critical',
+        reason: 'Penn has four undergraduate schools. Essays must show specific understanding of YOUR school and cross-school opportunities.',
+      },
+      {
+        dimension: 'school_fit',
+        adjustment: 'higher',
+        reason: 'The 450-word "Why Penn" is substantial. They want detailed, researched responses.',
+      },
+      {
+        dimension: 'reflection',
+        adjustment: 'lower',
+        reason: 'Penn values action and impact. Pure reflection without connection to doing is less valued here.',
+      },
+    ],
+    whatMakesThisSchoolDifferent: 'Most pre-professional Ivy. Cross-school collaboration ("One University"). Strong entrepreneurship and innovation culture. Urban campus with civic engagement. Wharton is the only Ivy undergraduate business school.',
+    studentBodyCharacter: 'Ambitious, entrepreneurial, practical. Penn students want to DO things in the world, not just study them. More career-focused than Brown or Yale, but with genuine intellectual engagement. Philadelphia engagement is real.',
   },
 ];
 

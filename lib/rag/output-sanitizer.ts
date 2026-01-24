@@ -16,6 +16,10 @@ export interface SanitizationResult {
   modifications: SanitizationModification[];
   trustScore: number; // 0-100, higher = more trustworthy
   wasModified: boolean;
+  // Human escalation flags
+  needsHumanReview: boolean;
+  escalationReason?: string;
+  escalationPriority: 'none' | 'low' | 'medium' | 'high';
 }
 
 export interface SanitizationModification {
@@ -122,11 +126,76 @@ export function sanitizeAnalysisOutput(
   // Calculate trust score based on modifications
   const trustScore = calculateTrustScore(modifications);
 
+  // Determine if human review is needed based on trust score and modification severity
+  const escalation = determineHumanEscalation(trustScore, modifications);
+
   return {
     sanitized: output as unknown as AnalysisResponse,
     modifications,
     trustScore,
     wasModified: modifications.length > 0,
+    needsHumanReview: escalation.needsReview,
+    escalationReason: escalation.reason,
+    escalationPriority: escalation.priority,
+  };
+}
+
+/**
+ * Determine if output needs human review and at what priority
+ * This enables a human-in-the-loop for edge cases
+ */
+function determineHumanEscalation(
+  trustScore: number,
+  modifications: SanitizationModification[]
+): {
+  needsReview: boolean;
+  reason?: string;
+  priority: 'none' | 'low' | 'medium' | 'high';
+} {
+  // Count modification types
+  const hallucinations = modifications.filter(m =>
+    m.type === 'stripped_quote' || m.type === 'removed_pattern'
+  ).length;
+
+  const structuralIssues = modifications.filter(m =>
+    m.type === 'fixed_structure'
+  ).length;
+
+  const contentRemovals = modifications.filter(m =>
+    m.type === 'removed_field'
+  ).length;
+
+  // HIGH PRIORITY: Trust score below 40 or multiple hallucinations
+  if (trustScore < 40 || hallucinations >= 3) {
+    return {
+      needsReview: true,
+      reason: `Low trust score (${trustScore}/100) with ${hallucinations} hallucinations detected. Model output may be unreliable.`,
+      priority: 'high',
+    };
+  }
+
+  // MEDIUM PRIORITY: Trust score 40-60 or structural issues
+  if (trustScore < 60 || structuralIssues >= 2) {
+    return {
+      needsReview: true,
+      reason: `Moderate trust score (${trustScore}/100). ${structuralIssues} structural issues and ${contentRemovals} content removals.`,
+      priority: 'medium',
+    };
+  }
+
+  // LOW PRIORITY: Trust score 60-75 with any modifications
+  if (trustScore < 75 && modifications.length > 0) {
+    return {
+      needsReview: true,
+      reason: `Minor issues detected (trust score: ${trustScore}/100). ${modifications.length} modifications made.`,
+      priority: 'low',
+    };
+  }
+
+  // NO ESCALATION: Trust score 75+ with minimal issues
+  return {
+    needsReview: false,
+    priority: 'none',
   };
 }
 
@@ -320,12 +389,37 @@ function enforcePatternWhitelist(
 
 /**
  * HARD ENFORCEMENT: Sanitize suggestions to prevent full rewrites
+ *
+ * The goal is to ensure Claude provides COACHING (direction, guidance)
+ * not GHOSTWRITING (actual text to copy-paste).
+ *
+ * Patterns we catch:
+ * 1. Long quoted rewrites (>40 chars) - obvious ghostwriting
+ * 2. "Change X to Y" with specific replacement text
+ * 3. "Here's what you could write:" type suggestions
+ * 4. Full sentence replacements in any form
  */
 function sanitizeSuggestions(
   suggestions: Record<string, unknown>,
   modifications: SanitizationModification[]
 ): Record<string, unknown> {
   const result = { ...suggestions };
+
+  // Patterns that indicate ghostwriting instead of coaching
+  const ghostwritingPatterns = [
+    // Long quoted text (reduced from 80 to 40 chars)
+    /^["'][\w\s,.'!?-]{40,}["']/,
+    // "Change X to: [full text]" or "Replace with: [full text]"
+    /(?:change|replace|rewrite|revise)\s+(?:it|this|that)?\s*(?:to|with)\s*[:"]\s*[\w\s,.'!?-]{30,}/i,
+    // "Here's what you could write/say"
+    /here['']?s?\s+(?:what|how)\s+(?:you\s+)?(?:could|should|might)\s+(?:write|say)/i,
+    // "Try something like: [text]"
+    /try\s+(?:something\s+)?like\s*[:"]\s*[\w\s,.'!?-]{30,}/i,
+    // "Consider writing: [text]"
+    /consider\s+(?:writing|saying)\s*[:"]\s*[\w\s,.'!?-]{30,}/i,
+    // Full sentence in quotes that looks like replacement text
+    /["'][A-Z][\w\s,.'!?-]{35,}[.!?]["']/,
+  ];
 
   // Check top5 suggestions
   if (result.top5 && Array.isArray(result.top5)) {
@@ -334,25 +428,64 @@ function sanitizeSuggestions(
 
       const s = suggestion as Record<string, unknown>;
 
-      // Check if example_edit looks like a full rewrite (> 100 chars of quoted text)
+      // Check example_edit field
       if (typeof s.example_edit === 'string') {
         const edit = s.example_edit;
 
-        // Pattern: starts with a quote that's a full sentence
-        const fullRewritePattern = /^["'][\w\s,.'!?-]{80,}["']/;
-        if (fullRewritePattern.test(edit)) {
-          modifications.push({
-            type: 'removed_field',
-            field: `suggestions.top5[${i}].example_edit`,
-            reason: 'Suggestion appears to be a full rewrite, not coaching',
-            original: edit,
-            replacement: '[Suggestion removed - contained full rewrite instead of coaching guidance]',
-          });
-          return {
-            ...s,
-            example_edit: '[Suggestion removed - contained full rewrite instead of coaching guidance]',
-          };
+        for (const pattern of ghostwritingPatterns) {
+          if (pattern.test(edit)) {
+            modifications.push({
+              type: 'removed_field',
+              field: `suggestions.top5[${i}].example_edit`,
+              reason: 'Suggestion contains replacement text instead of coaching direction',
+              original: edit,
+              replacement: '[Removed: contained specific text to copy. We provide coaching direction, not replacement text.]',
+            });
+            return {
+              ...s,
+              example_edit: '[Removed: Please ask for coaching direction on how to improve this section, not replacement text.]',
+            };
+          }
         }
+      }
+
+      // Also check the 'to' field in sentence_level suggestions
+      if (typeof s.to === 'string' && s.to.length > 50) {
+        modifications.push({
+          type: 'removed_field',
+          field: `suggestions.top5[${i}].to`,
+          reason: 'Sentence-level suggestion too long - appears to be ghostwriting',
+          original: s.to,
+        });
+        return {
+          ...s,
+          to: '[Coaching direction needed, not replacement text]',
+        };
+      }
+
+      return s;
+    });
+  }
+
+  // Also check sentence_level suggestions
+  if (result.sentence_level && Array.isArray(result.sentence_level)) {
+    result.sentence_level = result.sentence_level.map((suggestion, i) => {
+      if (!suggestion || typeof suggestion !== 'object') return suggestion;
+
+      const s = suggestion as Record<string, unknown>;
+
+      // Check if 'to' field is too long (likely ghostwriting)
+      if (typeof s.to === 'string' && s.to.length > 60) {
+        modifications.push({
+          type: 'removed_field',
+          field: `suggestions.sentence_level[${i}].to`,
+          reason: 'Replacement text too long - coaching should be directional',
+          original: s.to,
+        });
+        return {
+          ...s,
+          to: '[Provide direction for improvement, not replacement text]',
+        };
       }
 
       return s;

@@ -148,32 +148,34 @@ const HARMFUL_PATTERNS = [
 ];
 
 /**
- * AI-generated content signals (heuristic)
- * These alone don't prove AI - need combination
+ * AI-generated content signals
+ *
+ * IMPORTANT: This is deprecated heuristic-based detection.
+ * Modern AI writing (GPT-4, Claude) no longer exhibits these patterns reliably.
+ * These patterns also appear in legitimate student writing.
+ *
+ * Why we DON'T use aggressive AI detection:
+ * 1. False positives harm legitimate students who naturally use these phrases
+ * 2. Modern AI can easily avoid these patterns
+ * 3. Creating anxiety about "sounding like AI" hurts authentic voice
+ * 4. The goal is to help students write better, not police them
+ *
+ * We keep this for INFORMATIONAL purposes only - not scored or flagged.
  */
-const AI_SIGNALS = {
-  overusedPhrases: [
-    /\bin\s+conclusion\b/i,
-    /\bfurthermore\b/gi,
-    /\bmoreover\b/gi,
-    /\badditionally\b/gi,
-    /\bin\s+today's\s+society\b/i,
-    /\bit\s+is\s+important\s+to\s+note\b/i,
-    /\ba\s+testament\s+to\b/i,
-    /\bdelve\s+(into|deeper)\b/i,
-    /\bnavigat(e|ing)\s+the\s+(complex|intricate)/i,
-    /\btapestry\s+of\b/i,
-    /\bjourney\s+of\s+self-discovery\b/i,
-    /\bparadigm\s+shift\b/i,
-    /\bholistic\s+approach\b/i,
+const AI_SIGNALS_DEPRECATED = {
+  // These patterns are NO LONGER reliable indicators of AI writing
+  // Keeping for reference only - not used in scoring
+  legacyPatterns: [
+    'in conclusion',
+    'furthermore',
+    'moreover',
+    'in today\'s society',
+    'it is important to note',
+    'delve into',
+    'tapestry of',
+    'paradigm shift',
   ],
-  structuralPatterns: [
-    // Perfect 5-paragraph structure with transition words
-    /^(first|firstly|to\s+begin)[\s,]/im,
-    /(second|secondly)[\s,]/i,
-    /(third|thirdly)[\s,]/i,
-    /(finally|lastly|in\s+conclusion)[\s,]/i,
-  ],
+  note: 'AI detection via phrase matching is unreliable and potentially harmful. We focus on helping students develop authentic voice rather than policing AI use.',
 };
 
 /**
@@ -245,15 +247,13 @@ export async function runGuardrails(
     riskScore += harmfulViolations.length > 0 ? CONFIG.weights.harmful_content : 0;
   }
 
-  // 5. AI-generated signals (heuristic only, low weight)
-  if (checkAI) {
-    const aiViolations = checkAISignals(text);
-    violations.push(...aiViolations);
-    // Only add to risk if multiple signals detected
-    if (aiViolations.length >= 3) {
-      riskScore += CONFIG.weights.ai_generated;
-    }
-  }
+  // 5. AI-generated signals - DEPRECATED
+  // We no longer flag or score AI signals because:
+  // - Modern AI easily avoids these patterns
+  // - False positives harm legitimate students
+  // - Creates anxiety that hurts authentic voice
+  // - Our job is to help students write better, not police them
+  // The checkAI parameter is kept for API compatibility but does nothing
 
   // 6. Quality signals (positive - reduce risk)
   if (checkQuality) {
@@ -484,44 +484,22 @@ function checkHarmfulContent(text: string): GuardrailViolation[] {
 }
 
 /**
- * Check for AI-generated content signals
- * Uses heuristics - not definitive
+ * Check for AI-generated content signals - DEPRECATED
+ *
+ * This function is deprecated and returns empty results.
+ * Modern AI writing doesn't reliably exhibit detectable patterns,
+ * and flagging "AI-like" phrases harms legitimate students.
+ *
+ * Our philosophy: Help students develop authentic voice rather than
+ * creating anxiety about "sounding like AI."
+ *
+ * @deprecated This function no longer performs detection
  */
-function checkAISignals(text: string): GuardrailViolation[] {
-  const violations: GuardrailViolation[] = [];
-  let aiSignalCount = 0;
-
-  // Check overused AI phrases
-  for (const pattern of AI_SIGNALS.overusedPhrases) {
-    const matches = text.match(pattern);
-    if (matches && matches.length > 0) {
-      aiSignalCount += matches.length;
-    }
-  }
-
-  // Check structural patterns
-  let structuralMatches = 0;
-  for (const pattern of AI_SIGNALS.structuralPatterns) {
-    if (pattern.test(text)) {
-      structuralMatches++;
-    }
-  }
-
-  // If multiple structural patterns, it's more suspicious
-  if (structuralMatches >= 3) {
-    aiSignalCount += 2;
-  }
-
-  // Threshold for reporting
-  if (aiSignalCount >= 4) {
-    violations.push({
-      type: 'ai_generated',
-      severity: 'info',
-      message: `Detected ${aiSignalCount} phrases commonly associated with AI-generated text. This is informational only - many legitimate essays use similar language.`,
-    });
-  }
-
-  return violations;
+function checkAISignals(_text: string): GuardrailViolation[] {
+  // Intentionally returns empty array
+  // AI detection via heuristics is unreliable and potentially harmful
+  // We focus on voice authenticity coaching instead
+  return [];
 }
 
 /**
