@@ -30,6 +30,7 @@ import { getSchoolConfig } from '../school-configs';
 import { getScoreLabel, getSchoolDisplayName } from '@/lib/config';
 import { AO_INSIGHTS_BY_SCHOOL } from './ao-insights';
 import { IVY_LEAGUE_SCHOOLS, type IvySchool } from '@/lib/data/ivy-league';
+import { applyBackgroundAdjustments, type BackgroundAdjustmentResult } from '../background-adjustments';
 
 // =============================================================================
 // MAIN STANDARD ANALYSIS FUNCTION
@@ -80,8 +81,29 @@ export async function runStandardAnalysis(
   // Enhance strengths with details
   const strengths = enhanceStrengths(fullAnalysis.strengths);
 
+  // Apply background-aware adjustments
+  // This adds context for diverse student backgrounds (first-gen, international, etc.)
+  const backgroundAdjustments = applyBackgroundAdjustments(
+    intake,
+    {
+      authenticity: fullAnalysis.dimensions.authenticity.totalScore,
+      insight: fullAnalysis.dimensions.insight.totalScore,
+      schoolFit: fullAnalysis.dimensions.schoolFit.totalScore,
+      specificity: fullAnalysis.dimensions.specificity.totalScore,
+      risk: fullAnalysis.dimensions.risk.totalScore,
+    },
+    essayText
+  );
+
   // Generate personalized tips based on intake
   const personalizedTips = generatePersonalizedTips(intake, fullAnalysis);
+
+  // Merge background-specific notes into personalized tips
+  const backgroundNotes = backgroundAdjustments.personalizedNotes.map(note => ({
+    context: 'Based on your background',
+    tip: note,
+    reason: 'Personalized context for your situation',
+  }));
 
   return {
     tier: 'standard',
@@ -102,7 +124,14 @@ export async function runStandardAnalysis(
     aoInsights,
 
     strengths,
-    personalizedTips,
+    personalizedTips: [...backgroundNotes, ...personalizedTips].slice(0, 6), // Background context first
+
+    // Include background context summary if applicable
+    backgroundContext: backgroundAdjustments.adjustments.length > 0 ? {
+      recognized: true,
+      adjustmentsApplied: backgroundAdjustments.adjustments.map(a => a.dimension),
+      note: 'We\'ve considered your background when providing feedback. See personalized tips above.',
+    } : undefined,
 
     premiumTeaser: {
       message: 'Want a human expert to review this? Former AOs available.',
