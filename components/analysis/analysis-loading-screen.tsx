@@ -189,14 +189,14 @@ export function AnalysisLoadingScreen({
   if (status === 'error') {
     return (
       <div className="max-w-2xl mx-auto py-16 px-4">
-        <Card className="border-2 border-red-200 shadow-xl">
+        <Card className="border-2 border-error-200 dark:border-error-800 shadow-xl">
           <CardContent className="py-12 text-center">
-            <XCircle className="w-16 h-16 text-red-500 mx-auto mb-4" />
-            <h2 className="text-2xl font-bold text-red-900 mb-2">Analysis Failed</h2>
-            <p className="text-gray-600 mb-6">{errorMessage}</p>
+            <XCircle className="w-16 h-16 text-error-500 dark:text-error-400 mx-auto mb-4" />
+            <h2 className="text-2xl font-bold text-error-900 dark:text-error-100 mb-2">Analysis Failed</h2>
+            <p className="text-neutral-600 dark:text-neutral-400 mb-6">{errorMessage}</p>
             <button
               onClick={() => window.location.reload()}
-              className="px-6 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
+              className="px-6 py-2 bg-error-600 text-white rounded-lg hover:bg-error-700 transition-colors"
             >
               Try Again
             </button>
@@ -209,11 +209,11 @@ export function AnalysisLoadingScreen({
   if (status === 'complete') {
     return (
       <div className="max-w-2xl mx-auto py-16 px-4">
-        <Card className="border-2 border-green-200 shadow-xl">
+        <Card className="border-2 border-success-200 dark:border-success-800 shadow-xl">
           <CardContent className="py-12 text-center">
-            <CheckCircle2 className="w-16 h-16 text-green-500 mx-auto mb-4" />
-            <h2 className="text-2xl font-bold text-green-900 mb-2">Analysis Complete!</h2>
-            <p className="text-gray-600">Loading your results...</p>
+            <CheckCircle2 className="w-16 h-16 text-success-500 dark:text-success-400 mx-auto mb-4" />
+            <h2 className="text-2xl font-bold text-success-900 dark:text-success-100 mb-2">Analysis Complete!</h2>
+            <p className="text-neutral-600 dark:text-neutral-400">Loading your results...</p>
           </CardContent>
         </Card>
       </div>
@@ -222,9 +222,9 @@ export function AnalysisLoadingScreen({
 
   return (
     <div className="max-w-3xl mx-auto py-8 px-4">
-      <Card className="border-2 border-blue-200 shadow-xl overflow-hidden">
+      <Card className="border-2 border-brand-200 dark:border-brand-800 shadow-xl overflow-hidden">
         {/* Header */}
-        <div className="bg-gradient-to-r from-blue-600 to-purple-600 px-6 py-8 text-white">
+        <div className="bg-gradient-to-r from-brand-600 to-brand-700 dark:from-brand-700 dark:to-brand-800 px-6 py-8 text-white">
           <div className="flex items-center justify-center mb-4">
             <div className="relative">
               <Loader2 className="w-12 h-12 animate-spin" />
@@ -236,7 +236,7 @@ export function AnalysisLoadingScreen({
           <h2 className="text-2xl font-bold text-center mb-1">
             Analyzing Your Essay
           </h2>
-          <p className="text-center text-blue-100 text-sm">
+          <p className="text-center text-brand-100 text-sm">
             {school ? `Evaluating for ${school} fit...` : 'Running deep analysis...'}
           </p>
         </div>
@@ -245,23 +245,23 @@ export function AnalysisLoadingScreen({
           {/* Progress Bar */}
           <div className="mb-6">
             <div className="flex justify-between text-sm mb-2">
-              <span className="text-gray-600">Progress</span>
-              <span className="font-semibold text-blue-600">{progress}%</span>
+              <span className="text-neutral-600 dark:text-neutral-400">Progress</span>
+              <span className="font-semibold text-brand-600 dark:text-brand-400">{progress}%</span>
             </div>
             <Progress value={progress} className="h-2" />
           </div>
 
           {/* Current Step Message */}
           {currentStep && (
-            <div className="bg-blue-50 border border-blue-100 rounded-lg p-4 mb-6">
+            <div className="bg-brand-50 dark:bg-brand-900/20 border border-brand-100 dark:border-brand-800 rounded-lg p-4 mb-6">
               <div className="flex items-center gap-3">
                 {(() => {
                   const Icon = STEP_ICONS[currentStep.id] || Sparkles;
-                  return <Icon className="w-5 h-5 text-blue-600 animate-pulse" />;
+                  return <Icon className="w-5 h-5 text-brand-600 dark:text-brand-400 animate-pulse" />;
                 })()}
                 <div>
-                  <p className="font-medium text-blue-900">{currentStep.label}</p>
-                  <p className="text-sm text-blue-700">{currentStep.message}</p>
+                  <p className="font-medium text-brand-900 dark:text-brand-100">{currentStep.label}</p>
+                  <p className="text-sm text-brand-700 dark:text-brand-300">{currentStep.message}</p>
                 </div>
               </div>
             </div>
@@ -270,7 +270,7 @@ export function AnalysisLoadingScreen({
           {/* Thinking Messages */}
           {thinkingMessages.length > 0 && (
             <div className="mb-6">
-              <h4 className="text-xs font-semibold text-gray-500 uppercase mb-3">
+              <h4 className="text-xs font-semibold text-neutral-500 dark:text-neutral-400 uppercase mb-3">
                 Live Findings
               </h4>
               <div className="space-y-2">
@@ -283,20 +283,19 @@ export function AnalysisLoadingScreen({
 
           {/* Completed Steps */}
           <div>
-            <h4 className="text-xs font-semibold text-gray-500 uppercase mb-3">
+            <h4 className="text-xs font-semibold text-neutral-500 dark:text-neutral-400 uppercase mb-3">
               Completed Steps
             </h4>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
               {steps
                 .filter((s) => s.status === 'complete')
                 .map((step) => {
-                  const Icon = STEP_ICONS[step.id] || CheckCircle2;
                   return (
                     <div
                       key={step.id}
-                      className="flex items-center gap-2 text-sm text-green-700 bg-green-50 rounded px-3 py-2"
+                      className="flex items-center gap-2 text-sm text-success-700 dark:text-success-300 bg-success-50 dark:bg-success-900/20 rounded px-3 py-2"
                     >
-                      <CheckCircle2 className="w-4 h-4 text-green-500" />
+                      <CheckCircle2 className="w-4 h-4 text-success-500 dark:text-success-400" />
                       <span>{step.label}</span>
                     </div>
                   );
@@ -305,8 +304,8 @@ export function AnalysisLoadingScreen({
           </div>
 
           {/* Footer */}
-          <div className="mt-6 pt-4 border-t border-gray-100">
-            <p className="text-center text-xs text-gray-500">
+          <div className="mt-6 pt-4 border-t border-neutral-100 dark:border-neutral-800">
+            <p className="text-center text-xs text-neutral-500 dark:text-neutral-400">
               Our AI evaluates your essay across 5 dimensions: Authenticity, Insight,
               School Fit, Specificity, and Risk Assessment. This analysis is calibrated
               against patterns from thousands of successful essays.
@@ -324,21 +323,21 @@ export function AnalysisLoadingScreen({
 
 function ThinkingMessage({ item }: { item: ThinkingItem }) {
   const bgColors = {
-    positive: 'bg-green-50 border-green-100',
-    neutral: 'bg-gray-50 border-gray-100',
-    warning: 'bg-amber-50 border-amber-100',
+    positive: 'bg-success-50 dark:bg-success-900/20 border-success-100 dark:border-success-800',
+    neutral: 'bg-neutral-50 dark:bg-neutral-800 border-neutral-100 dark:border-neutral-700',
+    warning: 'bg-warning-50 dark:bg-warning-900/20 border-warning-100 dark:border-warning-800',
   };
 
   const textColors = {
-    positive: 'text-green-800',
-    neutral: 'text-gray-700',
-    warning: 'text-amber-800',
+    positive: 'text-success-800 dark:text-success-200',
+    neutral: 'text-neutral-700 dark:text-neutral-300',
+    warning: 'text-warning-800 dark:text-warning-200',
   };
 
   const iconColors = {
-    positive: 'text-green-500',
-    neutral: 'text-gray-400',
-    warning: 'text-amber-500',
+    positive: 'text-success-500 dark:text-success-400',
+    neutral: 'text-neutral-400 dark:text-neutral-500',
+    warning: 'text-warning-500 dark:text-warning-400',
   };
 
   const Icon =

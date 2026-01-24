@@ -14,7 +14,7 @@ export default async function NewEssayPage() {
     <div className="min-h-screen bg-gray-50">
       <header className="bg-white border-b">
         <div className="container mx-auto px-4 py-4">
-          <h1 className="text-2xl font-bold">EssayEdge AI</h1>
+          <h1 className="text-2xl font-bold">IvyWay</h1>
         </div>
       </header>
 

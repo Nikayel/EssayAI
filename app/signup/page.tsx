@@ -48,7 +48,7 @@ export default function SignupPage() {
         {/* Logo */}
         <div className="text-center mb-8">
           <Link href="/">
-            <h1 className="text-3xl font-bold text-gray-900">EssayEdge AI</h1>
+            <h1 className="text-3xl font-bold text-gray-900">IvyWay</h1>
           </Link>
           <p className="text-gray-600 mt-2">Create your account</p>
         </div>
@@ -62,8 +62,8 @@ export default function SignupPage() {
               variables: {
                 default: {
                   colors: {
-                    brand: '#2563eb',
-                    brandAccent: '#1d4ed8',
+                    brand: '#7c3aed',
+                    brandAccent: '#6d28d9',
                   },
                 },
               },
@@ -83,9 +83,9 @@ export default function SignupPage() {
         </p>
 
         {/* Academic Integrity Notice */}
-        <div className="mt-6 p-4 bg-blue-50 rounded-lg">
-          <p className="text-xs text-blue-900">
-            <strong>Academic Integrity:</strong> EssayEdge AI provides suggestions and feedback only.
+        <div className="mt-6 p-4 bg-brand-50 rounded-lg">
+          <p className="text-xs text-brand-900">
+            <strong>Academic Integrity:</strong> IvyWay provides suggestions and feedback only.
             You remain the author of your work. By signing up, you agree to use our service ethically
             and maintain academic honesty.
           </p>

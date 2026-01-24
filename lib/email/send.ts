@@ -14,7 +14,7 @@ export interface EmailParams {
 export async function sendEmail(params: EmailParams) {
   try {
     const { data, error } = await resend.emails.send({
-      from: 'EssayEdge AI <noreply@essayedgeai.com>',
+      from: 'IvyWay <noreply@ivyway.ai>',
       to: params.to,
       subject: params.subject,
       html: params.html,
@@ -80,7 +80,7 @@ export function analysisCompleteEmail(userName: string, essayType: string, score
       </div>
     </div>
     <div class="footer">
-      <p>EssayEdge AI - Voice-preserving essay feedback</p>
+      <p>IvyWay - Voice-preserving essay feedback</p>
       <p><a href="${process.env.NEXT_PUBLIC_APP_URL}" style="color: #2563eb;">essayedgeai.com</a></p>
     </div>
   </div>
@@ -132,7 +132,158 @@ export function reviewAssignedEmail(userName: string, dueDate: string) {
       </div>
     </div>
     <div class="footer">
-      <p>EssayEdge AI - Expert human review</p>
+      <p>IvyWay - Expert human review</p>
+    </div>
+  </div>
+</body>
+</html>
+  `;
+}
+
+// =============================================================================
+// WELCOME & ONBOARDING EMAILS
+// =============================================================================
+
+export function welcomeEmail(userName: string, referralCode?: string) {
+  const dashboardUrl = `${process.env.NEXT_PUBLIC_APP_URL}/dashboard`;
+  const referralSection = referralCode ? `
+      <div style="background: #f0fdf4; border-left: 4px solid #22c55e; padding: 15px; margin: 20px 0;">
+        <p style="margin: 0; font-weight: 600; color: #166534;">Your referral code: ${referralCode}</p>
+        <p style="margin: 5px 0 0; font-size: 14px; color: #15803d;">Share with friends - you both get $20 off!</p>
+      </div>
+  ` : '';
+
+  return `
+<!DOCTYPE html>
+<html>
+<head>
+  <style>
+    body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; margin: 0; padding: 0; }
+    .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+    .header { background: linear-gradient(135deg, #7c3aed 0%, #8b5cf6 100%); color: white; padding: 40px 30px; text-align: center; border-radius: 10px 10px 0 0; }
+    .content { background: #fafaf9; padding: 30px; }
+    .step { display: flex; align-items: flex-start; margin: 15px 0; padding: 15px; background: white; border-radius: 8px; border: 1px solid #e7e5e4; }
+    .step-number { background: #7c3aed; color: white; width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; flex-shrink: 0; margin-right: 15px; font-size: 14px; }
+    .button { background: #7c3aed; color: white; padding: 14px 35px; text-decoration: none; border-radius: 8px; display: inline-block; margin-top: 20px; font-weight: 600; }
+    .button:hover { background: #6d28d9; }
+    .why-box { background: #f5f3ff; border-radius: 8px; padding: 20px; margin: 20px 0; }
+    .footer { text-align: center; padding: 20px; color: #78716c; font-size: 14px; }
+    .highlight { color: #7c3aed; font-weight: 600; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1 style="margin: 0; font-size: 28px;">Welcome to IvyWay!</h1>
+      <p style="margin: 10px 0 0; opacity: 0.9;">Your essay's about to get a lot stronger</p>
+    </div>
+    <div class="content">
+      <p>Hi ${userName},</p>
+      <p>You just made a smart move. Most students submit essays that admissions officers forget 5 minutes later. You're not going to be one of them.</p>
+
+      <div class="why-box">
+        <p style="margin: 0 0 10px; font-weight: 600;">Here's what makes us different:</p>
+        <ul style="margin: 0; padding-left: 20px;">
+          <li><span class="highlight">Not Grammarly</span> - We analyze what admissions officers actually look for</li>
+          <li><span class="highlight">Not ChatGPT</span> - We preserve YOUR voice, never rewrite it</li>
+          <li><span class="highlight">School-specific</span> - Know if your essay fits Harvard vs. Yale vs. Cornell</li>
+        </ul>
+      </div>
+
+      <h3 style="margin-bottom: 15px;">Get started in 3 steps:</h3>
+
+      <div class="step">
+        <div class="step-number">1</div>
+        <div>
+          <strong>Paste your essay</strong>
+          <p style="margin: 5px 0 0; color: #78716c; font-size: 14px;">Start with your personal statement or any supplemental essay</p>
+        </div>
+      </div>
+
+      <div class="step">
+        <div class="step-number">2</div>
+        <div>
+          <strong>Get your free Commons Check</strong>
+          <p style="margin: 5px 0 0; color: #78716c; font-size: 14px;">See if your essay has red flags that hurt applications</p>
+        </div>
+      </div>
+
+      <div class="step">
+        <div class="step-number">3</div>
+        <div>
+          <strong>Upgrade if you want more</strong>
+          <p style="margin: 5px 0 0; color: #78716c; font-size: 14px;">Full AI analysis ($29) or human expert review ($129)</p>
+        </div>
+      </div>
+
+      ${referralSection}
+
+      <div style="text-align: center; margin-top: 30px;">
+        <a href="${dashboardUrl}" class="button">
+          Analyze Your First Essay →
+        </a>
+      </div>
+
+      <p style="text-align: center; color: #78716c; font-size: 14px; margin-top: 20px;">
+        Free check for essays up to 650 words. No credit card required.
+      </p>
+    </div>
+    <div class="footer">
+      <p style="margin: 0;">IvyWay - Blunt, actionable essay feedback</p>
+      <p style="margin: 5px 0 0;"><a href="${process.env.NEXT_PUBLIC_APP_URL}" style="color: #7c3aed;">essayedgeai.com</a></p>
+    </div>
+  </div>
+</body>
+</html>
+  `;
+}
+
+export function inactivityReminderEmail(userName: string, daysInactive: number) {
+  const dashboardUrl = `${process.env.NEXT_PUBLIC_APP_URL}/dashboard`;
+
+  return `
+<!DOCTYPE html>
+<html>
+<head>
+  <style>
+    body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+    .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+    .header { background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); color: white; padding: 30px; text-align: center; border-radius: 10px 10px 0 0; }
+    .content { background: #fafaf9; padding: 30px; }
+    .stat { background: white; border-radius: 8px; padding: 20px; margin: 15px 0; text-align: center; border: 1px solid #e7e5e4; }
+    .button { background: #7c3aed; color: white; padding: 14px 35px; text-decoration: none; border-radius: 8px; display: inline-block; margin-top: 20px; font-weight: 600; }
+    .footer { text-align: center; padding: 20px; color: #78716c; font-size: 14px; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1 style="margin: 0;">Your Essay is Waiting</h1>
+    </div>
+    <div class="content">
+      <p>Hi ${userName},</p>
+      <p>We noticed you haven't submitted an essay yet. Application deadlines don't wait, and neither should your essays.</p>
+
+      <div class="stat">
+        <p style="font-size: 36px; font-weight: bold; margin: 0; color: #7c3aed;">2.3x</p>
+        <p style="margin: 5px 0 0; color: #78716c;">More likely to get accepted with feedback (research-backed)</p>
+      </div>
+
+      <p>Most students who analyze their essays with us:</p>
+      <ul>
+        <li>Find 3-5 critical improvements they missed</li>
+        <li>Increase their confidence before submitting</li>
+        <li>Save time on rewrites with specific fixes</li>
+      </ul>
+
+      <div style="text-align: center;">
+        <a href="${dashboardUrl}" class="button">
+          Start Your Free Analysis →
+        </a>
+      </div>
+    </div>
+    <div class="footer">
+      <p>IvyWay - Don't submit blind</p>
     </div>
   </div>
 </body>
@@ -179,7 +330,7 @@ export function reviewDeliveredEmail(userName: string, essayType: string) {
       </div>
     </div>
     <div class="footer">
-      <p>EssayEdge AI - Transform your essays</p>
+      <p>IvyWay - Transform your essays</p>
     </div>
   </div>
 </body>
@@ -285,7 +436,7 @@ export function tieredAnalysisCompleteEmail(
       ` : ''}
     </div>
     <div class="footer">
-      <p>EssayEdge AI - Blunt, actionable essay feedback</p>
+      <p>IvyWay - Blunt, actionable essay feedback</p>
       <p><a href="${process.env.NEXT_PUBLIC_APP_URL}" style="color: ${tierColors[tier]};">essayedgeai.com</a></p>
     </div>
   </div>
@@ -350,7 +501,7 @@ export function humanReviewCompleteEmail(
       </div>
     </div>
     <div class="footer">
-      <p>EssayEdge AI - Expert human review for college essays</p>
+      <p>IvyWay - Expert human review for college essays</p>
     </div>
   </div>
 </body>

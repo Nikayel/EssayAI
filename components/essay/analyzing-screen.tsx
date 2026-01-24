@@ -48,14 +48,14 @@ export function AnalyzingScreen({ onComplete }: { onComplete?: () => void }) {
 
   return (
     <div className="max-w-2xl mx-auto py-16 px-4">
-      <Card className="border-2 border-blue-500 shadow-xl">
+      <Card className="border-2 border-brand-500 shadow-xl">
         <CardContent className="py-12">
           {/* Main Spinner */}
           <div className="flex justify-center mb-8">
             <div className="relative">
-              <Loader2 className="w-16 h-16 text-blue-600 animate-spin" />
+              <Loader2 className="w-16 h-16 text-brand-600 animate-spin" />
               <div className="absolute inset-0 flex items-center justify-center">
-                <div className="w-12 h-12 bg-blue-100 rounded-full animate-pulse" />
+                <div className="w-12 h-12 bg-brand-100 rounded-full animate-pulse" />
               </div>
             </div>
           </div>
@@ -64,14 +64,14 @@ export function AnalyzingScreen({ onComplete }: { onComplete?: () => void }) {
           <h2 className="text-3xl font-bold text-center mb-2">
             AI is Analyzing Your Essay
           </h2>
-          <p className="text-center text-gray-600 mb-8">
+          <p className="text-center text-neutral-600 mb-8">
             This usually takes about 1 minute...
           </p>
 
           {/* Progress Bar */}
-          <div className="w-full bg-gray-200 rounded-full h-3 mb-8">
+          <div className="w-full bg-neutral-200 rounded-full h-3 mb-8">
             <div
-              className="bg-gradient-to-r from-blue-500 to-purple-600 h-3 rounded-full transition-all duration-300 ease-linear"
+              className="bg-gradient-to-r from-brand-500 to-brand-600 h-3 rounded-full transition-all duration-300 ease-linear"
               style={{ width: `${progress}%` }}
             />
           </div>
@@ -88,24 +88,24 @@ export function AnalyzingScreen({ onComplete }: { onComplete?: () => void }) {
                   key={index}
                   className={`flex items-center gap-3 p-3 rounded-lg transition-all ${
                     isActive
-                      ? 'bg-blue-50 border-2 border-blue-500'
+                      ? 'bg-brand-50 border-2 border-brand-500'
                       : isComplete
-                      ? 'bg-green-50'
-                      : 'bg-gray-50'
+                      ? 'bg-success-50'
+                      : 'bg-neutral-50'
                   }`}
                 >
                   {isComplete ? (
-                    <CheckCircle2 className="w-6 h-6 text-green-600" />
+                    <CheckCircle2 className="w-6 h-6 text-success-600" />
                   ) : (
                     <StepIcon
                       className={`w-6 h-6 ${
-                        isActive ? 'text-blue-600 animate-pulse' : 'text-gray-400'
+                        isActive ? 'text-brand-600 animate-pulse' : 'text-neutral-400'
                       }`}
                     />
                   )}
                   <span
                     className={`font-medium ${
-                      isActive ? 'text-blue-900' : isComplete ? 'text-green-900' : 'text-gray-600'
+                      isActive ? 'text-brand-900' : isComplete ? 'text-success-900' : 'text-neutral-600'
                     }`}
                   >
                     {step.label}
@@ -116,7 +116,7 @@ export function AnalyzingScreen({ onComplete }: { onComplete?: () => void }) {
           </div>
 
           {/* Footer Message */}
-          <p className="text-center text-sm text-gray-500 mt-8">
+          <p className="text-center text-sm text-neutral-500 mt-8">
             Our AI is evaluating your essay across 7 dimensions: authenticity, reflection,
             structure, specificity, clarity, mechanics, and ethics.
           </p>

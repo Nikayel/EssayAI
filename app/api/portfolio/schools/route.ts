@@ -1,6 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { prisma } from '@/lib/prisma';
+import { z } from 'zod';
+
+// Input validation schema
+const AddSchoolSchema = z.object({
+  schoolName: z.string().min(1).max(200),
+  deadlineType: z.enum(['EARLY_DECISION', 'EARLY_ACTION', 'REGULAR_DECISION', 'ROLLING', 'RESTRICTIVE_EARLY_ACTION']),
+  deadline: z.string().refine((val) => !isNaN(Date.parse(val)), { message: 'Invalid date format' }),
+  notes: z.string().max(1000).optional(),
+});
 
 export async function POST(request: NextRequest) {
   const supabase = await createClient();
@@ -12,14 +21,10 @@ export async function POST(request: NextRequest) {
 
   try {
     const body = await request.json();
-    const { schoolName, deadlineType, deadline, notes } = body;
 
-    if (!schoolName || !deadlineType || !deadline) {
-      return NextResponse.json(
-        { error: 'Missing required fields' },
-        { status: 400 }
-      );
-    }
+    // Validate input
+    const validated = AddSchoolSchema.parse(body);
+    const { schoolName, deadlineType, deadline, notes } = validated;
 
     // Get or create profile
     let profile = await prisma.profile.findUnique({
@@ -59,9 +64,17 @@ export async function POST(request: NextRequest) {
     });
 
     return NextResponse.json({ school });
-  } catch (error: any) {
+  } catch (error: unknown) {
+    // Handle Zod validation errors
+    if (error instanceof z.ZodError) {
+      return NextResponse.json(
+        { error: 'Validation error', details: error.issues },
+        { status: 400 }
+      );
+    }
+
     // Handle unique constraint violation (school already exists)
-    if (error.code === 'P2002') {
+    if (typeof error === 'object' && error !== null && 'code' in error && (error as { code: string }).code === 'P2002') {
       return NextResponse.json(
         { error: 'You have already added this school' },
         { status: 400 }

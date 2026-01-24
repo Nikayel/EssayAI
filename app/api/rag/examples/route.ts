@@ -87,7 +87,7 @@ export async function POST(request: NextRequest) {
     }
 
     return NextResponse.json(
-      { error: 'Failed to retrieve examples', details: (error as Error).message },
+      { error: 'Failed to retrieve examples. Please try again.' },
       { status: 500 }
     );
   }

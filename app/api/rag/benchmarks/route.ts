@@ -91,7 +91,7 @@ export async function POST(request: NextRequest) {
     }
 
     return NextResponse.json(
-      { error: 'Failed to calculate benchmarks', details: (error as Error).message },
+      { error: 'Failed to calculate benchmarks. Please try again.' },
       { status: 500 }
     );
   }

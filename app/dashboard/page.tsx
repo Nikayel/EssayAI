@@ -19,8 +19,10 @@ import {
   User,
   LogOut,
   Plus,
-  Sparkles
+  Sparkles,
+  Gift
 } from 'lucide-react';
+import { ReferralCard } from '@/components/referral/referral-card';
 
 async function getEssays(userId: string) {
   return await prisma.essay.findMany({
@@ -177,7 +179,7 @@ export default async function DashboardPage() {
             <div className="p-2 rounded-xl bg-gradient-to-br from-brand-500 to-brand-600">
               <PenTool className="w-5 h-5 text-white" />
             </div>
-            <span className="text-xl font-bold text-neutral-900">EssayEdge AI</span>
+            <span className="text-xl font-bold text-neutral-900">IvyWay</span>
           </Link>
           <div className="flex gap-2 items-center">
             <span className="text-sm text-neutral-500 mr-2 hidden md:block">{user.email}</span>
@@ -271,13 +273,13 @@ export default async function DashboardPage() {
         )}
 
         {/* Essays Header */}
-        <div className="flex justify-between items-center mb-8">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6 sm:mb-8">
           <div>
-            <h1 className="text-3xl font-bold text-neutral-900">My Essays</h1>
+            <h1 className="text-2xl sm:text-3xl font-bold text-neutral-900">My Essays</h1>
             <p className="text-neutral-500 mt-1">Track progress and view feedback</p>
           </div>
           <Link href="/dashboard/new">
-            <Button size="lg">
+            <Button size="lg" className="w-full sm:w-auto">
               <Plus className="w-4 h-4" />
               New Essay
             </Button>
@@ -288,17 +290,20 @@ export default async function DashboardPage() {
         {essays.length === 0 ? (
           <Card variant="elevated" className="text-center">
             <CardContent className="py-16">
-              <div className="p-4 rounded-2xl bg-neutral-100 w-fit mx-auto mb-6">
-                <FileText className="w-10 h-10 text-neutral-400" />
+              <div className="p-4 rounded-2xl bg-brand-100 w-fit mx-auto mb-6">
+                <FileText className="w-10 h-10 text-brand-600" />
               </div>
-              <h3 className="text-xl font-semibold text-neutral-900 mb-2">No essays yet</h3>
-              <p className="text-neutral-500 mb-6 max-w-sm mx-auto">
-                Get started by submitting your first essay for AI-powered analysis
+              <h3 className="text-2xl font-semibold text-neutral-900 mb-3">Your essay is waiting</h3>
+              <p className="text-neutral-600 mb-2 max-w-md mx-auto">
+                Most students find 3-5 critical improvements they missed. Let's see what's hiding in yours.
+              </p>
+              <p className="text-sm text-neutral-500 mb-8">
+                Free Commons Check for essays up to 650 words. Takes 60 seconds.
               </p>
               <Link href="/dashboard/new">
                 <Button size="lg">
                   <Sparkles className="w-4 h-4" />
-                  Submit Your First Essay
+                  Analyze Your First Essay
                 </Button>
               </Link>
             </CardContent>
@@ -341,16 +346,16 @@ export default async function DashboardPage() {
                     </div>
                   </CardHeader>
                   <CardContent>
-                    <div className="flex justify-between items-center">
-                      <div className="flex items-center gap-6">
-                        <div className="flex items-center gap-4 text-sm">
+                    <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                      <div className="flex flex-wrap items-center gap-3 sm:gap-6">
+                        <div className="flex items-center gap-2 sm:gap-4 text-sm">
                           <span className="text-neutral-500">{wordCount} words</span>
                           <span className="text-neutral-400">|</span>
                           <span className="text-neutral-500">v{latestVersion?.versionIndex || 1}</span>
                         </div>
                         {score !== null && (
                           <div className="flex items-center gap-3">
-                            <div className="w-24">
+                            <div className="w-20 sm:w-24">
                               <Progress value={score} size="sm" />
                             </div>
                             <span className="text-sm font-semibold text-neutral-900">
@@ -361,15 +366,15 @@ export default async function DashboardPage() {
                       </div>
 
                       {status.status !== 'PAYMENT_PENDING' ? (
-                        <Link href={`/dashboard/essay/${essay.id}`}>
-                          <Button variant="outline" size="sm">
+                        <Link href={`/dashboard/essay/${essay.id}`} className="w-full sm:w-auto">
+                          <Button variant="outline" size="sm" className="w-full sm:w-auto">
                             View Details
                             <ArrowRight className="w-4 h-4" />
                           </Button>
                         </Link>
                       ) : (
-                        <Link href={`/pricing?essay=${essay.id}`}>
-                          <Button variant="premium" size="sm">
+                        <Link href={`/pricing?essay=${essay.id}`} className="w-full sm:w-auto">
+                          <Button variant="premium" size="sm" className="w-full sm:w-auto">
                             Complete Payment
                             <ArrowRight className="w-4 h-4" />
                           </Button>
@@ -382,6 +387,15 @@ export default async function DashboardPage() {
             })}
           </div>
         )}
+
+        {/* Referral Section */}
+        <section className="mt-8 sm:mt-12">
+          <div className="flex items-center gap-2 mb-4">
+            <Gift className="w-5 h-5 text-success-600 dark:text-success-400" />
+            <h2 className="text-lg sm:text-xl font-semibold text-neutral-900">Invite Friends</h2>
+          </div>
+          <ReferralCard />
+        </section>
       </main>
     </div>
   );

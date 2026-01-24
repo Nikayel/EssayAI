@@ -117,20 +117,20 @@ export function EssaySubmissionWizard() {
   };
 
   return (
-    <div className="max-w-3xl mx-auto py-8 px-4">
+    <div className="max-w-3xl mx-auto py-6 sm:py-8 px-4">
       {/* Progress Indicator */}
-      <div className="mb-8">
+      <div className="mb-6 sm:mb-8">
         <div className="flex items-center justify-between mb-2">
-          <span className="text-sm font-medium">Step {step} of 3</span>
-          <span className="text-sm text-gray-600">
+          <span className="text-sm font-medium text-neutral-900 dark:text-neutral-100">Step {step} of 3</span>
+          <span className="text-sm text-neutral-600 dark:text-neutral-400">
             {step === 1 && 'Basic Information'}
             {step === 2 && 'Your Essay'}
             {step === 3 && 'Choose Package'}
           </span>
         </div>
-        <div className="w-full bg-gray-200 rounded-full h-2">
+        <div className="w-full bg-neutral-200 dark:bg-neutral-700 rounded-full h-2">
           <div
-            className="bg-blue-600 h-2 rounded-full transition-all duration-300"
+            className="bg-brand-600 h-2 rounded-full transition-all duration-300"
             style={{ width: `${(step / 3) * 100}%` }}
           />
         </div>
@@ -190,7 +190,7 @@ export function EssaySubmissionWizard() {
                 value={formData.prompt}
                 onChange={(e) => updateField('prompt', e.target.value)}
               />
-              <p className="text-xs text-gray-500 mt-1">
+              <p className="text-xs text-neutral-500 dark:text-neutral-400 mt-1">
                 Providing the exact prompt helps us evaluate relevance and alignment
               </p>
             </div>
@@ -220,17 +220,17 @@ export function EssaySubmissionWizard() {
               <Label htmlFor="content">Essay Content *</Label>
               <textarea
                 id="content"
-                className="w-full mt-1 px-3 py-2 border rounded-md min-h-[400px] font-serif"
+                className="w-full mt-1 px-3 py-2 border rounded-md min-h-[200px] sm:min-h-[400px] font-serif"
                 placeholder="Start typing or paste your essay here..."
                 value={formData.content}
                 onChange={handleContentChange}
               />
-              <div className="flex justify-between items-center mt-2">
-                <span className="text-sm text-gray-600">
-                  Word Count: <span className={wordCount > (formData.wordLimit || 1000) ? 'text-red-600 font-semibold' : 'font-semibold'}>{wordCount}</span> / {formData.wordLimit || 1000}
+              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 mt-2">
+                <span className="text-sm text-neutral-600 dark:text-neutral-400">
+                  Word Count: <span className={wordCount > (formData.wordLimit || 1000) ? 'text-error-600 font-semibold' : 'font-semibold'}>{wordCount}</span> / {formData.wordLimit || 1000}
                 </span>
                 {wordCount > (formData.wordLimit || 1000) && (
-                  <span className="text-sm text-red-600">
+                  <span className="text-sm text-error-600">
                     Over limit by {wordCount - (formData.wordLimit || 1000)} words
                   </span>
                 )}
@@ -270,15 +270,15 @@ export function EssaySubmissionWizard() {
             {/* AI Lite */}
             <div
               className={`border-2 rounded-lg p-4 cursor-pointer transition-all ${
-                formData.package === 'AI_LITE' ? 'border-blue-500 bg-blue-50' : 'border-gray-200'
+                formData.package === 'AI_LITE' ? 'border-brand-500 bg-brand-50 dark:bg-brand-900/20' : 'border-neutral-200 dark:border-neutral-700'
               }`}
               onClick={() => updateField('package', 'AI_LITE')}
             >
-              <div className="flex justify-between items-start">
+              <div className="flex flex-col sm:flex-row justify-between items-start gap-4">
                 <div>
                   <h3 className="font-semibold text-lg">AI Lite</h3>
-                  <p className="text-sm text-gray-600">Fast feedback in ~30 seconds</p>
-                  <ul className="mt-2 text-sm space-y-1">
+                  <p className="text-sm text-neutral-600 dark:text-neutral-400">Fast feedback in ~30 seconds</p>
+                  <ul className="mt-2 text-sm space-y-1 text-neutral-700 dark:text-neutral-300">
                     <li>✓ Commons Check flags</li>
                     <li>✓ Basic rubric scores (0-100)</li>
                     <li>✓ Top 5 improvement suggestions</li>
@@ -286,7 +286,7 @@ export function EssaySubmissionWizard() {
                 </div>
                 <div className="text-right">
                   <div className="text-2xl font-bold">$9</div>
-                  <div className="text-xs text-gray-500">one-time</div>
+                  <div className="text-xs text-neutral-500">one-time</div>
                 </div>
               </div>
             </div>
@@ -294,15 +294,15 @@ export function EssaySubmissionWizard() {
             {/* AI Pro */}
             <div
               className={`border-2 rounded-lg p-4 cursor-pointer transition-all ${
-                formData.package === 'AI_PRO_SINGLE' ? 'border-blue-500 bg-blue-50' : 'border-gray-200'
+                formData.package === 'AI_PRO_SINGLE' ? 'border-brand-500 bg-brand-50 dark:bg-brand-900/20' : 'border-neutral-200 dark:border-neutral-700'
               }`}
               onClick={() => updateField('package', 'AI_PRO_SINGLE')}
             >
-              <div className="flex justify-between items-start">
+              <div className="flex flex-col sm:flex-row justify-between items-start gap-4">
                 <div>
                   <h3 className="font-semibold text-lg">AI Pro</h3>
-                  <p className="text-sm text-gray-600">Comprehensive analysis in ~1 minute</p>
-                  <ul className="mt-2 text-sm space-y-1">
+                  <p className="text-sm text-neutral-600 dark:text-neutral-400">Comprehensive analysis in ~1 minute</p>
+                  <ul className="mt-2 text-sm space-y-1 text-neutral-700 dark:text-neutral-300">
                     <li>✓ Everything in AI Lite</li>
                     <li>✓ Full 7-dimension rubric breakdown</li>
                     <li>✓ Paragraph rewrites with voice notes</li>
@@ -312,7 +312,7 @@ export function EssaySubmissionWizard() {
                 </div>
                 <div className="text-right">
                   <div className="text-2xl font-bold">$29</div>
-                  <div className="text-xs text-gray-500">one-time</div>
+                  <div className="text-xs text-neutral-500">one-time</div>
                 </div>
               </div>
             </div>
@@ -320,15 +320,15 @@ export function EssaySubmissionWizard() {
             {/* Human Review */}
             <div
               className={`border-2 rounded-lg p-4 cursor-pointer transition-all ${
-                formData.package === 'HUMAN_LITE' ? 'border-purple-500 bg-purple-50' : 'border-gray-200'
+                formData.package === 'HUMAN_LITE' ? 'border-accent-500 bg-accent-50 dark:bg-accent-900/20' : 'border-neutral-200 dark:border-neutral-700'
               }`}
               onClick={() => updateField('package', 'HUMAN_LITE')}
             >
-              <div className="flex justify-between items-start">
+              <div className="flex flex-col sm:flex-row justify-between items-start gap-4">
                 <div>
                   <h3 className="font-semibold text-lg">Human Review</h3>
-                  <p className="text-sm text-gray-600">AI analysis + expert human editor</p>
-                  <ul className="mt-2 text-sm space-y-1">
+                  <p className="text-sm text-neutral-600 dark:text-neutral-400">AI analysis + expert human editor</p>
+                  <ul className="mt-2 text-sm space-y-1 text-neutral-700 dark:text-neutral-300">
                     <li>✓ Instant AI Pro analysis first</li>
                     <li>✓ Professional editor review (48h)</li>
                     <li>✓ Detailed margin comments</li>
@@ -337,12 +337,12 @@ export function EssaySubmissionWizard() {
                 </div>
                 <div className="text-right">
                   <div className="text-2xl font-bold">$79</div>
-                  <div className="text-xs text-gray-500">48h delivery</div>
+                  <div className="text-xs text-neutral-500">48h delivery</div>
                 </div>
               </div>
             </div>
 
-            <div className="flex gap-2">
+            <div className="flex flex-col sm:flex-row gap-2">
               <Button
                 onClick={() => setStep(2)}
                 variant="outline"
@@ -359,7 +359,7 @@ export function EssaySubmissionWizard() {
               </Button>
             </div>
 
-            <p className="text-xs text-center text-gray-500">
+            <p className="text-xs text-center text-neutral-500 dark:text-neutral-400">
               Secure payment via Stripe. Analysis starts immediately after payment.
             </p>
           </CardContent>

@@ -93,7 +93,7 @@ export async function GET(request: NextRequest) {
   } catch (error) {
     console.error('RAG status check error:', error);
     return NextResponse.json(
-      { error: 'Failed to check RAG status', details: (error as Error).message },
+      { error: 'Failed to check status. Please try again.' },
       { status: 500 }
     );
   }
