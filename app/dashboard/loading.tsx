@@ -1,21 +1,10 @@
 import { SkeletonEssayCard } from '@/components/ui/loading';
+import { HeaderSkeleton } from '@/components/layout/header';
 
 export default function DashboardLoading() {
   return (
     <div className="min-h-screen bg-background">
-      {/* Header Skeleton */}
-      <header className="sticky top-0 z-50 border-b border-neutral-200/60 bg-white/80 backdrop-blur-xl">
-        <div className="container mx-auto px-4 py-4 flex justify-between items-center">
-          <div className="flex items-center gap-2">
-            <div className="w-9 h-9 rounded-xl bg-neutral-200 animate-pulse" />
-            <div className="w-20 h-6 rounded bg-neutral-200 animate-pulse" />
-          </div>
-          <div className="flex gap-2">
-            <div className="w-20 h-9 rounded-lg bg-neutral-200 animate-pulse" />
-            <div className="w-20 h-9 rounded-lg bg-neutral-200 animate-pulse" />
-          </div>
-        </div>
-      </header>
+      <HeaderSkeleton />
 
       {/* Main Content */}
       <main className="container mx-auto px-4 py-8">
