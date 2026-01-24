@@ -429,15 +429,16 @@ export async function GET() {
     tiers: {
       quick: {
         name: 'Essay Score',
-        price: '$9.99',
-        priceInCents: config.pricing.tiers.quick.priceInCents,
+        price: 'Free',
+        priceInCents: 0,
         features: [
           'Overall score with label',
-          '3-5 specific actionable items',
+          '3-5 specific actionable items with blunt feedback',
           'AI detection check',
-          'Blurred preview of full analysis',
+          'Critical issues identified (upgrade to see how to fix)',
         ],
         turnaround: 'Instant',
+        note: 'Free preview - see your score and top issues before you pay',
       },
       standard: {
         name: 'Full Analysis',

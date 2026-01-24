@@ -143,7 +143,7 @@ export const BLUNT_TEMPLATES = {
     could_be_anywhere: (school: string) => ({
       headline: `This essay could be sent to any school`,
       explanation: `You mention ${school} but say nothing specific. AOs can tell when you copy-paste.`,
-      aoThought: '"We're clearly their backup school."',
+      aoThought: '"We\'re clearly their backup school."',
       fix: `Name a specific program, professor, course, or tradition at ${school}. Research for 30 minutes.`,
     }),
 
