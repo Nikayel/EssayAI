@@ -113,7 +113,7 @@ export default async function PortfolioPage() {
       {/* Header */}
       <header className="bg-white border-b">
         <div className="container mx-auto px-4 py-4 flex justify-between items-center">
-          <h1 className="text-2xl font-bold">EssayEdge AI</h1>
+          <h1 className="text-2xl font-bold">IvyWay</h1>
           <div className="flex gap-4 items-center">
             <Link href="/dashboard">
               <Button variant="ghost">Essays</Button>

@@ -36,7 +36,7 @@ export default function Home() {
             <div className="p-2 rounded-xl bg-gradient-to-br from-brand-500 to-brand-600">
               <PenTool className="w-5 h-5 text-white" />
             </div>
-            <span className="text-xl font-bold text-neutral-900">EssayEdge AI</span>
+            <span className="text-xl font-bold text-neutral-900">IvyWay</span>
           </Link>
           <nav className="hidden md:flex items-center gap-2">
             <Link href="/pricing">
@@ -117,7 +117,7 @@ export default function Home() {
           <div className="text-center mb-16">
             <Badge variant="default" size="lg" className="mb-4">
               <Zap className="w-3.5 h-3.5" />
-              Why EssayEdge AI
+              Why IvyWay
             </Badge>
             <h2 className="text-3xl md:text-4xl font-bold text-neutral-900 mb-4">
               Everything You Need to Perfect Your Essay
@@ -246,6 +246,76 @@ export default function Home() {
         </div>
       </section>
 
+      {/* Why Us - Competitor Comparison */}
+      <section className="py-20 md:py-28 bg-white border-t border-neutral-100">
+        <div className="container mx-auto px-4">
+          <div className="text-center mb-12">
+            <Badge variant="info" size="lg" className="mb-4">
+              <Shield className="w-3.5 h-3.5" />
+              Why IvyWay?
+            </Badge>
+            <h2 className="text-3xl md:text-4xl font-bold text-neutral-900 mb-4">
+              Not Another Grammar Checker
+            </h2>
+            <p className="text-neutral-600 max-w-2xl mx-auto text-lg">
+              Grammarly fixes commas. ChatGPT writes for you. We do neither.
+            </p>
+          </div>
+
+          <div className="max-w-4xl mx-auto">
+            {/* Comparison Table */}
+            <div className="overflow-hidden rounded-2xl border border-neutral-200">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="bg-neutral-50">
+                    <th className="text-left p-4 font-semibold text-neutral-600">Feature</th>
+                    <th className="text-center p-4 font-semibold text-neutral-600">Grammarly</th>
+                    <th className="text-center p-4 font-semibold text-neutral-600">ChatGPT</th>
+                    <th className="text-center p-4 font-semibold text-brand-600 bg-brand-50">IvyWay</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-neutral-100">
+                  <tr>
+                    <td className="p-4 text-neutral-900">Built for college essays</td>
+                    <td className="p-4 text-center text-neutral-400">-</td>
+                    <td className="p-4 text-center text-neutral-400">-</td>
+                    <td className="p-4 text-center text-green-600 bg-brand-50/30">✓</td>
+                  </tr>
+                  <tr>
+                    <td className="p-4 text-neutral-900">Preserves your voice</td>
+                    <td className="p-4 text-center text-neutral-400">-</td>
+                    <td className="p-4 text-center text-red-500">✗</td>
+                    <td className="p-4 text-center text-green-600 bg-brand-50/30">✓</td>
+                  </tr>
+                  <tr>
+                    <td className="p-4 text-neutral-900">School-specific feedback</td>
+                    <td className="p-4 text-center text-neutral-400">-</td>
+                    <td className="p-4 text-center text-neutral-400">-</td>
+                    <td className="p-4 text-center text-green-600 bg-brand-50/30">✓</td>
+                  </tr>
+                  <tr>
+                    <td className="p-4 text-neutral-900">Admissions officer perspective</td>
+                    <td className="p-4 text-center text-neutral-400">-</td>
+                    <td className="p-4 text-center text-neutral-400">-</td>
+                    <td className="p-4 text-center text-green-600 bg-brand-50/30">✓</td>
+                  </tr>
+                  <tr>
+                    <td className="p-4 text-neutral-900">Human expert review option</td>
+                    <td className="p-4 text-center text-neutral-400">-</td>
+                    <td className="p-4 text-center text-neutral-400">-</td>
+                    <td className="p-4 text-center text-green-600 bg-brand-50/30">✓</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+            <p className="text-center text-neutral-500 mt-6 text-sm">
+              Generic tools don't understand what gets you admitted. We do.
+            </p>
+          </div>
+        </div>
+      </section>
+
       {/* Reviewer Showcase */}
       <ReviewerShowcase />
 
@@ -336,12 +406,12 @@ export default function Home() {
               <div className="p-2 rounded-xl bg-gradient-to-br from-brand-500 to-brand-600">
                 <PenTool className="w-4 h-4 text-white" />
               </div>
-              <span className="font-semibold text-neutral-700">EssayEdge AI</span>
+              <span className="font-semibold text-neutral-700">IvyWay</span>
             </div>
             <div className="flex items-center gap-6 text-sm text-neutral-500">
               <Link href="/pricing" className="hover:text-neutral-900 transition-colors">Pricing</Link>
               <Link href="/for-parents" className="hover:text-neutral-900 transition-colors">For Parents</Link>
-              <span>&copy; 2025 EssayEdge AI. Privacy-first. Voice-preserving.</span>
+              <span>&copy; 2025 IvyWay. Privacy-first. Voice-preserving.</span>
             </div>
           </div>
         </div>

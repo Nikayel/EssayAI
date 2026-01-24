@@ -40,7 +40,7 @@ export default function LoginPage() {
         {/* Logo */}
         <div className="text-center mb-8">
           <Link href="/">
-            <h1 className="text-3xl font-bold text-gray-900">EssayEdge AI</h1>
+            <h1 className="text-3xl font-bold text-gray-900">IvyWay</h1>
           </Link>
           <p className="text-gray-600 mt-2">Sign in to continue</p>
         </div>
@@ -54,8 +54,8 @@ export default function LoginPage() {
               variables: {
                 default: {
                   colors: {
-                    brand: '#2563eb',
-                    brandAccent: '#1d4ed8',
+                    brand: '#7c3aed',
+                    brandAccent: '#6d28d9',
                   },
                 },
               },

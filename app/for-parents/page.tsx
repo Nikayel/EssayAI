@@ -24,7 +24,7 @@ export default function ForParentsPage() {
       {/* Header */}
       <header className="border-b bg-white">
         <div className="container mx-auto px-4 py-4 flex justify-between items-center">
-          <h1 className="text-2xl font-bold text-gray-900">EssayEdge AI</h1>
+          <h1 className="text-2xl font-bold text-gray-900">IvyWay</h1>
           <nav className="flex gap-4">
             <Link href="/">
               <Button variant="ghost">For Students</Button>
@@ -321,9 +321,9 @@ export default function ForParentsPage() {
       {/* Footer */}
       <footer className="border-t py-8 bg-white">
         <div className="container mx-auto px-4 text-center text-gray-600">
-          <p>&copy; 2024 EssayEdge AI. Privacy-first. Voice-preserving.</p>
+          <p>&copy; 2025 IvyWay. Privacy-first. Voice-preserving.</p>
           <p className="text-sm mt-2">
-            Questions? Email us at <a href="mailto:support@essayedge.ai" className="text-blue-600">support@essayedge.ai</a>
+            Questions? Email us at <a href="mailto:support@ivyway.ai" className="text-brand-600">support@ivyway.ai</a>
           </p>
         </div>
       </footer>

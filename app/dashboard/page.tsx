@@ -19,8 +19,10 @@ import {
   User,
   LogOut,
   Plus,
-  Sparkles
+  Sparkles,
+  Gift
 } from 'lucide-react';
+import { ReferralCard } from '@/components/referral/referral-card';
 
 async function getEssays(userId: string) {
   return await prisma.essay.findMany({
@@ -177,7 +179,7 @@ export default async function DashboardPage() {
             <div className="p-2 rounded-xl bg-gradient-to-br from-brand-500 to-brand-600">
               <PenTool className="w-5 h-5 text-white" />
             </div>
-            <span className="text-xl font-bold text-neutral-900">EssayEdge AI</span>
+            <span className="text-xl font-bold text-neutral-900">IvyWay</span>
           </Link>
           <div className="flex gap-2 items-center">
             <span className="text-sm text-neutral-500 mr-2 hidden md:block">{user.email}</span>
@@ -288,17 +290,20 @@ export default async function DashboardPage() {
         {essays.length === 0 ? (
           <Card variant="elevated" className="text-center">
             <CardContent className="py-16">
-              <div className="p-4 rounded-2xl bg-neutral-100 w-fit mx-auto mb-6">
-                <FileText className="w-10 h-10 text-neutral-400" />
+              <div className="p-4 rounded-2xl bg-brand-100 w-fit mx-auto mb-6">
+                <FileText className="w-10 h-10 text-brand-600" />
               </div>
-              <h3 className="text-xl font-semibold text-neutral-900 mb-2">No essays yet</h3>
-              <p className="text-neutral-500 mb-6 max-w-sm mx-auto">
-                Get started by submitting your first essay for AI-powered analysis
+              <h3 className="text-2xl font-semibold text-neutral-900 mb-3">Your essay is waiting</h3>
+              <p className="text-neutral-600 mb-2 max-w-md mx-auto">
+                Most students find 3-5 critical improvements they missed. Let's see what's hiding in yours.
+              </p>
+              <p className="text-sm text-neutral-500 mb-8">
+                Free Commons Check for essays up to 650 words. Takes 60 seconds.
               </p>
               <Link href="/dashboard/new">
                 <Button size="lg">
                   <Sparkles className="w-4 h-4" />
-                  Submit Your First Essay
+                  Analyze Your First Essay
                 </Button>
               </Link>
             </CardContent>
@@ -382,6 +387,15 @@ export default async function DashboardPage() {
             })}
           </div>
         )}
+
+        {/* Referral Section */}
+        <section className="mt-12">
+          <div className="flex items-center gap-2 mb-4">
+            <Gift className="w-5 h-5 text-green-600" />
+            <h2 className="text-xl font-semibold text-neutral-900">Invite Friends</h2>
+          </div>
+          <ReferralCard />
+        </section>
       </main>
     </div>
   );

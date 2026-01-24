@@ -176,7 +176,7 @@ export function OnboardingWizard() {
         <Card>
           <CardHeader>
             <div className="flex items-center gap-3 mb-2">
-              <GraduationCap className="w-8 h-8 text-blue-600" />
+              <GraduationCap className="w-8 h-8 text-brand-600" />
               <CardTitle className="text-2xl">When do you graduate high school?</CardTitle>
             </div>
             <CardDescription>
@@ -191,7 +191,7 @@ export function OnboardingWizard() {
                   onClick={() => updateField('graduationYear', year)}
                   className={`p-4 rounded-lg border-2 text-lg font-semibold transition-all ${
                     data.graduationYear === year
-                      ? 'border-blue-500 bg-blue-50 text-blue-700'
+                      ? 'border-brand-500 bg-brand-50 text-blue-700'
                       : 'border-gray-200 hover:border-gray-300'
                   }`}
                 >
@@ -212,7 +212,7 @@ export function OnboardingWizard() {
         <Card>
           <CardHeader>
             <div className="flex items-center gap-3 mb-2">
-              <Target className="w-8 h-8 text-blue-600" />
+              <Target className="w-8 h-8 text-brand-600" />
               <CardTitle className="text-2xl">Where are you applying?</CardTitle>
             </div>
             <CardDescription>
@@ -279,7 +279,7 @@ export function OnboardingWizard() {
                 getDaysUntilDeadline()! <= 14 ? 'bg-red-50 border-red-200' : 'bg-blue-50 border-blue-200'
               } border`}>
                 <div className="flex items-center gap-2">
-                  <Calendar className={`w-5 h-5 ${getDaysUntilDeadline()! <= 14 ? 'text-red-600' : 'text-blue-600'}`} />
+                  <Calendar className={`w-5 h-5 ${getDaysUntilDeadline()! <= 14 ? 'text-red-600' : 'text-brand-600'}`} />
                   <span className="font-semibold">
                     {getDaysUntilDeadline()! <= 0
                       ? 'Your earliest deadline has passed!'
@@ -303,7 +303,7 @@ export function OnboardingWizard() {
         <Card>
           <CardHeader>
             <div className="flex items-center gap-3 mb-2">
-              <Sparkles className="w-8 h-8 text-blue-600" />
+              <Sparkles className="w-8 h-8 text-brand-600" />
               <CardTitle className="text-2xl">Tell us your story</CardTitle>
             </div>
             <CardDescription>
@@ -353,7 +353,7 @@ export function OnboardingWizard() {
         <Card>
           <CardHeader>
             <div className="flex items-center gap-3 mb-2">
-              <AlertCircle className="w-8 h-8 text-blue-600" />
+              <AlertCircle className="w-8 h-8 text-brand-600" />
               <CardTitle className="text-2xl">What's your biggest concern?</CardTitle>
             </div>
             <CardDescription>
@@ -367,7 +367,7 @@ export function OnboardingWizard() {
                 onClick={() => updateField('biggestWorry', worry)}
                 className={`w-full p-4 rounded-lg border-2 text-left transition-all ${
                   data.biggestWorry === worry
-                    ? 'border-blue-500 bg-blue-50'
+                    ? 'border-brand-500 bg-brand-50'
                     : 'border-gray-200 hover:border-gray-300'
                 }`}
               >
@@ -381,7 +381,7 @@ export function OnboardingWizard() {
                 <button
                   onClick={() => updateField('previousReviews', true)}
                   className={`p-3 rounded-lg border-2 ${
-                    data.previousReviews === true ? 'border-blue-500 bg-blue-50' : 'border-gray-200'
+                    data.previousReviews === true ? 'border-brand-500 bg-brand-50' : 'border-gray-200'
                   }`}
                 >
                   Yes
@@ -389,7 +389,7 @@ export function OnboardingWizard() {
                 <button
                   onClick={() => updateField('previousReviews', false)}
                   className={`p-3 rounded-lg border-2 ${
-                    data.previousReviews === false ? 'border-blue-500 bg-blue-50' : 'border-gray-200'
+                    data.previousReviews === false ? 'border-brand-500 bg-brand-50' : 'border-gray-200'
                   }`}
                 >
                   No, this is my first review
@@ -410,11 +410,11 @@ export function OnboardingWizard() {
         <Card>
           <CardHeader>
             <div className="flex items-center gap-3 mb-2">
-              <Users className="w-8 h-8 text-blue-600" />
+              <Users className="w-8 h-8 text-brand-600" />
               <CardTitle className="text-2xl">One last question!</CardTitle>
             </div>
             <CardDescription>
-              How did you discover EssayEdge AI?
+              How did you discover IvyWay?
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-3">
@@ -424,7 +424,7 @@ export function OnboardingWizard() {
                 onClick={() => updateField('howHeardAboutUs', source)}
                 className={`w-full p-4 rounded-lg border-2 text-left transition-all ${
                   data.howHeardAboutUs === source
-                    ? 'border-blue-500 bg-blue-50'
+                    ? 'border-brand-500 bg-brand-50'
                     : 'border-gray-200 hover:border-gray-300'
                 }`}
               >

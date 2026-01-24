@@ -24,7 +24,7 @@ export default async function OnboardingPage() {
     <div className="min-h-screen bg-gradient-to-b from-blue-50 to-white">
       <header className="border-b bg-white">
         <div className="container mx-auto px-4 py-4">
-          <h1 className="text-2xl font-bold">EssayEdge AI</h1>
+          <h1 className="text-2xl font-bold">IvyWay</h1>
         </div>
       </header>
 
