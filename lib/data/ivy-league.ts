@@ -526,7 +526,7 @@ export const IVY_LEAGUE_SCHOOLS: IvySchool[] = [
     ],
     scoringNotes: [
       {
-        dimension: 'ethics_originality',
+        dimension: 'ethics',
         adjustment: 'critical',
         reason: 'Princeton\'s Honor Code makes integrity central. Any hint of exaggeration or inauthenticity is a red flag.',
       },

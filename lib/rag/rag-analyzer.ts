@@ -197,6 +197,8 @@ export async function analyzeEssayWithRAG(
   );
 
   // Step 6: Recalculate overall score for consistency
+  // v2.0.0: Now uses uniqueness and ethics instead of ethics_originality
+  const essayTypeKey = (essayType || 'other') as import('../scoring/rubric-config').EssayType;
   const calculatedScore = calculateOverallScore({
     authenticity: analysis.scores.authenticity.score,
     reflection: analysis.scores.reflection.score,
@@ -204,8 +206,9 @@ export async function analyzeEssayWithRAG(
     specificity_fit: analysis.scores.specificity_fit.score,
     clarity_style: analysis.scores.clarity_style.score,
     mechanics: analysis.scores.mechanics.score,
-    ethics_originality: analysis.scores.ethics_originality.score,
-  });
+    uniqueness: analysis.scores.uniqueness.score,
+    ethics: analysis.scores.ethics.score,
+  }, essayTypeKey);
 
   analysis.overall.score_100 = calculatedScore;
 
@@ -250,7 +253,8 @@ export async function analyzeEssayWithRAG(
           specificity_fit: analysis.scores.specificity_fit.score,
           clarity_style: analysis.scores.clarity_style.score,
           mechanics: analysis.scores.mechanics.score,
-          ethics_originality: analysis.scores.ethics_originality.score,
+          uniqueness: analysis.scores.uniqueness.score,
+          ethics: analysis.scores.ethics.score,
         },
         issuesIdentified: extractIssues(analysis),
         patternsMatched: patternMatches.map(p => p.pattern_id),
@@ -486,7 +490,7 @@ Return JSON:
     "school_alignment": {"flag": true/false, "evidence": ["quotes"]},
     "buzzwords_cliches": {"flag": true/false, "phrases": ["phrase1"]},
     "genericness": {"flag": true/false, "evidence": ["quotes"]},
-    "trauma_without_reflection": {"flag": true/false, "evidence": ["quotes"]},
+    "reflection_depth_needed": {"flag": true/false, "evidence": ["quotes"], "notes": "If flagged, suggest how to add deeper reflection"},
     "exaggeration": {"flag": true/false, "evidence": ["quotes"]},
     "tone_drift": {"flag": false, "notes": ""},
     "ethics_risks": {"flag": true/false, "notes": ""}
@@ -559,7 +563,7 @@ function getDefaultCommonsCheck(): AnalysisResponse['commons_check'] {
     school_alignment: { flag: false },
     buzzwords_cliches: { flag: false },
     genericness: { flag: false },
-    trauma_without_reflection: { flag: false },
+    reflection_depth_needed: { flag: false },
     exaggeration: { flag: false },
     tone_drift: { flag: false },
     ethics_risks: { flag: false },

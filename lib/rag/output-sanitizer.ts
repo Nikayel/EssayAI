@@ -542,7 +542,8 @@ function createSafeDefault(): AnalysisResponse {
       specificity_fit: { score: 3, rationales: ['Unable to analyze - please try again'] },
       clarity_style: { score: 3, rationales: ['Unable to analyze - please try again'] },
       mechanics: { score: 3, rationales: ['Unable to analyze - please try again'] },
-      ethics_originality: { score: 3, rationales: ['Unable to analyze - please try again'] },
+      uniqueness: { score: 3, rationales: ['Unable to analyze - please try again'] },
+      ethics: { score: 5, rationales: ['No issues detected'] }, // Default to 5 (no red flags)
     },
     commons_check: {
       about_applicant: { flag: false },
@@ -551,7 +552,7 @@ function createSafeDefault(): AnalysisResponse {
       school_alignment: { flag: false },
       buzzwords_cliches: { flag: false },
       genericness: { flag: false },
-      trauma_without_reflection: { flag: false },
+      reflection_depth_needed: { flag: false },
       exaggeration: { flag: false },
       tone_drift: { flag: false },
       ethics_risks: { flag: false },

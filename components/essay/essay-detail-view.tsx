@@ -301,15 +301,23 @@ export function EssayDetailView({ essay, userName, userEmail }: { essay: any; us
               title="Mechanics"
               score={scores.mechanics.score}
               rationales={scores.mechanics.rationales}
+              weight="5%"
+            />
+
+            {/* Uniqueness - So What? Test */}
+            <ScoreCard
+              title="Uniqueness (So What? Test)"
+              score={scores.uniqueness?.score ?? 3}
+              rationales={scores.uniqueness?.rationales ?? ['N/A']}
               weight="10%"
             />
 
             {/* Ethics */}
             <ScoreCard
-              title="Ethics & Originality"
-              score={scores.ethics_originality.score}
-              rationales={scores.ethics_originality.rationales}
-              weight="10%"
+              title="Ethics & Red Flags"
+              score={scores.ethics?.score ?? 5}
+              rationales={scores.ethics?.rationales ?? ['No concerns']}
+              weight="5%"
             />
           </div>
 
