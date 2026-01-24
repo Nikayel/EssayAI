@@ -23,7 +23,8 @@ export interface CommonsCheck {
   school_alignment: CommonsCheckFlag;
   buzzwords_cliches: CommonsCheckFlag;
   genericness: CommonsCheckFlag;
-  trauma_without_reflection: CommonsCheckFlag;
+  /** Renamed from trauma_without_reflection for more sensitive framing */
+  reflection_depth_needed: CommonsCheckFlag;
   exaggeration: CommonsCheckFlag;
   tone_drift: CommonsCheckFlag;
   ethics_risks: CommonsCheckFlag;
@@ -52,6 +53,8 @@ export interface AnalysisResponse {
     word_count: number;
     prompt: string;
     school: string;
+    /** Prompt version for tracking/debugging */
+    prompt_version?: string;
   };
   scores: {
     authenticity: ScoreDimension;
@@ -60,7 +63,17 @@ export interface AnalysisResponse {
     specificity_fit: ScoreDimension;
     clarity_style: ScoreDimension;
     mechanics: ScoreDimension;
-    ethics_originality: ScoreDimension;
+    /** "So What?" test - does essay reveal something meaningful? (10%) */
+    uniqueness: ScoreDimension;
+    /** Ethical considerations and red flags (5%) */
+    ethics: ScoreDimension;
+  };
+  /** Score anchor explanations for user understanding */
+  score_anchors?: {
+    [score: number]: {
+      label: string;
+      userFriendly: string;
+    };
   };
   commons_check: CommonsCheck;
   suggestions: Suggestions;

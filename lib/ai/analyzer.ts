@@ -144,6 +144,8 @@ export async function analyzeEssay(params: {
     );
 
     // Verify and recalculate overall score to ensure consistency
+    // v2.0.0: Now uses uniqueness and ethics instead of ethics_originality
+    const essayType = (analysis.meta.essay_type || 'other') as import('../scoring/rubric-config').EssayType;
     const calculatedScore = calculateOverallScore({
       authenticity: analysis.scores.authenticity.score,
       reflection: analysis.scores.reflection.score,
@@ -151,8 +153,9 @@ export async function analyzeEssay(params: {
       specificity_fit: analysis.scores.specificity_fit.score,
       clarity_style: analysis.scores.clarity_style.score,
       mechanics: analysis.scores.mechanics.score,
-      ethics_originality: analysis.scores.ethics_originality.score,
-    });
+      uniqueness: analysis.scores.uniqueness.score,
+      ethics: analysis.scores.ethics.score,
+    }, essayType);
 
     analysis.overall.score_100 = calculatedScore;
 

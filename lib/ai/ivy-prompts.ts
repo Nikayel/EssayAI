@@ -2,14 +2,8 @@
  * Ivy League-Specific AI Prompts
  * DRY principle: Composable prompt builders using school data
  *
- * Score Anchors (0-6 scale) - Calibrated for Ivy-level competition:
- * 0: Missing or fundamentally flawed - would hurt application
- * 1: Significant weaknesses - not competitive for Ivy admissions
- * 2: Below Ivy expectations - would blend into the pile
- * 3: Meets minimum - acceptable but won't help stand out in Ivy pool
- * 4: Solid - competitive, demonstrates potential fit
- * 5: Strong - memorable, would make AO want to advocate
- * 6: Exceptional - top 5% of Ivy applicant essays
+ * NOTE: Score anchors and base weights are centralized in lib/scoring/rubric-config.ts
+ * This file contains Ivy-specific overrides and prompt builders.
  */
 
 import {
@@ -19,33 +13,41 @@ import {
   type FitSignal
 } from '../data/ivy-league';
 
+import {
+  IVY_SCORE_ANCHORS as _IVY_SCORE_ANCHORS,
+  SCORE_CALIBRATION,
+  PROMPT_VERSION,
+} from '../scoring/rubric-config';
+
 // ============================================================================
-// SCORE ANCHORS - Ivy-calibrated definitions
+// SCORE ANCHORS - Ivy-calibrated definitions (re-export for compatibility)
 // ============================================================================
 
 export const IVY_SCORE_ANCHORS = {
-  0: 'Missing or fundamentally flawed - would hurt application',
-  1: 'Significant weaknesses - not competitive for Ivy admissions',
-  2: 'Below Ivy expectations - would blend into the pile',
-  3: 'Meets minimum - acceptable but won\'t stand out in Ivy pool',
-  4: 'Solid - competitive, demonstrates potential fit',
-  5: 'Strong - memorable, AO would want to advocate',
-  6: 'Exceptional - top 5% of Ivy applicant essays',
+  0: _IVY_SCORE_ANCHORS[0].label,
+  1: _IVY_SCORE_ANCHORS[1].label,
+  2: _IVY_SCORE_ANCHORS[2].label,
+  3: _IVY_SCORE_ANCHORS[3].label,
+  4: _IVY_SCORE_ANCHORS[4].label,
+  5: _IVY_SCORE_ANCHORS[5].label,
+  6: _IVY_SCORE_ANCHORS[6].label,
 } as const;
 
 // ============================================================================
-// CONSTANTS - Single source of truth for scoring weights
+// CONSTANTS - Ivy-specific scoring weights
+// v2.0.0: Added ethics (5%) split from previous uniqueness allocation
 // ============================================================================
 
 export const IVY_RUBRIC_WEIGHTS = {
-  authenticity: 0.20,     // Is this genuinely the student?
+  authenticity: 0.18,     // Is this genuinely the student?
   schoolFit: 0.20,        // Demonstrated research and genuine connection
   reflection: 0.15,       // Growth mindset, self-awareness
-  structure: 0.12,        // Flow and organization
+  structure: 0.10,        // Flow and organization
   specificity: 0.15,      // Concrete details, not generic
-  clarity: 0.10,          // Clear expression
+  clarity: 0.09,          // Clear expression
   mechanics: 0.03,        // Minimal weight - Ivy applicants rarely have issues here
   uniqueness: 0.05,       // "So What?" test - what does this reveal?
+  ethics: 0.05,           // Red flags, ethical concerns (higher scrutiny at Ivy level)
 } as const;
 
 export const FIT_CATEGORY_WEIGHTS: Record<FitSignal['category'], number> = {
@@ -430,15 +432,19 @@ interface IvyScores {
   clarity: number;
   mechanics: number;
   uniqueness?: number; // "So What?" test score
+  ethics?: number;     // Red flags, ethical concerns
 }
 
 /**
  * Calculate weighted overall score for Ivy essays
  * Weights calibrated for Ivy-level competition
+ * v2.0.0: Added ethics dimension
  */
 export function calculateIvyScore(scores: IvyScores): number {
   // Default uniqueness to average of authenticity and reflection if not provided
   const uniquenessScore = scores.uniqueness ?? Math.round((scores.authenticity + scores.reflection) / 2);
+  // Default ethics to 5 (no issues) if not provided
+  const ethicsScore = scores.ethics ?? 5;
 
   const weightedSum =
     scores.authenticity * IVY_RUBRIC_WEIGHTS.authenticity +
@@ -448,7 +454,8 @@ export function calculateIvyScore(scores: IvyScores): number {
     scores.specificity * IVY_RUBRIC_WEIGHTS.specificity +
     scores.clarity * IVY_RUBRIC_WEIGHTS.clarity +
     scores.mechanics * IVY_RUBRIC_WEIGHTS.mechanics +
-    uniquenessScore * IVY_RUBRIC_WEIGHTS.uniqueness;
+    uniquenessScore * IVY_RUBRIC_WEIGHTS.uniqueness +
+    ethicsScore * IVY_RUBRIC_WEIGHTS.ethics;
 
   // Convert from 0-6 scale to 0-100
   return Math.round((weightedSum / 6) * 100);

@@ -24,7 +24,8 @@ export const CommonsCheckSchema = z.object({
   school_alignment: CommonsCheckFlagSchema,
   buzzwords_cliches: CommonsCheckFlagSchema,
   genericness: CommonsCheckFlagSchema,
-  trauma_without_reflection: CommonsCheckFlagSchema,
+  /** Renamed from trauma_without_reflection for more sensitive framing */
+  reflection_depth_needed: CommonsCheckFlagSchema,
   exaggeration: CommonsCheckFlagSchema,
   tone_drift: CommonsCheckFlagSchema,
   ethics_risks: CommonsCheckFlagSchema,
@@ -53,6 +54,7 @@ export const AnalysisResponseSchema = z.object({
     word_count: z.number(),
     prompt: z.string(),
     school: z.string(),
+    prompt_version: z.string().optional(),
   }),
   scores: z.object({
     authenticity: ScoreDimensionSchema,
@@ -61,8 +63,13 @@ export const AnalysisResponseSchema = z.object({
     specificity_fit: ScoreDimensionSchema,
     clarity_style: ScoreDimensionSchema,
     mechanics: ScoreDimensionSchema,
-    ethics_originality: ScoreDimensionSchema,
+    uniqueness: ScoreDimensionSchema,
+    ethics: ScoreDimensionSchema,
   }),
+  score_anchors: z.record(z.object({
+    label: z.string(),
+    userFriendly: z.string(),
+  })).optional(),
   commons_check: CommonsCheckSchema,
   suggestions: SuggestionsSchema,
   overall: z.object({
