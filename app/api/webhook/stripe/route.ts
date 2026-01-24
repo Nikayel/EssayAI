@@ -6,9 +6,71 @@ import { sendEmail, analysisCompleteEmail, reviewAssignedEmail } from '@/lib/ema
 import { trackUpsellPurchase } from '@/lib/analytics/track';
 import Stripe from 'stripe';
 
+// =============================================================================
+// WEBHOOK RELIABILITY UTILITIES
+// =============================================================================
+
+// In-memory deduplication cache (cleared on restart, last line of defense)
+const processedEvents = new Map<string, number>();
+const DEDUP_CACHE_TTL = 5 * 60 * 1000; // 5 minutes
+const DEDUP_CACHE_MAX_SIZE = 1000;
+
+function isEventProcessed(eventId: string): boolean {
+  const timestamp = processedEvents.get(eventId);
+  if (timestamp && Date.now() - timestamp < DEDUP_CACHE_TTL) {
+    return true;
+  }
+  return false;
+}
+
+function markEventProcessed(eventId: string): void {
+  // Clean old entries if cache is too large
+  if (processedEvents.size > DEDUP_CACHE_MAX_SIZE) {
+    const now = Date.now();
+    for (const [id, ts] of processedEvents.entries()) {
+      if (now - ts > DEDUP_CACHE_TTL) {
+        processedEvents.delete(id);
+      }
+    }
+  }
+  processedEvents.set(eventId, Date.now());
+}
+
+// Timeout wrapper for background operations
+function withTimeout<T>(promise: Promise<T>, timeoutMs: number, label: string): Promise<T> {
+  return Promise.race([
+    promise,
+    new Promise<T>((_, reject) =>
+      setTimeout(() => reject(new Error(`${label} timed out after ${timeoutMs}ms`)), timeoutMs)
+    ),
+  ]);
+}
+
+// Structured logging helper
+function webhookLog(level: 'info' | 'error' | 'warn', eventId: string, message: string, data?: Record<string, unknown>) {
+  const log = { timestamp: new Date().toISOString(), eventId, message, ...data };
+  if (level === 'error') {
+    console.error('[WEBHOOK]', JSON.stringify(log));
+  } else if (level === 'warn') {
+    console.warn('[WEBHOOK]', JSON.stringify(log));
+  } else {
+    console.log('[WEBHOOK]', JSON.stringify(log));
+  }
+}
+
+// =============================================================================
+// MAIN WEBHOOK HANDLER
+// =============================================================================
+
 /**
  * POST /api/webhook/stripe
  * Handle Stripe webhook events
+ *
+ * Reliability features:
+ * - Event ID deduplication (in-memory + DB checks)
+ * - Signature verification
+ * - Structured logging
+ * - Timeout protection on background tasks
  */
 export async function POST(request: NextRequest) {
   const body = await request.text();
@@ -18,23 +80,34 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'No signature' }, { status: 400 });
   }
 
+  // Validate environment
+  const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
+  if (!webhookSecret) {
+    console.error('[WEBHOOK] STRIPE_WEBHOOK_SECRET is not configured');
+    return NextResponse.json({ error: 'Server configuration error' }, { status: 500 });
+  }
+
   let event: Stripe.Event;
 
   try {
-    event = stripe.webhooks.constructEvent(
-      body,
-      signature,
-      process.env.STRIPE_WEBHOOK_SECRET!
-    );
+    event = stripe.webhooks.constructEvent(body, signature, webhookSecret);
   } catch (error) {
-    console.error('Webhook signature verification failed:', error);
+    console.error('[WEBHOOK] Signature verification failed:', error);
     return NextResponse.json(
       { error: 'Invalid signature' },
       { status: 400 }
     );
   }
 
+  // Event ID deduplication (fast in-memory check)
+  if (isEventProcessed(event.id)) {
+    webhookLog('info', event.id, 'Duplicate event skipped (in-memory cache)', { type: event.type });
+    return NextResponse.json({ received: true, skipped: true, reason: 'duplicate' });
+  }
+
   try {
+    webhookLog('info', event.id, 'Processing webhook event', { type: event.type });
+
     switch (event.type) {
       case 'checkout.session.completed': {
         const session = event.data.object as Stripe.Checkout.Session;
@@ -146,15 +219,20 @@ export async function POST(request: NextRequest) {
           if (order.essay) {
             const latestVersion = order.essay.versions[0];
 
-            // Run AI analysis in background (don't await - let it run async)
-            analyzeEssay({
-              essayText: latestVersion.content,
-              essayType: order.essay.type.toLowerCase().replace('_', ' '),
-              school: order.essay.targetSchool || undefined,
-              prompt: order.essay.promptText,
-              wordLimit: order.essay.wordLimit || undefined,
-              hasPreviousDraft: latestVersion.versionIndex > 1,
-            })
+            // Run AI analysis in background with timeout (5 min max)
+            // Don't await - let it run async, but ensure it doesn't hang forever
+            withTimeout(
+              analyzeEssay({
+                essayText: latestVersion.content,
+                essayType: order.essay.type.toLowerCase().replace('_', ' '),
+                school: order.essay.targetSchool || undefined,
+                prompt: order.essay.promptText,
+                wordLimit: order.essay.wordLimit || undefined,
+                hasPreviousDraft: latestVersion.versionIndex > 1,
+              }),
+              5 * 60 * 1000, // 5 minute timeout
+              `AI analysis for order ${orderId}`
+            )
               .then(async (analysisResult) => {
                 // Store analysis in database
                 await prisma.aIAnalysis.create({
@@ -213,7 +291,11 @@ export async function POST(request: NextRequest) {
                 }
               })
               .catch((error) => {
-                console.error('AI analysis failed:', error);
+                webhookLog('error', event.id, 'Background AI analysis failed', {
+                  orderId,
+                  versionId: latestVersion.id,
+                  error: String(error),
+                });
               });
           }
         }
@@ -259,9 +341,12 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    // Mark event as processed to prevent duplicates
+    markEventProcessed(event.id);
+    webhookLog('info', event.id, 'Webhook processed successfully', { type: event.type });
     return NextResponse.json({ received: true });
   } catch (error) {
-    console.error('Webhook handler error:', error);
+    webhookLog('error', event.id, 'Webhook handler error', { error: String(error), type: event.type });
     return NextResponse.json(
       { error: 'Webhook handler failed' },
       { status: 500 }
