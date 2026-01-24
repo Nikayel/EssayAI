@@ -167,6 +167,14 @@ export interface StandardAnalysisResult {
   // Personalized based on intake
   personalizedTips: PersonalizedTip[];
 
+  // Background context (if applicable)
+  // Shows that we've recognized and considered the student's background
+  backgroundContext?: {
+    recognized: boolean;
+    adjustmentsApplied: string[];
+    note: string;
+  };
+
   // Upgrade teaser for Premium
   premiumTeaser: {
     message: string;
