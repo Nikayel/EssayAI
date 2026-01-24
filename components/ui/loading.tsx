@@ -198,8 +198,9 @@ export function LoadingOverlay({
         <div
           className={cn(
             'absolute inset-0 flex items-center justify-center z-10',
-            'bg-white/80 dark:bg-neutral-900/80',
-            blur && 'backdrop-blur-sm'
+            'bg-white/90 dark:bg-neutral-900/90',
+            // Use lighter blur on mobile for better performance
+            blur && 'backdrop-blur-[2px] md:backdrop-blur-sm will-change-[backdrop-filter]'
           )}
         >
           <div className="flex flex-col items-center gap-3">

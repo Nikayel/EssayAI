@@ -269,9 +269,16 @@ export default function Home() {
           </div>
 
           <div className="max-w-4xl mx-auto">
-            {/* Comparison Table - scrollable on mobile */}
-            <div className="overflow-x-auto -mx-4 px-4 sm:mx-0 sm:px-0">
-              <div className="min-w-[500px] overflow-hidden rounded-2xl border border-neutral-200">
+            {/* Comparison Table - scrollable on mobile with visual indicator */}
+            <div className="relative">
+              {/* Mobile scroll hint */}
+              <div className="sm:hidden text-center text-xs text-neutral-500 mb-2">
+                <span className="inline-flex items-center gap-1">
+                  ← Swipe to see more →
+                </span>
+              </div>
+              <div className="overflow-x-auto -mx-4 px-4 sm:mx-0 sm:px-0 scrollbar-thin scrollbar-thumb-neutral-300 scrollbar-track-neutral-100">
+                <div className="min-w-[500px] overflow-hidden rounded-2xl border border-neutral-200">
                 <table className="w-full text-sm">
                   <thead>
                     <tr className="bg-neutral-50">
@@ -315,6 +322,7 @@ export default function Home() {
                 </tbody>
               </table>
             </div>
+          </div>
           </div>
 
           <p className="text-center text-neutral-500 mt-6 text-sm">
