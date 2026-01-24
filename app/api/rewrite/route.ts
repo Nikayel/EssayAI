@@ -117,7 +117,7 @@ export async function POST(request: NextRequest) {
     }
 
     return NextResponse.json(
-      { error: 'Rewrite failed', details: (error as Error).message },
+      { error: 'Failed to generate suggestions. Please try again.' },
       { status: 500 }
     );
   }

@@ -129,7 +129,7 @@ export async function POST(request: NextRequest) {
     }
 
     return NextResponse.json(
-      { error: 'Failed to retrieve patterns', details: (error as Error).message },
+      { error: 'Failed to retrieve patterns. Please try again.' },
       { status: 500 }
     );
   }

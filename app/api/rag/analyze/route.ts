@@ -176,7 +176,7 @@ export async function POST(request: NextRequest) {
     }
 
     return NextResponse.json(
-      { error: 'Analysis failed', details: (error as Error).message },
+      { error: 'Analysis failed. Please try again.' },
       { status: 500 }
     );
   }

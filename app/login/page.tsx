@@ -35,18 +35,18 @@ export default function LoginPage() {
   }, [supabase, router]);
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white flex items-center justify-center px-4">
+    <div className="min-h-screen bg-gradient-to-b from-neutral-50 to-white dark:from-neutral-900 dark:to-neutral-800 flex items-center justify-center px-4">
       <div className="max-w-md w-full">
         {/* Logo */}
         <div className="text-center mb-8">
           <Link href="/">
-            <h1 className="text-3xl font-bold text-gray-900">IvyWay</h1>
+            <h1 className="text-3xl font-bold text-neutral-900 dark:text-neutral-100">IvyWay</h1>
           </Link>
-          <p className="text-gray-600 mt-2">Sign in to continue</p>
+          <p className="text-neutral-600 dark:text-neutral-400 mt-2">Sign in to continue</p>
         </div>
 
         {/* Auth UI */}
-        <div className="bg-white rounded-xl shadow-lg p-8">
+        <div className="bg-white dark:bg-neutral-800 rounded-xl shadow-lg p-6 sm:p-8">
           <Auth
             supabaseClient={supabase}
             appearance={{
@@ -66,9 +66,9 @@ export default function LoginPage() {
         </div>
 
         {/* Footer */}
-        <p className="text-center text-sm text-gray-600 mt-6">
-          Don't have an account?{' '}
-          <Link href="/signup" className="text-blue-600 hover:underline">
+        <p className="text-center text-sm text-neutral-600 dark:text-neutral-400 mt-6">
+          Don&apos;t have an account?{' '}
+          <Link href="/signup" className="text-brand-600 hover:underline">
             Sign up
           </Link>
         </p>
