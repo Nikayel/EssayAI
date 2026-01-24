@@ -241,7 +241,7 @@ function ScorePreview({ teaser, school }: { teaser: QuickTeaserData; school: str
         </div>
       </div>
 
-      {/* Blurred Preview */}
+      {/* Locked Preview - Accessible alternative to blur */}
       <CardContent className="py-6">
         <div className="flex items-center justify-center gap-2 text-gray-500 mb-4">
           <Lock className="w-4 h-4" />
@@ -249,14 +249,17 @@ function ScorePreview({ teaser, school }: { teaser: QuickTeaserData; school: str
         </div>
 
         <div className="relative">
-          <div className="blur-[4px] select-none pointer-events-none">
-            <div className="space-y-3">
-              <div className="h-4 bg-gray-200 rounded w-3/4" />
-              <div className="h-4 bg-gray-200 rounded w-1/2" />
-              <div className="h-4 bg-gray-200 rounded w-5/6" />
-              <div className="h-4 bg-gray-200 rounded w-2/3" />
+          {/* Visual placeholder bars - no blur, uses opacity gradient for paywall effect */}
+          <div className="select-none pointer-events-none" aria-hidden="true">
+            <div className="space-y-3 opacity-40">
+              <div className="h-4 bg-gradient-to-r from-gray-300 to-gray-100 rounded w-3/4" />
+              <div className="h-4 bg-gradient-to-r from-gray-300 to-gray-100 rounded w-1/2" />
+              <div className="h-4 bg-gradient-to-r from-gray-300 to-gray-100 rounded w-5/6" />
+              <div className="h-4 bg-gradient-to-r from-gray-300 to-gray-100 rounded w-2/3" />
             </div>
           </div>
+          {/* Screen reader accessible text */}
+          <span className="sr-only">Content locked - select a tier above to unlock your full analysis</span>
         </div>
       </CardContent>
     </Card>
@@ -295,9 +298,9 @@ function TierCard({
           : 'border-gray-200 hover:border-gray-300'
       }`}
     >
-      {/* Badge */}
+      {/* Badge - responsive positioning */}
       {badge && (
-        <div className="absolute -top-3 left-1/2 transform -translate-x-1/2">
+        <div className="mb-2 md:mb-0 md:absolute md:-top-3 md:left-1/2 md:transform md:-translate-x-1/2">
           <Badge className="bg-blue-600 text-white">{badge}</Badge>
         </div>
       )}

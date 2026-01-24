@@ -139,11 +139,12 @@ function calculatePreviewScores(
   let overall = 70;
 
   // 1. Cliche detection
-  const clichePenalty = Math.min(20, clicheResult.found.length * 4);
+  const totalCliches = clicheResult.totalFound;
+  const clichePenalty = Math.min(20, totalCliches * 4);
   overall -= clichePenalty;
-  if (clicheResult.found.length >= 3) {
+  if (totalCliches >= 3) {
     issues.push({ type: 'cliche', severity: 'major' });
-  } else if (clicheResult.found.length > 0) {
+  } else if (totalCliches > 0) {
     issues.push({ type: 'cliche', severity: 'minor' });
   }
 
@@ -266,8 +267,4 @@ function generateUpgradeTeaser(
   };
 }
 
-// =============================================================================
-// EXPORTS
-// =============================================================================
-
-export { runPreviewAnalysis };
+// runPreviewAnalysis is already exported at definition

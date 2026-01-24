@@ -485,10 +485,4 @@ function generateBluntVerdict(score: number, issues: AIDetectionIssue[]): string
   return `No significant AI writing patterns detected. Your essay sounds authentically human.`;
 }
 
-// =============================================================================
-// EXPORTS
-// =============================================================================
-
-export type {
-  AIPatternCategory,
-};
+// AIPatternCategory is already exported at definition

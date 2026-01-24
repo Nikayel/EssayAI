@@ -273,8 +273,4 @@ export async function getAssignmentDetails(assignmentId: string) {
   };
 }
 
-// =============================================================================
-// EXPORTS
-// =============================================================================
-
-export type { ReviewData };
+// ReviewData is already exported at definition

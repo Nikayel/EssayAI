@@ -88,8 +88,8 @@ export default function PricingPage() {
           </Card>
 
           {/* Tier 2: AI Pro - MOST POPULAR */}
-          <Card className="border-2 border-brand-500 relative shadow-xl shadow-brand-500/10 md:scale-105">
-            <div className="absolute -top-4 left-1/2 -translate-x-1/2 bg-gradient-to-r from-brand-500 to-brand-600 text-white px-6 py-1.5 rounded-full text-sm font-semibold">
+          <Card className="border-2 border-brand-500 relative shadow-xl shadow-brand-500/10 ring-2 ring-brand-500/20 md:-my-2">
+            <div className="mb-4 text-center md:mb-0 md:absolute md:-top-4 md:left-1/2 md:-translate-x-1/2 bg-gradient-to-r from-brand-500 to-brand-600 text-white px-6 py-1.5 rounded-full text-sm font-semibold">
               Most Popular
             </div>
             <CardHeader className="text-center pb-2">

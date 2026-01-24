@@ -412,10 +412,11 @@ export async function POST(request: NextRequest) {
     }
 
     // Run analysis synchronously
+    // Note: Using 'as unknown as' because intake data from client may not exactly match type definition
     const result = await runTieredAnalysis(
       essayText,
       tier as AnalysisTier,
-      tier === 'quick' ? (intake as QuickIntake) : (intake as FullIntake),
+      tier === 'quick' ? (intake as unknown as QuickIntake) : (intake as unknown as FullIntake),
       {
         sessionId: session.id,
         userEmail: effectiveEmail,

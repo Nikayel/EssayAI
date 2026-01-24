@@ -27,6 +27,7 @@ import {
 import { runTieredAnalysis } from '@/lib/scoring/tiers';
 import { detectAIWriting } from '@/lib/scoring/ai-detection';
 import { detectGenericPhrases } from '@/lib/scoring/generic-phrases';
+import { sendEmail, tieredAnalysisCompleteEmail } from '@/lib/email/send';
 import type { AnalysisTier, QuickIntake, FullIntake } from '@/lib/scoring/tiers/types';
 import type { ProgressEvent } from '@/lib/analysis/loading-steps';
 
@@ -220,6 +221,27 @@ export async function GET(
         sendEvent({ type: 'progress', percent: 100 });
         sendEvent({ type: 'complete', resultUrl: `/api/tiered-analysis/${sessionId}` });
 
+        // Send completion email (non-blocking)
+        // Only send if user has a valid email (not anonymous@temp.com)
+        const userEmail = session.userEmail;
+        if (userEmail && !userEmail.includes('@temp.com') && tier !== 'preview') {
+          const userName = userEmail.split('@')[0] || 'there';
+          const storedToken = (session.intakeData as Record<string, unknown>)?._accessToken as string | undefined;
+          sendEmail({
+            to: userEmail,
+            subject: `Your Essay Analysis is Ready - Score: ${result.overallScore}/100`,
+            html: tieredAnalysisCompleteEmail(
+              userName,
+              tier as 'quick' | 'standard' | 'premium',
+              result.overallScore,
+              sessionId,
+              storedToken
+            ),
+          }).catch((err) => {
+            console.error('Failed to send analysis completion email:', err);
+          });
+        }
+
         // Clear timeout
         if (timeoutHandle) clearTimeout(timeoutHandle);
         controller.close();
@@ -289,10 +311,11 @@ async function runRealStep(
       // Run actual cliché detection
       try {
         const result = detectGenericPhrases(essayText);
-        if (result.phrases && result.phrases.length > 0) {
-          const firstCliche = result.phrases[0];
+        const allFlags = [...result.hardFlags, ...result.softFlags];
+        if (allFlags.length > 0) {
+          const firstCliche = allFlags[0];
           const thinking = generateThinkingMessage('cliche_found', {
-            phrase: firstCliche.phrase || firstCliche,
+            phrase: firstCliche.phrase.phrase || firstCliche.match,
             percent: Math.floor(Math.random() * 30) + 20, // 20-50%
           });
           if (thinking) {

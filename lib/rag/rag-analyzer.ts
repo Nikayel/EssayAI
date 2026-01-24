@@ -228,13 +228,19 @@ export async function analyzeEssayWithRAG(
 
   // Step 9: Prioritize suggestions based on profile
   if (profile?.biggestWorry && analysis.suggestions.top5) {
-    analysis.suggestions.top5 = prioritizeSuggestions(
+    // Cast to work with prioritizeSuggestions, preserving original properties
+    const prioritized = prioritizeSuggestions(
       analysis.suggestions.top5.map(s => ({
-        ...s,
-        estimated_impact: 'medium' as const,
+        issue: s.issue,
+        estimated_impact: 'medium',
       })),
       profile.biggestWorry
-    ) as typeof analysis.suggestions.top5;
+    );
+    // Reconstruct with original properties, preserving order from prioritization
+    analysis.suggestions.top5 = prioritized.map(p => {
+      const original = analysis.suggestions.top5.find(s => s.issue === p.issue);
+      return original || { issue: p.issue, why_it_matters: '', example_edit: '' };
+    });
   }
 
   // Step 10: Store in analysis history for feedback loop

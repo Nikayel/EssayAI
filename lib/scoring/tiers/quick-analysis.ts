@@ -125,17 +125,18 @@ function calculateQuickScores(
   let overall = 70; // Start at baseline
 
   // 1. Cliche score (up to -20 points)
-  const clicheScore = Math.max(0, 5 - clicheResult.found.length * 0.5);
-  const clichePenalty = Math.min(20, clicheResult.found.length * 4);
+  const allCliches = [...clicheResult.hardFlags, ...clicheResult.softFlags];
+  const clicheScore = Math.max(0, 5 - allCliches.length * 0.5);
+  const clichePenalty = Math.min(20, allCliches.length * 4);
   overall -= clichePenalty;
 
-  if (clicheResult.found.length > 0) {
-    clicheResult.found.slice(0, 3).forEach((cliche, idx) => {
+  if (allCliches.length > 0) {
+    allCliches.slice(0, 3).forEach((cliche) => {
       issues.push({
         type: 'cliche',
         score: clicheScore,
-        location: `Line ${cliche.location.startLine}`,
-        text: cliche.phrase,
+        location: `Character ${cliche.index}`,
+        text: cliche.phrase.phrase,
       });
     });
   }
@@ -514,7 +515,7 @@ function countHiddenInsights(
   return {
     totalIssuesFound: Math.max(
       scores.issues.length,
-      clicheResult.found.length + aiDetection.issues.length
+      clicheResult.totalFound + aiDetection.issues.length
     ),
     schoolSpecificIssues: scores.issues.filter(i =>
       i.type.includes('school')
@@ -523,8 +524,4 @@ function countHiddenInsights(
   };
 }
 
-// =============================================================================
-// EXPORTS
-// =============================================================================
-
-export { runQuickAnalysis };
+// runQuickAnalysis is already exported at definition

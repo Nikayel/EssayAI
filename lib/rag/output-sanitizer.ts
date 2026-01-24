@@ -62,6 +62,9 @@ export function sanitizeAnalysisOutput(
       modifications: [{ type: 'fixed_structure', field: 'root', reason: 'Invalid JSON structure' }],
       trustScore: 0,
       wasModified: true,
+      needsHumanReview: true,
+      escalationReason: 'Invalid JSON structure in LLM output',
+      escalationPriority: 'high',
     };
   }
 

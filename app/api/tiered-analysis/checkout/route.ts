@@ -8,7 +8,7 @@ import { z } from 'zod';
 import { createClient } from '@/lib/supabase/server';
 import { prisma } from '@/lib/prisma';
 import { stripe, PRICING } from '@/lib/stripe/config';
-import { config } from '@/lib/config';
+import { getTierConfig, type AnalysisTier } from '@/lib/config';
 
 // =============================================================================
 // REQUEST VALIDATION
@@ -55,7 +55,7 @@ export async function POST(request: NextRequest) {
     };
 
     const price = priceMap[tier];
-    const tierConfig = config.pricing.tiers[tier];
+    const tierConfig = getTierConfig(tier as AnalysisTier);
 
     // Create or get analysis session
     let analysisSession: any;
@@ -132,7 +132,7 @@ export async function POST(request: NextRequest) {
 
     if (error instanceof z.ZodError) {
       return NextResponse.json(
-        { error: 'Validation error', details: error.errors },
+        { error: 'Validation error', details: error.issues },
         { status: 400 }
       );
     }

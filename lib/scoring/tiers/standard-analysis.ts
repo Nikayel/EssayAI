@@ -17,6 +17,7 @@ import type {
   PersonalizedTip,
   TieredAnalysisOptions,
 } from './types';
+import type { Annotation, PrioritizedIssue, IdentifiedStrength } from '../types';
 import { analyzeEssay } from '../engine';
 import { detectAIWriting } from '../ai-detection';
 import {
@@ -153,7 +154,7 @@ export async function runStandardAnalysis(
 // =============================================================================
 
 function enhanceAnnotations(
-  annotations: StandardAnalysisResult['annotations'],
+  annotations: Annotation[],
   essayText: string
 ): AnnotationWithFix[] {
   return annotations.map(annotation => {
@@ -200,7 +201,7 @@ function enhanceAnnotations(
 // =============================================================================
 
 function enhanceIssues(
-  issues: StandardAnalysisResult['allIssues'],
+  issues: PrioritizedIssue[],
   intake: FullIntake
 ): PrioritizedIssueWithFix[] {
   return issues.map(issue => {
@@ -608,7 +609,7 @@ function checkForTrait(text: string, keywords: string[]): boolean {
 // =============================================================================
 
 function enhanceStrengths(
-  strengths: StandardAnalysisResult['strengths']
+  strengths: IdentifiedStrength[]
 ): IdentifiedStrengthWithDetail[] {
   return strengths.map(strength => ({
     element: strength.element,
@@ -699,8 +700,4 @@ function generatePersonalizedTips(
   return tips.slice(0, 4);
 }
 
-// =============================================================================
-// EXPORTS
-// =============================================================================
-
-export { runStandardAnalysis };
+// runStandardAnalysis is already exported at definition

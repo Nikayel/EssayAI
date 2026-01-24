@@ -3,12 +3,34 @@ import { Inter } from "next/font/google";
 import { ToastProvider } from "@/components/ui/toast";
 import "./globals.css";
 
-// Load Inter with multiple weights for proper typography hierarchy
-const inter = Inter({
-  subsets: ["latin"],
+// Use local Geist font (bundled with Next.js) for reliability
+// Falls back to system fonts if local font fails
+const geist = localFont({
+  src: [
+    {
+      path: "../node_modules/geist/dist/fonts/geist-sans/Geist-Regular.woff2",
+      weight: "400",
+      style: "normal",
+    },
+    {
+      path: "../node_modules/geist/dist/fonts/geist-sans/Geist-Medium.woff2",
+      weight: "500",
+      style: "normal",
+    },
+    {
+      path: "../node_modules/geist/dist/fonts/geist-sans/Geist-SemiBold.woff2",
+      weight: "600",
+      style: "normal",
+    },
+    {
+      path: "../node_modules/geist/dist/fonts/geist-sans/Geist-Bold.woff2",
+      weight: "700",
+      style: "normal",
+    },
+  ],
+  variable: "--font-sans",
   display: "swap",
-  variable: "--font-inter",
-  weight: ["400", "500", "600", "700"],
+  fallback: ["system-ui", "-apple-system", "BlinkMacSystemFont", "Segoe UI", "Roboto", "sans-serif"],
 });
 
 export const metadata: Metadata = {
