@@ -10,6 +10,28 @@ const AnalyzeRequestSchema = z.object({
   toneSample: z.string().optional(),
 });
 
+// Simple rate limiter for free tier
+const rateLimitMap = new Map<string, { count: number; resetTime: number }>();
+const RATE_LIMIT_WINDOW = 60 * 60 * 1000; // 1 hour
+const FREE_TIER_LIMIT = 5; // 5 free analyses per hour
+
+function checkRateLimit(userId: string): { allowed: boolean; remaining: number } {
+  const now = Date.now();
+  const userLimit = rateLimitMap.get(userId);
+
+  if (!userLimit || now > userLimit.resetTime) {
+    rateLimitMap.set(userId, { count: 1, resetTime: now + RATE_LIMIT_WINDOW });
+    return { allowed: true, remaining: FREE_TIER_LIMIT - 1 };
+  }
+
+  if (userLimit.count >= FREE_TIER_LIMIT) {
+    return { allowed: false, remaining: 0 };
+  }
+
+  userLimit.count++;
+  return { allowed: true, remaining: FREE_TIER_LIMIT - userLimit.count };
+}
+
 /**
  * POST /api/analyze
  * Run AI analysis on an essay version
@@ -45,11 +67,16 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Check if user has credits/subscription for this analysis type
-    // TODO: Implement package/payment check based on analysisType
-    // For now, we'll allow free tier for commons_check
-
+    // Rate limit free tier (commons_check)
     if (validated.analysisType === 'commons_check') {
+      const rateCheck = checkRateLimit(user.id);
+      if (!rateCheck.allowed) {
+        return NextResponse.json(
+          { error: 'Rate limit exceeded. Please try again later or upgrade to Pro.' },
+          { status: 429 }
+        );
+      }
+
       // Run fast commons check
       const result = await runCommonsCheck(version.content);
 

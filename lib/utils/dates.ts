@@ -32,10 +32,10 @@ export function getDeadlineUrgency(days: number): 'critical' | 'urgent' | 'soon'
 export function getDeadlineColor(days: number): string {
   const urgency = getDeadlineUrgency(days);
   const colors = {
-    critical: 'text-red-600 bg-red-50',
-    urgent: 'text-yellow-600 bg-yellow-50',
-    soon: 'text-blue-600 bg-blue-50',
-    normal: 'text-gray-600 bg-gray-50',
+    critical: 'text-error-600 bg-error-50',
+    urgent: 'text-warning-600 bg-warning-50',
+    soon: 'text-brand-600 bg-brand-50',
+    normal: 'text-neutral-600 bg-neutral-50',
   };
   return colors[urgency];
 }

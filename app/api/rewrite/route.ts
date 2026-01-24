@@ -45,8 +45,28 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Check package/credits
-    // TODO: Implement package check - rewrites should be Pro+ only
+    // Check package/credits - rewrites require Pro+ package
+    const activeOrder = await prisma.order.findFirst({
+      where: {
+        userId: user.id,
+        status: 'COMPLETED',
+        packageType: {
+          in: ['AI_PRO_SINGLE', 'AI_PRO_MONTHLY', 'HUMAN_FULL_1', 'HUMAN_FULL_3', 'HUMAN_FULL_5', 'DEEP_REVIEW'],
+        },
+        // Check if order is for this essay or unlimited
+        OR: [
+          { essayId: version.essay.id },
+          { packageType: { in: ['AI_PRO_MONTHLY'] } }, // Monthly has unlimited
+        ],
+      },
+    });
+
+    if (!activeOrder) {
+      return NextResponse.json(
+        { error: 'Rewrite suggestions require AI Pro or higher. Please upgrade your package.' },
+        { status: 403 }
+      );
+    }
 
     // Get user's tone sample if not provided
     const profile = await prisma.profile.findUnique({
