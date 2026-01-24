@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
+import { Skeleton } from '@/components/ui/loading';
 import { Gift, Copy, Check, Users, DollarSign } from 'lucide-react';
 
 interface ReferralStats {
@@ -41,8 +42,26 @@ export function ReferralCard() {
   if (loading) {
     return (
       <Card>
-        <CardContent className="py-8 text-center text-neutral-500 dark:text-neutral-400">
-          Loading referral info...
+        <CardHeader>
+          <div className="flex items-center gap-3">
+            <Skeleton variant="circular" width={40} height={40} />
+            <div className="flex-1 space-y-2">
+              <Skeleton variant="text" width="50%" height={20} />
+              <Skeleton variant="text" width="70%" height={16} />
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          <Skeleton variant="rectangular" height={100} className="rounded-lg" />
+          <div className="space-y-2">
+            <Skeleton variant="text" width={100} />
+            <Skeleton variant="rectangular" height={40} />
+          </div>
+          <div className="grid grid-cols-3 gap-4">
+            <Skeleton variant="rectangular" height={60} />
+            <Skeleton variant="rectangular" height={60} />
+            <Skeleton variant="rectangular" height={60} />
+          </div>
         </CardContent>
       </Card>
     );
