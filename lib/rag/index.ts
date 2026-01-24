@@ -87,3 +87,14 @@ export {
   type RAGAnalysisParams,
   type RAGAnalysisResponse,
 } from './rag-analyzer';
+
+// Score Messaging (Human-Friendly Feedback)
+export {
+  getScoreMessage,
+  explainPercentile,
+  explainImprovement,
+  getDimensionContext,
+  getStageExpectations,
+  type ScoreContext,
+  type ScoreMessage,
+} from './score-messaging';

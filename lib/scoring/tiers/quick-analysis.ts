@@ -18,6 +18,7 @@ import { detectAIWriting } from '../ai-detection';
 import { getSchoolConfig } from '../school-configs';
 import { getScoreLabel, config } from '@/lib/config';
 import { BLUNT_TEMPLATES } from '../blunt-feedback';
+import { getScoreMessage, type ScoreContext } from '@/lib/rag/score-messaging';
 
 // =============================================================================
 // MAIN QUICK ANALYSIS FUNCTION
@@ -69,7 +70,7 @@ export async function runQuickAnalysis(
     tier: 'quick',
     overallScore: Math.round(overallScore * 10) / 10,
     scoreLabel,
-    scoreSummary: generateQuickSummary(overallScore, scoreLabel, actionableItems),
+    scoreSummary: generateQuickSummary(overallScore, scoreLabel, actionableItems, intake.essayType),
 
     actionableItems: actionableItems.slice(0, 5),
 
@@ -440,43 +441,69 @@ function getOpeningFeedback(firstSentence: string): string {
 function generateQuickSummary(
   score: number,
   label: string,
-  items: QuickActionableItem[]
+  items: QuickActionableItem[],
+  essayType?: string
 ): string {
-  const labelText: Record<string, string> = {
-    exceptional: 'This essay is strong and competitive.',
-    strong: 'This essay is solid with minor issues.',
-    competitive: 'This essay has potential but needs work.',
-    developing: 'This essay needs significant revision.',
-    needs_work: 'This essay needs substantial work.',
+  // Use our supportive score messaging to reduce anxiety and keep users engaged
+  const scoreContext: ScoreContext = {
+    score,
+    essayType: essayType || 'supplemental',
+    isDraft: true, // Assume first submission is a draft - more encouraging
   };
 
-  let summary = labelText[label] || labelText.competitive;
+  const message = getScoreMessage(scoreContext);
+
+  // Build summary: encouraging headline + context + critical issues count
+  let summary = `${message.headline}. ${message.context}`;
 
   const criticalCount = items.filter(i => i.severity === 'critical').length;
   if (criticalCount > 0) {
-    summary += ` We found ${criticalCount} critical issue${criticalCount > 1 ? 's' : ''} to address.`;
+    summary += ` We found ${criticalCount} critical issue${criticalCount > 1 ? 's' : ''} to address first.`;
   }
+
+  // Add reassurance to keep them engaged (but they need to upgrade for the "how")
+  summary += ` ${message.encouragement}`;
 
   return summary;
 }
 
 function generateUpgradeTeaser(scores: QuickScores, school: string): string {
   const weakest = scores.issues[0];
+  const totalIssues = scores.issues.length;
 
+  // Build compelling upgrade message based on what we found
+  const benefits: string[] = [];
+
+  // If we found issues, emphasize HOW to fix them
+  if (totalIssues > 0) {
+    benefits.push(`exactly how to fix ${totalIssues === 1 ? 'this issue' : `all ${totalIssues} issues`}`);
+  }
+
+  // Always emphasize school-specific value
+  benefits.push(`${school}-specific insights from real AO perspectives`);
+
+  // Emphasize line-by-line (this is what consultants charge $10k for)
+  benefits.push('line-by-line feedback on every paragraph');
+
+  // Emphasize strengths (students want to know what to KEEP)
+  benefits.push('your essay\'s hidden strengths to preserve');
+
+  // Build the teaser
   if (!weakest) {
-    return `Get full line-by-line feedback, ${school}-specific insights, and exactly how to fix each issue.`;
+    return `Upgrade to see ${benefits.slice(0, 2).join(', ')}.`;
   }
 
   const issueArea = weakest.type.includes('school')
     ? `${school}-specific fit`
     : weakest.type.includes('opening')
-      ? 'opening'
+      ? 'opening hook'
       : weakest.type.includes('ai')
-        ? 'AI detection'
-        : 'this issue';
+        ? 'AI detection flags'
+        : weakest.type.includes('reflection')
+          ? 'reflection depth'
+          : 'this issue';
 
-  return `Your ${issueArea} score needs attention. Upgrade to see exactly how to fix it, ` +
-    `plus ${scores.issues.length - 1} more issues we found.`;
+  return `Your ${issueArea} needs work. Upgrade to see ${benefits[0]}, plus ${benefits.slice(1).join(', ')}.`;
 }
 
 function countHiddenInsights(

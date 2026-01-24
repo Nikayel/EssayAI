@@ -29,6 +29,7 @@ import {
 import { getSchoolConfig } from '../school-configs';
 import { getScoreLabel, getSchoolDisplayName } from '@/lib/config';
 import { AO_INSIGHTS_BY_SCHOOL } from './ao-insights';
+import { IVY_LEAGUE_SCHOOLS, type IvySchool } from '@/lib/data/ivy-league';
 
 // =============================================================================
 // MAIN STANDARD ANALYSIS FUNCTION
@@ -364,7 +365,15 @@ function generateSchoolTips(schoolId: string, aligned: string[], missing: Standa
 
 // =============================================================================
 // AO INSIGHTS GENERATION
+// Uses both ao-insights.ts AND detailed ivy-league.ts data
 // =============================================================================
+
+/**
+ * Get detailed school data from ivy-league.ts
+ */
+function getSchoolData(schoolId: string): IvySchool | undefined {
+  return IVY_LEAGUE_SCHOOLS.find(s => s.id === schoolId.toLowerCase());
+}
 
 function generateAOInsights(
   essayText: string,
@@ -373,51 +382,95 @@ function generateAOInsights(
 ): AOInsights {
   const schoolId = intake.essayContext?.targetSchool?.toLowerCase() || 'harvard';
   const schoolInsights = AO_INSIGHTS_BY_SCHOOL[schoolId] || AO_INSIGHTS_BY_SCHOOL.harvard;
+  const schoolData = getSchoolData(schoolId);
 
   // Analyze first impression
   const firstSentence = essayText.split(/[.!?]/)[0]?.trim() || '';
   const hookScore = analysis.dimensions.specificity.openingHook.score;
 
+  // Get school-specific reading time if available
+  const readingTime = schoolInsights.readingProcess?.timeSpent || '6-10 minutes';
+
   const firstImpression = {
     hookStrength: (hookScore >= 3.5 ? 'strong' : hookScore >= 2.5 ? 'moderate' : 'weak') as 'weak' | 'moderate' | 'strong',
-    hookVerdict: getHookVerdict(hookScore, firstSentence),
-    timeToDecision: 'AOs typically decide to keep reading or move on within the first 30 seconds.',
+    hookVerdict: getHookVerdict(hookScore, firstSentence, schoolInsights),
+    timeToDecision: `${getSchoolDisplayName(schoolId)} AOs spend ${readingTime} on first read. They decide quickly if you're worth a second look.`,
   };
 
-  // Generate AO thoughts throughout the essay
+  // Generate AO thoughts throughout the essay - SCHOOL-SPECIFIC
   const aoThoughts: AOInsights['aoThoughts'] = [];
 
-  // Opening thought
-  if (hookScore < 3) {
+  // Opening thought - use school-specific instant turnoffs
+  const instantTurnoffs = schoolInsights.readingProcess?.instantTurnoffs || [];
+  const firstSentenceLower = firstSentence.toLowerCase();
+  const matchedTurnoff = instantTurnoffs.find(t => firstSentenceLower.includes(t.toLowerCase().replace(/"/g, '')));
+
+  if (matchedTurnoff) {
     aoThoughts.push({
       location: 'Opening',
-      thought: '"I\'ve read this opening a hundred times today."',
+      thought: `"${matchedTurnoff}" - instant red flag for ${getSchoolDisplayName(schoolId)}.`,
+      sentiment: 'negative',
+    });
+  } else if (hookScore < 3) {
+    aoThoughts.push({
+      location: 'Opening',
+      thought: '"I\'ve read this opening a hundred times today. Nothing makes me want to keep reading."',
       sentiment: 'negative',
     });
   } else if (hookScore >= 4) {
     aoThoughts.push({
       location: 'Opening',
-      thought: '"Okay, this one\'s different. Keep reading."',
+      thought: '"Okay, this is different. I want to keep reading to see where this goes."',
       sentiment: 'positive',
     });
   }
 
-  // Reflection thought
+  // Add school-specific what they notice
+  const whatTheyNotice = schoolInsights.readingProcess?.whatTheyNotice || [];
+  for (const notice of whatTheyNotice.slice(0, 2)) {
+    // Check if essay fails this criterion
+    if (notice.toLowerCase().includes('interesting') && hookScore < 3.5) {
+      aoThoughts.push({
+        location: 'Throughout',
+        thought: `${getSchoolDisplayName(schoolId)} AOs ask: "${notice}" Your essay doesn't quite answer "yes" to this.`,
+        sentiment: 'negative',
+      });
+      break;
+    }
+  }
+
+  // Reflection thought - the "So What?" test
   if (analysis.dimensions.insight.depthOfReflection.score < 3) {
     aoThoughts.push({
       location: 'Middle paragraphs',
-      thought: '"So what? Why does this matter?"',
+      thought: '"You told me what happened, but not why it matters. So what?"',
       sentiment: 'negative',
     });
   }
 
-  // School fit thought
+  // School fit thought - use school-specific common mistakes
+  const commonMistakes = schoolInsights.commonMistakes || [];
   if (analysis.dimensions.schoolFit.totalScore < 12) {
+    const relevantMistake = commonMistakes[0] || 'Not showing genuine fit';
     aoThoughts.push({
       location: 'School references',
-      thought: '"Did they actually research us, or just copy-paste?"',
+      thought: `"${relevantMistake}" - this is exactly what we see too often.`,
       sentiment: 'negative',
     });
+  }
+
+  // Add positive thought if essay demonstrates what they love
+  const whatTheyLove = schoolInsights.whatTheyLove || [];
+  for (const loved of whatTheyLove) {
+    const lovedKeywords = loved.toLowerCase().split(' ').filter(w => w.length > 4);
+    if (lovedKeywords.some(kw => essayText.toLowerCase().includes(kw))) {
+      aoThoughts.push({
+        location: 'Content',
+        thought: `"This student might be one of ${whatTheyLove[0].includes('interesting') ? 'the interesting ones' : 'what we\'re looking for'}."`,
+        sentiment: 'positive',
+      });
+      break;
+    }
   }
 
   // Check which values the essay demonstrates
@@ -427,34 +480,93 @@ function generateAOInsights(
     yourEssayHas: checkForTrait(essayText, v.keywords),
   }));
 
-  // Overall verdict
+  // Add school-specific context from ivy-league.ts
+  if (schoolData) {
+    // Add what makes this school different as context
+    if (schoolData.whatMakesThisSchoolDifferent && analysis.dimensions.schoolFit.totalScore < 15) {
+      aoThoughts.push({
+        location: 'School fit',
+        thought: `What makes ${schoolData.shortName} different: ${schoolData.whatMakesThisSchoolDifferent.slice(0, 120)}...`,
+        sentiment: 'neutral',
+      });
+    }
+
+    // Add student body character as benchmark
+    if (schoolData.studentBodyCharacter) {
+      const isGoodFit = analysis.overallScore >= 75;
+      aoThoughts.push({
+        location: 'Overall fit',
+        thought: isGoodFit
+          ? `This student could fit our culture: ${schoolData.studentBodyCharacter.slice(0, 80)}...`
+          : `Our students are: ${schoolData.studentBodyCharacter.slice(0, 80)}... Does this essay show that?`,
+        sentiment: isGoodFit ? 'positive' : 'neutral',
+      });
+    }
+  }
+
+  // Use detailed aoInsights from ivy-league.ts for extra context
+  const detailedInsights = schoolData?.aoInsights || [];
+  const readerPerspective = detailedInsights.find(i => i.type === 'reader_perspective');
+  if (readerPerspective) {
+    aoThoughts.push({
+      location: 'Reader mindset',
+      thought: readerPerspective.content.slice(0, 150) + (readerPerspective.content.length > 150 ? '...' : ''),
+      sentiment: 'neutral',
+    });
+  }
+
+  // Overall verdict - more nuanced based on school
   const score = analysis.overallScore;
-  const overallVerdict = score >= 80
-    ? 'This essay would likely get a second read and favorable notes.'
-    : score >= 65
-      ? 'This essay is competitive but has elements that could hurt your application.'
-      : 'This essay needs significant revision before it helps your application.';
+  let overallVerdict: string;
+
+  if (score >= 80) {
+    overallVerdict = `This essay would likely get a favorable read at ${getSchoolDisplayName(schoolId)}. The AO would have something positive to say in committee.`;
+  } else if (score >= 70) {
+    overallVerdict = `This essay is competitive but has gaps. A ${getSchoolDisplayName(schoolId)} AO might think "good student, but this essay doesn't seal the deal."`;
+  } else if (score >= 60) {
+    overallVerdict = `This essay needs work before it helps your ${getSchoolDisplayName(schoolId)} application. Right now, it's not memorable enough.`;
+  } else {
+    overallVerdict = `This essay could hurt your application. ${getSchoolDisplayName(schoolId)} AOs would likely move on quickly. Significant revision needed.`;
+  }
 
   return {
     school: getSchoolDisplayName(schoolId),
     whatTheyValue,
     firstImpression,
-    aoThoughts,
+    aoThoughts: aoThoughts.slice(0, 6), // Limit to 6 most important thoughts
     overallVerdict,
   };
 }
 
-function getHookVerdict(score: number, firstSentence: string): string {
+function getHookVerdict(
+  score: number,
+  firstSentence: string,
+  schoolInsights: typeof AO_INSIGHTS_BY_SCHOOL[string]
+): string {
+  const instantTurnoffs = schoolInsights.readingProcess?.instantTurnoffs || [];
+
+  // Check for school-specific instant turnoffs
+  const firstSentenceLower = firstSentence.toLowerCase();
+  for (const turnoff of instantTurnoffs) {
+    const cleanTurnoff = turnoff.toLowerCase().replace(/"/g, '');
+    if (firstSentenceLower.includes(cleanTurnoff.slice(0, 20))) {
+      return `"${turnoff}" - this is an instant red flag for this school.`;
+    }
+  }
+
   if (score >= 4) {
-    return 'Strong opening. AO will keep reading with interest.';
+    return 'Strong opening. AO will keep reading with genuine interest.';
   }
   if (score >= 3) {
-    return 'Decent opening, but not memorable. Consider starting with more action or dialogue.';
+    return 'Decent opening, but not memorable. Consider starting with a specific moment, dialogue, or sensory detail.';
   }
   if (/^i have always/i.test(firstSentence)) {
-    return '"I have always..." is the most overused opening. AOs will immediately lose interest.';
+    return '"I have always..." is the #1 most overused opening. AOs see this and immediately think "here we go again."';
   }
-  return 'Weak opening. AO is already tempted to move to the next application.';
+  if (/^webster|^according to|^the dictionary/i.test(firstSentence)) {
+    return 'Dictionary definitions and famous quotes are essay killers. AOs groan when they see these.';
+  }
+  return 'Weak opening. The AO is already tempted to skim rather than read carefully.';
 }
 
 function checkForTrait(text: string, keywords: string[]): boolean {

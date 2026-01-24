@@ -20,6 +20,10 @@ export interface SeedFeedbackPattern {
   severity: number; // 1-5
   essayType?: string;
   schoolId?: string;
+  // Improvement metrics based on coaching experience
+  avgScoreImprovement: number; // Points gained when issue is fixed (0-20)
+  frequency: number; // How often this issue appears (percentage)
+  successRate: number; // How often students successfully fix it (0-1)
 }
 
 export const SEED_FEEDBACK_PATTERNS: SeedFeedbackPattern[] = [
@@ -35,6 +39,9 @@ export const SEED_FEEDBACK_PATTERNS: SeedFeedbackPattern[] = [
     exampleAfter: 'The beaker shattered before I could react, three months of research pooling on the lab floor.',
     fixStrategy: 'Start in the middle of the action (in medias res). Drop the reader into a specific moment that captures attention immediately.',
     severity: 4,
+    avgScoreImprovement: 8,
+    frequency: 35, // 35% of essays have generic openings
+    successRate: 0.85, // 85% of students successfully fix this
   },
   {
     issueType: 'thesis_statement_opening',
@@ -45,6 +52,9 @@ export const SEED_FEEDBACK_PATTERNS: SeedFeedbackPattern[] = [
     exampleAfter: 'Maria handed me the shovel with a skeptical look. "You sure you know what you\'re doing?"',
     fixStrategy: 'Remove academic scaffolding. Tell a story with scenes, dialogue, and personal reflection rather than arguing a thesis.',
     severity: 4,
+    avgScoreImprovement: 10,
+    frequency: 25,
+    successRate: 0.75,
   },
   {
     issueType: 'weak_ending',
@@ -55,6 +65,9 @@ export const SEED_FEEDBACK_PATTERNS: SeedFeedbackPattern[] = [
     exampleAfter: 'Now when I walk past the chemistry lab, I smile. That shattered beaker led to my first published paper.',
     fixStrategy: 'End with a specific image, callback to the opening, or concrete forward-looking statement. Avoid summarizing lessons.',
     severity: 3,
+    avgScoreImprovement: 5,
+    frequency: 40,
+    successRate: 0.80,
   },
   {
     issueType: 'missing_reflection',
@@ -65,6 +78,9 @@ export const SEED_FEEDBACK_PATTERNS: SeedFeedbackPattern[] = [
     exampleAfter: 'I practiced for six hours every day, but it was during hour five, when my fingers ached and my mind wandered, that I understood what discipline really meant.',
     fixStrategy: 'After each significant event, pause to show internal reaction. Use phrases like "I realized," "for the first time," or describe emotional/intellectual shifts.',
     severity: 5,
+    avgScoreImprovement: 12,
+    frequency: 45,
+    successRate: 0.70,
   },
   {
     issueType: 'chronological_trap',
@@ -75,6 +91,9 @@ export const SEED_FEEDBACK_PATTERNS: SeedFeedbackPattern[] = [
     exampleAfter: 'The robot\'s arm jerked wildly, sending our chances of winning spinning across the arena floor. I had thirty seconds to fix three years of work.',
     fixStrategy: 'Start at the climax or a pivotal moment. Use flashbacks strategically. Organize by theme or emotion, not timeline.',
     severity: 3,
+    avgScoreImprovement: 6,
+    frequency: 30,
+    successRate: 0.75,
   },
 
   // ===================
@@ -89,6 +108,9 @@ export const SEED_FEEDBACK_PATTERNS: SeedFeedbackPattern[] = [
     exampleAfter: 'At 4 AM, my alarm went off for the third time. I pulled myself out of bed, grabbed my calculator, and got back to the problem set.',
     fixStrategy: 'Replace every adjective about yourself with a scene that demonstrates it. Let readers conclude your qualities from your actions.',
     severity: 5,
+    avgScoreImprovement: 15,
+    frequency: 55,
+    successRate: 0.65,
   },
   {
     issueType: 'resume_listing',
@@ -99,6 +121,9 @@ export const SEED_FEEDBACK_PATTERNS: SeedFeedbackPattern[] = [
     exampleAfter: 'The tennis court was empty at 6 AM, but that\'s when I did my best thinking. Between serves, I planned the club meeting agenda.',
     fixStrategy: 'Pick ONE activity or moment. Go deep instead of broad. Show what it means to you, not just what you did.',
     severity: 4,
+    avgScoreImprovement: 12,
+    frequency: 40,
+    successRate: 0.70,
   },
   {
     issueType: 'trauma_without_growth',
@@ -109,6 +134,9 @@ export const SEED_FEEDBACK_PATTERNS: SeedFeedbackPattern[] = [
     exampleAfter: 'My parents\' divorce taught me that love isn\'t about perfection. I now bring that understanding to every relationship I build.',
     fixStrategy: 'The trauma should be context, not the focus. Spend 80% of the essay on growth, perspective gained, or positive action taken.',
     severity: 4,
+    avgScoreImprovement: 10,
+    frequency: 15,
+    successRate: 0.60,
   },
   {
     issueType: 'savior_complex',
@@ -119,6 +147,9 @@ export const SEED_FEEDBACK_PATTERNS: SeedFeedbackPattern[] = [
     exampleAfter: 'Miguel taught me more about resilience in one afternoon than any book ever could. His optimism challenged everything I thought I knew about happiness.',
     fixStrategy: 'Center the people you worked with as full humans with agency. Focus on what you learned FROM them, not what you did FOR them.',
     severity: 4,
+    avgScoreImprovement: 8,
+    frequency: 20,
+    successRate: 0.75,
   },
   {
     issueType: 'missed_specificity',
@@ -129,6 +160,9 @@ export const SEED_FEEDBACK_PATTERNS: SeedFeedbackPattern[] = [
     exampleAfter: 'I spent three months analyzing soil samples from the Amazon basin, discovering that microplastic contamination had spread 200 miles further than anyone expected.',
     fixStrategy: 'Add sensory details, names, numbers, and specific examples. Replace every "thing" and "stuff" with concrete nouns.',
     severity: 4,
+    avgScoreImprovement: 10,
+    frequency: 50,
+    successRate: 0.80,
   },
 
   // ===================
@@ -143,6 +177,9 @@ export const SEED_FEEDBACK_PATTERNS: SeedFeedbackPattern[] = [
     exampleAfter: 'I learned that perseverance isn\'t about never falling—it\'s about how quickly you get back up.',
     fixStrategy: 'Put yourself as the subject of sentences. Use "I did" instead of "it was done." Active voice shows ownership and agency.',
     severity: 3,
+    avgScoreImprovement: 4,
+    frequency: 25,
+    successRate: 0.90,
   },
   {
     issueType: 'thesaurus_abuse',
@@ -153,6 +190,9 @@ export const SEED_FEEDBACK_PATTERNS: SeedFeedbackPattern[] = [
     exampleAfter: 'That lucky accident changed how I think about learning.',
     fixStrategy: 'Use the simplest word that conveys your meaning. Write how you speak. Authenticity beats vocabulary.',
     severity: 3,
+    avgScoreImprovement: 6,
+    frequency: 20,
+    successRate: 0.85,
   },
   {
     issueType: 'cliche_overload',
@@ -163,6 +203,9 @@ export const SEED_FEEDBACK_PATTERNS: SeedFeedbackPattern[] = [
     exampleAfter: 'After that day, I stopped asking "why me?" and started asking "what now?"',
     fixStrategy: 'Flag every phrase you\'ve heard before. Replace with original language that could only come from your specific experience.',
     severity: 4,
+    avgScoreImprovement: 7,
+    frequency: 45,
+    successRate: 0.75,
   },
   {
     issueType: 'sentence_monotony',
@@ -173,6 +216,9 @@ export const SEED_FEEDBACK_PATTERNS: SeedFeedbackPattern[] = [
     exampleAfter: 'I went to school, studied hard, and joined every club that would have me. The good grades followed. So did the friends.',
     fixStrategy: 'Vary sentence length. Mix short punchy sentences with longer complex ones. Read aloud to check rhythm.',
     severity: 2,
+    avgScoreImprovement: 3,
+    frequency: 30,
+    successRate: 0.85,
   },
 
   // ===================
@@ -188,6 +234,9 @@ export const SEED_FEEDBACK_PATTERNS: SeedFeedbackPattern[] = [
     fixStrategy: 'Name specific courses, professors, programs, or traditions. Explain why this specific school, not just any good school.',
     severity: 5,
     essayType: 'WHY_US',
+    avgScoreImprovement: 15,
+    frequency: 60,
+    successRate: 0.70,
   },
   {
     issueType: 'prestige_chasing',
@@ -199,6 +248,9 @@ export const SEED_FEEDBACK_PATTERNS: SeedFeedbackPattern[] = [
     fixStrategy: 'Remove all references to rankings, prestige, or "dream school." Focus entirely on specific academic and community fit.',
     severity: 4,
     essayType: 'WHY_US',
+    avgScoreImprovement: 8,
+    frequency: 35,
+    successRate: 0.85,
   },
   {
     issueType: 'wikipedia_research',
@@ -210,6 +262,9 @@ export const SEED_FEEDBACK_PATTERNS: SeedFeedbackPattern[] = [
     fixStrategy: 'Go beyond the homepage. Read student blogs, visit Reddit threads, watch YouTube vlogs, talk to alumni. Find details only a real researcher would know.',
     severity: 4,
     essayType: 'WHY_US',
+    avgScoreImprovement: 10,
+    frequency: 50,
+    successRate: 0.75,
   },
 
   // ===================
@@ -224,6 +279,9 @@ export const SEED_FEEDBACK_PATTERNS: SeedFeedbackPattern[] = [
     exampleAfter: 'Looking back, I realize the experiment that failed taught me more than the one that succeeded ever could.',
     fixStrategy: 'Read your essay out loud. Does it sound like you? Remove any phrase you wouldn\'t say in conversation with a friend.',
     severity: 5,
+    avgScoreImprovement: 12,
+    frequency: 25,
+    successRate: 0.70,
   },
   {
     issueType: 'voice_inconsistency',
@@ -234,6 +292,9 @@ export const SEED_FEEDBACK_PATTERNS: SeedFeedbackPattern[] = [
     exampleAfter: 'Video games taught me something unexpected about teamwork. When you\'re in a raid with strangers, you learn to communicate fast—or you all fail together.',
     fixStrategy: 'Pick one voice and stick with it. Your essay should sound like one person wrote it. Have someone who knows you well read it and flag anything that doesn\'t sound like you.',
     severity: 4,
+    avgScoreImprovement: 8,
+    frequency: 20,
+    successRate: 0.80,
   },
   {
     issueType: 'overly_formal',
@@ -244,6 +305,9 @@ export const SEED_FEEDBACK_PATTERNS: SeedFeedbackPattern[] = [
     exampleAfter: 'The first time I walked into a chemistry lab, I knew I was home.',
     fixStrategy: 'Write as if you\'re telling the story to a friendly adult who wants to know you. Be yourself, not a version of yourself you think they want.',
     severity: 3,
+    avgScoreImprovement: 5,
+    frequency: 30,
+    successRate: 0.85,
   },
 
   // ===================
@@ -258,6 +322,9 @@ export const SEED_FEEDBACK_PATTERNS: SeedFeedbackPattern[] = [
     exampleAfter: '645 words with tighter, more impactful prose',
     fixStrategy: 'Cut ruthlessly. Every sentence must earn its place. Remove qualifiers, combine sentences, and cut entire paragraphs if needed.',
     severity: 5,
+    avgScoreImprovement: 5,
+    frequency: 15,
+    successRate: 0.95,
   },
   {
     issueType: 'paragraph_wall',
@@ -268,6 +335,39 @@ export const SEED_FEEDBACK_PATTERNS: SeedFeedbackPattern[] = [
     exampleAfter: '4-5 paragraphs of 80-150 words each',
     fixStrategy: 'Break into 4-6 paragraphs. Each paragraph should have one main idea. Add white space for readability.',
     severity: 3,
+    avgScoreImprovement: 3,
+    frequency: 10,
+    successRate: 0.95,
+  },
+
+  // ===================
+  // "SO WHAT?" TEST PATTERNS (NEW)
+  // ===================
+  {
+    issueType: 'fails_so_what_test',
+    issueCategory: 'content',
+    patternName: 'Fails "So What?" Test',
+    description: 'Essay doesn\'t reveal anything meaningful about the applicant that couldn\'t be learned from their activities list, transcript, or recommendations.',
+    exampleBefore: 'I am passionate about computer science and have participated in many coding competitions where I learned valuable skills.',
+    exampleAfter: 'When my code finally worked at 3 AM, I realized I wasn\'t chasing the prize anymore. I was chasing the feeling of making something that didn\'t exist before.',
+    fixStrategy: 'Ask: "What does this essay tell the reader that they couldn\'t learn anywhere else in my application?" Focus on HOW you think, WHAT you value, or WHO you are - not what you\'ve done.',
+    severity: 5,
+    avgScoreImprovement: 18,
+    frequency: 40,
+    successRate: 0.55,
+  },
+  {
+    issueType: 'duplicates_activities_list',
+    issueCategory: 'content',
+    patternName: 'Duplicates Activities List',
+    description: 'Essay just describes the same activities/achievements that appear elsewhere in the application without adding new insight.',
+    exampleBefore: 'As president of the debate club, I organized tournaments and led our team to state finals.',
+    exampleAfter: 'The night before state finals, I told our newest member she should take the lead. Watching her win taught me that my job wasn\'t to be the best debater—it was to build debaters better than me.',
+    fixStrategy: 'Don\'t describe what you did—describe what you learned, felt, or realized. The activity is context; the insight is the story.',
+    severity: 4,
+    avgScoreImprovement: 12,
+    frequency: 35,
+    successRate: 0.65,
   },
 ];
 

@@ -3,12 +3,14 @@
  * Orchestrates different analysis depths based on pricing tier
  *
  * Tiers:
- *   - Quick ($9.99): Fast score + 3-5 actionable items
+ *   - Preview (FREE): Score + issue counts (blurred details) + upgrade teaser
+ *   - Quick ($9.99): Score + 3-5 actionable items with blunt feedback
  *   - Standard ($79): Full line-by-line + school-specific + AO insights
  *   - Premium ($249): Standard + AI rewrites + human reviewer
  */
 
 export * from './types';
+export { runPreviewAnalysis } from './preview-analysis';
 export { runQuickAnalysis } from './quick-analysis';
 export { runStandardAnalysis } from './standard-analysis';
 export { AO_INSIGHTS_BY_SCHOOL } from './ao-insights';
@@ -17,11 +19,13 @@ import type {
   AnalysisTier,
   QuickIntake,
   FullIntake,
+  PreviewAnalysisResult,
   QuickAnalysisResult,
   StandardAnalysisResult,
   PremiumAnalysisResult,
   TieredAnalysisOptions,
 } from './types';
+import { runPreviewAnalysis } from './preview-analysis';
 import { runQuickAnalysis } from './quick-analysis';
 import { runStandardAnalysis } from './standard-analysis';
 import { getTierConfig } from '@/lib/config';
@@ -31,7 +35,7 @@ import { getTierConfig } from '@/lib/config';
 // =============================================================================
 
 export type AnalysisInput = {
-  tier: 'quick';
+  tier: 'preview' | 'quick';
   intake: QuickIntake;
 } | {
   tier: 'standard' | 'premium';
@@ -39,6 +43,7 @@ export type AnalysisInput = {
 };
 
 export type AnalysisResult<T extends AnalysisTier> =
+  T extends 'preview' ? PreviewAnalysisResult :
   T extends 'quick' ? QuickAnalysisResult :
   T extends 'standard' ? StandardAnalysisResult :
   T extends 'premium' ? PremiumAnalysisResult :
@@ -51,16 +56,21 @@ export type AnalysisResult<T extends AnalysisTier> =
 export async function runTieredAnalysis<T extends AnalysisTier>(
   essayText: string,
   tier: T,
-  intake: T extends 'quick' ? QuickIntake : FullIntake,
+  intake: T extends 'preview' | 'quick' ? QuickIntake : FullIntake,
   options: TieredAnalysisOptions = {}
 ): Promise<AnalysisResult<T>> {
-  // Validate tier
-  const tierConfig = getTierConfig(tier);
-  if (!tierConfig) {
-    throw new Error(`Invalid tier: ${tier}`);
+  // Validate tier (preview doesn't need config check - it's always free)
+  if (tier !== 'preview') {
+    const tierConfig = getTierConfig(tier);
+    if (!tierConfig) {
+      throw new Error(`Invalid tier: ${tier}`);
+    }
   }
 
   switch (tier) {
+    case 'preview':
+      return runPreviewAnalysis(essayText, intake as QuickIntake, options) as Promise<AnalysisResult<T>>;
+
     case 'quick':
       return runQuickAnalysis(essayText, intake as QuickIntake, options) as Promise<AnalysisResult<T>>;
 
@@ -241,12 +251,12 @@ export function validateIntakeForTier(
 ): { valid: boolean; missingFields: string[] } {
   const missingFields: string[] = [];
 
-  // Quick tier requires minimal fields
+  // Preview and Quick tier require minimal fields
   if (!intake.targetSchool) missingFields.push('targetSchool');
   if (!intake.essayType) missingFields.push('essayType');
 
   // Standard and Premium require full intake
-  if (tier !== 'quick') {
+  if (tier !== 'preview' && tier !== 'quick') {
     const fullIntake = intake as FullIntake;
 
     if (!fullIntake.essayContext?.targetSchool) missingFields.push('essayContext.targetSchool');

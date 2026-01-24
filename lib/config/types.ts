@@ -154,7 +154,7 @@ export interface ConfigOverride {
 // ANALYSIS TIER TYPES
 // =============================================================================
 
-export type AnalysisTier = 'quick' | 'standard' | 'premium';
+export type AnalysisTier = 'preview' | 'quick' | 'standard' | 'premium';
 
 export interface TierFeatures {
   overallScore: boolean;

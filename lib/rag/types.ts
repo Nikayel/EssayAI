@@ -141,10 +141,21 @@ export interface StudentProfile {
   culturalContext?: string; // e.g., "Indian immigrant family", "rural community"
   socioeconomicContext?: 'low-income' | 'middle-income' | 'high-income';
   familyEducationLevel?: 'no_college' | 'some_college' | 'bachelors' | 'graduate';
-  immigrationStory?: 'citizen' | 'immigrant_self' | 'immigrant_parent' | 'visa' | 'undocumented' | 'prefer_not_say';
+  immigrationStatus?: 'citizen' | 'permanent_resident' | 'visa' | 'undocumented' | 'daca' | 'prefer_not_say';
   geographicContext?: 'rural' | 'suburban' | 'urban';
   schoolType?: 'public' | 'private' | 'charter' | 'magnet' | 'homeschool' | 'international';
   familyResponsibilities?: string[];
+
+  // Additional Identity Contexts (for comprehensive cultural sensitivity)
+  isRural?: boolean;           // Small-town/rural background
+  isHomeschooled?: boolean;    // Homeschool or alternative education
+  hasDisability?: boolean;     // Physical, learning, or mental health disability
+  accommodations?: string;     // e.g., "extended time", "screen reader"
+  isUndocumented?: boolean;    // Undocumented or DACA status
+  isLGBTQ?: boolean;          // LGBTQ+ identity
+  isMilitaryFamily?: boolean;  // Military family background
+  isFosterCare?: boolean;      // Foster care experience
+  isSystemInvolved?: boolean;  // Juvenile justice, child welfare system involvement
 
   // Academic Context
   intendedMajor?: string;

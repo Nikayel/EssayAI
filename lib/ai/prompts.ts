@@ -1,9 +1,43 @@
 /**
  * AI Prompt Templates for Essay Analysis
  * Based on PRD section 8: AI prompt engineering
+ *
+ * Score Anchors (0-6 scale) - Based on real AO evaluation criteria:
+ * 0: Missing or fundamentally flawed - major concerns that could hurt application
+ * 1: Significant weaknesses - needs substantial revision before submission
+ * 2: Below expectations - notable gaps that weaken the essay's impact
+ * 3: Meets minimum expectations - acceptable but unremarkable, won't stand out
+ * 4: Solid - demonstrates competence, would be competitive at most schools
+ * 5: Strong - memorable and distinctive, would stand out in applicant pool
+ * 6: Exceptional - top 5% of essays, the kind AOs remember and advocate for
  */
 
-export const ANALYSIS_SYSTEM_PROMPT = `You are a college essay coach and admissions reader. Provide structured feedback that preserves the student's voice. Do not write new content beyond edit suggestions. Return valid JSON matching the provided schema. No preamble.`;
+export const SCORE_ANCHORS = {
+  0: 'Missing or fundamentally flawed',
+  1: 'Significant weaknesses - needs major revision',
+  2: 'Below expectations - notable gaps',
+  3: 'Meets minimum expectations - acceptable but unremarkable',
+  4: 'Solid - demonstrates competence, competitive',
+  5: 'Strong - memorable and distinctive, stands out',
+  6: 'Exceptional - top 5%, AOs remember and advocate for',
+} as const;
+
+export const ANALYSIS_SYSTEM_PROMPT = `You are a college essay coach with 15+ years of admissions reading experience at selective institutions. You have read 10,000+ essays and know exactly what makes one stand out.
+
+SCORING SCALE (0-6):
+- 0: Missing or fundamentally flawed - major concerns
+- 1: Significant weaknesses - needs substantial revision
+- 2: Below expectations - notable gaps
+- 3: Meets minimum expectations - acceptable but unremarkable
+- 4: Solid - competitive, demonstrates competence
+- 5: Strong - memorable, distinctive, stands out
+- 6: Exceptional - top 5%, the kind of essay AOs advocate for
+
+CRITICAL RULES:
+1. Preserve the student's authentic voice - never impose "proper" academic English
+2. Coach, don't write - provide direction, not replacement text
+3. Ground every claim in specific text from the essay
+4. Return valid JSON matching the schema. No preamble.`;
 
 export const COMMONS_CHECK_SYSTEM_PROMPT = `You are a rapid essay screener. Identify common issues in college application essays quickly. Return valid JSON only. No preamble.`;
 
@@ -26,6 +60,20 @@ export function createAnalysisPrompt(params: {
 - Previous draft? ${params.hasPreviousDraft ? 'Yes' : 'No'}
 ${params.toneSample ? `- Prior tone sample (150-250 words): ${params.toneSample}` : ''}
 
+SCORING SCALE (use these anchors):
+- 0: Missing or fundamentally flawed
+- 1: Significant weaknesses - needs major revision
+- 2: Below expectations - notable gaps
+- 3: Meets minimum expectations - acceptable but unremarkable
+- 4: Solid - competitive, demonstrates competence
+- 5: Strong - memorable, distinctive, stands out
+- 6: Exceptional - top 5%, AOs remember and advocate for
+
+THE "SO WHAT?" TEST (CRITICAL):
+Before scoring, ask yourself: "Does this essay reveal something meaningful about this student that I couldn't learn from their activities list, transcript, or other application materials?"
+- If YES: The essay passes the "So What?" test
+- If NO: Flag this in the uniqueness_contribution field - this is often the #1 issue with essays
+
 Task:
 Analyze the student's essay and return JSON per schema. ${params.essayType === 'why_us' ? 'Weight school-specific values heavily.' : ''} Identify commons flags with quoted evidence.
 
@@ -39,6 +87,11 @@ Return a JSON object with the following structure:
     "word_count": <count>,
     "prompt": "${params.prompt}",
     "school": "${params.school || ''}"
+  },
+  "so_what_test": {
+    "passes": true/false,
+    "uniqueness_contribution": "What does this essay reveal that we couldn't learn elsewhere?",
+    "missing_depth": "If fails, what deeper insight is missing?"
   },
   "scores": {
     "authenticity": {"score": 0-6, "rationales": ["..."]},
@@ -143,15 +196,21 @@ Return JSON:
 
 /**
  * Rubric weights for calculating overall score (out of 100)
+ *
+ * Weights based on real AO priorities:
+ * - Authenticity & Reflection are highest (what AOs actually care about most)
+ * - Mechanics reduced to 5% (competitive students rarely have grammar issues,
+ *   and over-weighting mechanics disadvantages ESL/multilingual students)
+ * - Ethics/Originality increased to include "So What?" uniqueness value
  */
 export const RUBRIC_WEIGHTS = {
-  authenticity: 0.20,
-  reflection: 0.20,
-  structure: 0.15,
-  specificity_fit: 0.15,
-  clarity_style: 0.10,
-  mechanics: 0.10,
-  ethics_originality: 0.10,
+  authenticity: 0.20,      // Is this genuinely the student's voice?
+  reflection: 0.20,        // Does it show growth, self-awareness, learning?
+  structure: 0.15,         // Flow, organization, logical progression
+  specificity_fit: 0.15,   // Concrete details vs. generic statements
+  clarity_style: 0.10,     // Clear expression, readable prose
+  mechanics: 0.05,         // Grammar, spelling (reduced - rarely an issue at this level)
+  ethics_originality: 0.15, // Originality, "So What?" value, ethical considerations
 } as const;
 
 /**

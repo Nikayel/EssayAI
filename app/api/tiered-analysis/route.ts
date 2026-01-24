@@ -24,18 +24,31 @@ import type { AnalysisTier, QuickIntake, FullIntake } from '@/lib/scoring/tiers/
 // =============================================================================
 
 const rateLimitMap = new Map<string, { count: number; resetAt: number }>();
+const essayHashMap = new Map<string, { count: number; resetAt: number }>(); // Prevent same essay spam
+
 const RATE_LIMIT_WINDOW_MS = 60 * 60 * 1000; // 1 hour
 const RATE_LIMITS = {
-  quick: 10,      // 10 per hour
-  standard: 5,    // 5 per hour
-  premium: 5,     // 5 per hour
-  anonymous: 3,   // 3 per hour for anonymous
+  // Free preview - more restrictive to prevent abuse
+  preview: 5,           // 5 free previews per hour per IP
+  preview_anonymous: 3, // Anonymous users even more restricted
+  // Paid tiers - more generous since they paid
+  quick: 20,            // 20 per hour (they paid $9.99)
+  standard: 15,         // 15 per hour (they paid $79)
+  premium: 15,          // 15 per hour (they paid $249)
+  anonymous: 3,         // Fallback for unknown tier
 };
 
-function checkRateLimit(identifier: string, tier: string): { allowed: boolean; remaining: number; resetAt: number } {
+function checkRateLimit(identifier: string, tier: string, isAuthenticated: boolean): { allowed: boolean; remaining: number; resetAt: number } {
   const now = Date.now();
   const key = `${identifier}:analysis`;
-  const limit = RATE_LIMITS[tier as keyof typeof RATE_LIMITS] || RATE_LIMITS.anonymous;
+
+  // For free preview, use more restrictive limit for anonymous users
+  let effectiveTier = tier;
+  if (tier === 'preview' && !isAuthenticated) {
+    effectiveTier = 'preview_anonymous';
+  }
+
+  const limit = RATE_LIMITS[effectiveTier as keyof typeof RATE_LIMITS] || RATE_LIMITS.anonymous;
 
   const record = rateLimitMap.get(key);
 
@@ -50,6 +63,43 @@ function checkRateLimit(identifier: string, tier: string): { allowed: boolean; r
 
   record.count++;
   return { allowed: true, remaining: limit - record.count, resetAt: record.resetAt };
+}
+
+/**
+ * Check if the same essay has been submitted too many times (prevent gaming)
+ * Uses simple hash of first 500 chars + length
+ */
+function checkEssaySpam(essayText: string, identifier: string): { allowed: boolean; message?: string } {
+  const now = Date.now();
+  const essayKey = `${identifier}:${simpleHash(essayText.slice(0, 500) + essayText.length)}`;
+
+  const record = essayHashMap.get(essayKey);
+  const MAX_SAME_ESSAY = 3; // Max 3 analyses of same essay per hour
+
+  if (!record || record.resetAt < now) {
+    essayHashMap.set(essayKey, { count: 1, resetAt: now + RATE_LIMIT_WINDOW_MS });
+    return { allowed: true };
+  }
+
+  if (record.count >= MAX_SAME_ESSAY) {
+    return {
+      allowed: false,
+      message: 'You\'ve already analyzed this essay multiple times. Make changes before re-submitting.',
+    };
+  }
+
+  record.count++;
+  return { allowed: true };
+}
+
+function simpleHash(str: string): string {
+  let hash = 0;
+  for (let i = 0; i < str.length; i++) {
+    const char = str.charCodeAt(i);
+    hash = ((hash << 5) - hash) + char;
+    hash = hash & hash;
+  }
+  return hash.toString(36);
 }
 
 // =============================================================================
@@ -133,7 +183,7 @@ const FullIntakeSchema = z.object({
 
 const AnalysisRequestSchema = z.object({
   essayText: z.string().min(50, 'Essay must be at least 50 characters').max(50000),
-  tier: z.enum(['quick', 'standard', 'premium']),
+  tier: z.enum(['preview', 'quick', 'standard', 'premium']),
   // Quick tier uses minimal intake
   intake: z.union([QuickIntakeSchema, FullIntakeSchema]),
   // User info
@@ -216,20 +266,24 @@ export async function POST(request: NextRequest) {
     const supabase = await createClient();
     const { data: { user } } = await supabase.auth.getUser();
 
-    // Get client IP for rate limiting anonymous users
+    // Get client IP for rate limiting
     const clientIp = request.headers.get('x-forwarded-for')?.split(',')[0] ||
                      request.headers.get('x-real-ip') ||
                      'unknown';
     const rateLimitId = user?.id || clientIp;
+    const isAuthenticated = !!user;
 
-    // Check rate limit
-    const rateLimit = checkRateLimit(rateLimitId, user ? tier : 'anonymous');
+    // Check rate limit (pass authentication status for preview tier limits)
+    const rateLimit = checkRateLimit(rateLimitId, tier, isAuthenticated);
     if (!rateLimit.allowed) {
       return NextResponse.json(
         {
           error: 'Rate limit exceeded',
-          message: 'Too many analysis requests. Please try again later.',
+          message: tier === 'preview'
+            ? 'You\'ve used your free previews for this hour. Upgrade to $9.99 for unlimited feedback.'
+            : 'Too many analysis requests. Please try again later.',
           retryAfter: Math.ceil((rateLimit.resetAt - Date.now()) / 1000),
+          upgradeHint: tier === 'preview' ? 'Pay $9.99 to unlock full feedback with no limits' : undefined,
         },
         {
           status: 429,
@@ -241,9 +295,21 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Email required for Standard/Premium
+    // Check essay spam (prevent gaming by submitting same essay repeatedly)
+    const essaySpamCheck = checkEssaySpam(essayText, rateLimitId);
+    if (!essaySpamCheck.allowed) {
+      return NextResponse.json(
+        {
+          error: 'Duplicate submission',
+          message: essaySpamCheck.message,
+        },
+        { status: 429 }
+      );
+    }
+
+    // Email required for Standard/Premium (not for preview or quick)
     const effectiveEmail = userEmail || user?.email;
-    if (tier !== 'quick' && !effectiveEmail) {
+    if (tier !== 'preview' && tier !== 'quick' && !effectiveEmail) {
       return NextResponse.json(
         { error: 'Email required for Standard and Premium tiers' },
         { status: 400 }
@@ -260,13 +326,14 @@ export async function POST(request: NextRequest) {
     }
 
     // PAYMENT VERIFICATION for paid tiers
+    // Preview = FREE, Quick/Standard/Premium = PAID
     let verifiedPaymentId: string | undefined;
 
-    if (tier !== 'quick') {
-      // Standard and Premium require payment
+    if (tier !== 'preview') {
+      // Quick ($9.99), Standard ($79), and Premium ($249) require payment
       if (!checkoutSessionId) {
         return NextResponse.json(
-          { error: 'Payment required', message: 'Please complete checkout first.' },
+          { error: 'Payment required', message: `Please complete checkout first. ${tier === 'quick' ? '$9.99' : tier === 'standard' ? '$79' : '$249'} to unlock.` },
           { status: 402 }
         );
       }
@@ -291,7 +358,7 @@ export async function POST(request: NextRequest) {
         userId: user?.id,
         userEmail: effectiveEmail || 'anonymous@temp.com',
         tier,
-        paidAmount: tier === 'quick' ? 0 : tierConfig.priceInCents, // Quick is free preview
+        paidAmount: tier === 'preview' ? 0 : tierConfig?.priceInCents || 0, // Only preview is free
         stripePaymentId: verifiedPaymentId,
         essayText,
         intakeData: {
@@ -425,41 +492,56 @@ export async function POST(request: NextRequest) {
 export async function GET() {
   return NextResponse.json({
     endpoint: '/api/tiered-analysis',
-    version: '2.0.0',
+    version: '2.1.0',
     tiers: {
-      quick: {
-        name: 'Essay Score',
-        price: '$9.99',
-        priceInCents: config.pricing.tiers.quick.priceInCents,
+      preview: {
+        name: 'Free Preview',
+        price: 'Free',
+        priceInCents: 0,
         features: [
-          'Overall score with label',
-          '3-5 specific actionable items',
-          'AI detection check',
-          'Blurred preview of full analysis',
+          'Overall score with encouraging context',
+          'Issue counts (X critical, Y major problems found)',
+          'AI detection warning (flagged or not)',
+          'Upgrade teaser showing what you\'ll unlock',
         ],
         turnaround: 'Instant',
+        note: 'See your score and how many issues we found - pay $9.99 to see the details',
+      },
+      quick: {
+        name: 'Essay Feedback',
+        price: '$9.99',
+        priceInCents: 999,
+        features: [
+          'Everything in Preview PLUS:',
+          '3-5 specific issues with blunt, consultant-level feedback',
+          'Exact locations of problems in your essay',
+          'AI detection details and verdict',
+          'Severity ratings (critical/major/minor)',
+        ],
+        turnaround: 'Instant',
+        note: 'Unlock the details - see exactly what\'s wrong and where',
       },
       standard: {
         name: 'Full Analysis',
         price: '$79',
-        priceInCents: config.pricing.tiers.standard.priceInCents,
+        priceInCents: 7900,
         features: [
-          'Everything in Quick',
-          'Full dimension breakdown',
-          'Line-by-line annotations with fixes',
-          'School-specific deep dive',
-          'AO perspective insights',
-          'Personalized tips',
+          'Everything in Quick PLUS:',
+          'Full dimension breakdown (authenticity, reflection, etc.)',
+          'Line-by-line annotations with HOW TO FIX each issue',
+          'School-specific deep dive with AO perspectives',
+          'Your essay\'s strengths to preserve',
+          'Personalized tips based on your background',
         ],
         turnaround: 'Instant',
       },
       premium: {
         name: 'Expert Review',
         price: '$249',
-        priceInCents: config.pricing.tiers.premium.priceInCents,
+        priceInCents: 24900,
         features: [
-          'Everything in Standard',
-          'AI-generated rewrite suggestions',
+          'Everything in Standard PLUS:',
+          'AI-generated rewrite suggestions for critical issues',
           'Human expert review (Former AO or PhD)',
           'Direct email feedback',
           '48-hour turnaround',
@@ -468,7 +550,7 @@ export async function GET() {
       },
     },
     inputSchema: {
-      quickTier: {
+      previewAndQuickTier: {
         required: ['targetSchool', 'essayType'],
         optional: ['isFirstGen', 'intendedMajor'],
       },
