@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
-import localFont from "next/font/local";
+import { Inter } from "next/font/google";
+import { ToastProvider } from "@/components/ui/toast";
 import "./globals.css";
 
 // Use local Geist font (bundled with Next.js) for reliability
@@ -68,9 +69,11 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className={`scroll-smooth ${geist.variable}`}>
-      <body className={`${geist.className} antialiased`}>
-        {children}
+    <html lang="en" className={`scroll-smooth ${inter.variable}`}>
+      <body className={`${inter.className} antialiased`}>
+        <ToastProvider>
+          {children}
+        </ToastProvider>
       </body>
     </html>
   );
