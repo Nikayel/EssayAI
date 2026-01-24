@@ -11,7 +11,7 @@ import type { BluntFeedback } from '../blunt-feedback';
 // TIER DEFINITIONS
 // =============================================================================
 
-export type AnalysisTier = 'quick' | 'standard' | 'premium';
+export type AnalysisTier = 'preview' | 'quick' | 'standard' | 'premium';
 
 // =============================================================================
 // INPUT TYPES
@@ -32,6 +32,51 @@ export interface QuickIntake {
  * Full intake for Standard ($79) and Premium ($249) tiers
  */
 export type FullIntake = StudentIntake;
+
+// =============================================================================
+// OUTPUT TYPES - PREVIEW TIER (FREE)
+// =============================================================================
+
+/**
+ * Free preview - shows score and teases what they'd get if they paid
+ * No actionable details revealed until they pay $9.99
+ */
+export interface PreviewAnalysisResult {
+  tier: 'preview';
+
+  // What they see for FREE
+  overallScore: number;
+  scoreLabel: 'needs_work' | 'developing' | 'competitive' | 'strong' | 'exceptional';
+  scoreSummary: string; // Encouraging context about their score
+
+  // BLURRED - counts only, no details
+  issuesSummary: {
+    total: number;
+    critical: number;
+    major: number;
+    minor: number;
+    message: string; // e.g., "We found 5 issues including 2 critical problems"
+  };
+
+  // AI detection - warning only, no specifics
+  aiWarning: {
+    flagged: boolean;
+    message: string; // e.g., "AI patterns detected" or "Looks authentic"
+  };
+
+  // What they're missing (upgrade teaser)
+  upgradeTeaser: {
+    message: string;
+    benefits: string[];
+    price: string; // "$9.99"
+  };
+
+  // Metadata
+  metadata: {
+    wordCount: number;
+    processingTimeMs: number;
+  };
+}
 
 // =============================================================================
 // OUTPUT TYPES - QUICK TIER ($9.99)

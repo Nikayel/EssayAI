@@ -133,7 +133,7 @@ const FullIntakeSchema = z.object({
 
 const AnalysisRequestSchema = z.object({
   essayText: z.string().min(50, 'Essay must be at least 50 characters').max(50000),
-  tier: z.enum(['quick', 'standard', 'premium']),
+  tier: z.enum(['preview', 'quick', 'standard', 'premium']),
   // Quick tier uses minimal intake
   intake: z.union([QuickIntakeSchema, FullIntakeSchema]),
   // User info
@@ -260,13 +260,14 @@ export async function POST(request: NextRequest) {
     }
 
     // PAYMENT VERIFICATION for paid tiers
+    // Preview = FREE, Quick/Standard/Premium = PAID
     let verifiedPaymentId: string | undefined;
 
-    if (tier !== 'quick') {
-      // Standard and Premium require payment
+    if (tier !== 'preview') {
+      // Quick ($9.99), Standard ($79), and Premium ($249) require payment
       if (!checkoutSessionId) {
         return NextResponse.json(
-          { error: 'Payment required', message: 'Please complete checkout first.' },
+          { error: 'Payment required', message: `Please complete checkout first. ${tier === 'quick' ? '$9.99' : tier === 'standard' ? '$79' : '$249'} to unlock.` },
           { status: 402 }
         );
       }
@@ -291,7 +292,7 @@ export async function POST(request: NextRequest) {
         userId: user?.id,
         userEmail: effectiveEmail || 'anonymous@temp.com',
         tier,
-        paidAmount: tier === 'quick' ? 0 : tierConfig.priceInCents, // Quick is free preview
+        paidAmount: tier === 'preview' ? 0 : tierConfig?.priceInCents || 0, // Only preview is free
         stripePaymentId: verifiedPaymentId,
         essayText,
         intakeData: {
@@ -425,42 +426,56 @@ export async function POST(request: NextRequest) {
 export async function GET() {
   return NextResponse.json({
     endpoint: '/api/tiered-analysis',
-    version: '2.0.0',
+    version: '2.1.0',
     tiers: {
-      quick: {
-        name: 'Essay Score',
+      preview: {
+        name: 'Free Preview',
         price: 'Free',
         priceInCents: 0,
         features: [
-          'Overall score with label',
-          '3-5 specific actionable items with blunt feedback',
-          'AI detection check',
-          'Critical issues identified (upgrade to see how to fix)',
+          'Overall score with encouraging context',
+          'Issue counts (X critical, Y major problems found)',
+          'AI detection warning (flagged or not)',
+          'Upgrade teaser showing what you\'ll unlock',
         ],
         turnaround: 'Instant',
-        note: 'Free preview - see your score and top issues before you pay',
+        note: 'See your score and how many issues we found - pay $9.99 to see the details',
+      },
+      quick: {
+        name: 'Essay Feedback',
+        price: '$9.99',
+        priceInCents: 999,
+        features: [
+          'Everything in Preview PLUS:',
+          '3-5 specific issues with blunt, consultant-level feedback',
+          'Exact locations of problems in your essay',
+          'AI detection details and verdict',
+          'Severity ratings (critical/major/minor)',
+        ],
+        turnaround: 'Instant',
+        note: 'Unlock the details - see exactly what\'s wrong and where',
       },
       standard: {
         name: 'Full Analysis',
         price: '$79',
-        priceInCents: config.pricing.tiers.standard.priceInCents,
+        priceInCents: 7900,
         features: [
-          'Everything in Quick',
-          'Full dimension breakdown',
-          'Line-by-line annotations with fixes',
-          'School-specific deep dive',
-          'AO perspective insights',
-          'Personalized tips',
+          'Everything in Quick PLUS:',
+          'Full dimension breakdown (authenticity, reflection, etc.)',
+          'Line-by-line annotations with HOW TO FIX each issue',
+          'School-specific deep dive with AO perspectives',
+          'Your essay\'s strengths to preserve',
+          'Personalized tips based on your background',
         ],
         turnaround: 'Instant',
       },
       premium: {
         name: 'Expert Review',
         price: '$249',
-        priceInCents: config.pricing.tiers.premium.priceInCents,
+        priceInCents: 24900,
         features: [
-          'Everything in Standard',
-          'AI-generated rewrite suggestions',
+          'Everything in Standard PLUS:',
+          'AI-generated rewrite suggestions for critical issues',
           'Human expert review (Former AO or PhD)',
           'Direct email feedback',
           '48-hour turnaround',
@@ -469,7 +484,7 @@ export async function GET() {
       },
     },
     inputSchema: {
-      quickTier: {
+      previewAndQuickTier: {
         required: ['targetSchool', 'essayType'],
         optional: ['isFirstGen', 'intendedMajor'],
       },

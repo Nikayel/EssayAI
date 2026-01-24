@@ -163,19 +163,38 @@ export const DEFAULT_ACCEPTANCE_RATES: Record<string, number> = {
 // =============================================================================
 
 export const TIER_CONFIGS: Record<AnalysisTier, TierConfig> = {
+  preview: {
+    id: 'preview',
+    name: 'preview',
+    displayName: 'Free Preview',
+    priceInCents: 0,
+    features: {
+      overallScore: true,               // Show score (the hook)
+      dimensionBreakdown: false,        // Blurred
+      lineByLineAnnotations: false,     // Blurred
+      actionableItemsLimit: 0,          // Show count only, not details
+      schoolSpecificFeedback: false,    // Blurred
+      aoInsights: false,                // Blurred
+      aiDetectionReport: false,         // Just warning, no details
+      strengthHighlights: false,        // Blurred
+      rewriteSuggestions: false,
+      humanReview: false,
+      humanTurnaroundHours: null,
+    },
+  },
   quick: {
     id: 'quick',
     name: 'quick',
-    displayName: 'Essay Score',
-    priceInCents: DEFAULT_PRICING.tiers.quick,
+    displayName: 'Essay Feedback',
+    priceInCents: DEFAULT_PRICING.tiers.quick, // $9.99
     features: {
       overallScore: true,
-      dimensionBreakdown: false,        // Blurred/teaser
-      lineByLineAnnotations: false,
-      actionableItemsLimit: 5,
+      dimensionBreakdown: false,        // Still blurred - upgrade to Standard
+      lineByLineAnnotations: false,     // Still blurred - upgrade to Standard
+      actionableItemsLimit: 5,          // 5 specific issues with feedback
       schoolSpecificFeedback: false,    // Teaser only
       aoInsights: false,
-      aiDetectionReport: true,          // Show if AI detected
+      aiDetectionReport: true,          // Full AI detection details
       strengthHighlights: false,
       rewriteSuggestions: false,
       humanReview: false,
