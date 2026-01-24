@@ -50,13 +50,13 @@ export async function POST(request: NextRequest) {
       where: {
         userId: user.id,
         status: 'COMPLETED',
-        packageType: {
+        package: {
           in: ['AI_PRO_SINGLE', 'AI_PRO_MONTHLY', 'HUMAN_FULL_1', 'HUMAN_FULL_3', 'HUMAN_FULL_5', 'DEEP_REVIEW'],
         },
         // Check if order is for this essay or unlimited
         OR: [
           { essayId: version.essay.id },
-          { packageType: { in: ['AI_PRO_MONTHLY'] } }, // Monthly has unlimited
+          { package: { in: ['AI_PRO_MONTHLY'] } }, // Monthly has unlimited
         ],
       },
     });

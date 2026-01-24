@@ -600,9 +600,4 @@ function isIntakeComplete(intake: StudentIntake): boolean {
   return hasBasics && hasVoice;
 }
 
-// =============================================================================
-// EXPORTS
-// =============================================================================
-
-export { analyzeEssay };
-export type { ScoringOptions };
+// analyzeEssay and ScoringOptions are already exported at definition

@@ -279,7 +279,7 @@ export interface SpecificityScore {
 
   openingHook: {
     score: number;           // 0-4
-    hookType: 'in_medias_res' | 'question' | 'statement' | 'scene' | 'weak';
+    hookType: 'in_medias_res' | 'question' | 'statement' | 'scene' | 'dialogue' | 'weak';
     grabsAttention: boolean;
     firstSentence: string;
     feedback: string;

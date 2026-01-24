@@ -189,7 +189,8 @@ export function getAllTiers(): TierConfig[] {
  * Get tier price in cents
  */
 export function getTierPrice(tier: AnalysisTier): number {
-  return config.pricing.tiers[tier];
+  if (tier === 'preview') return 0; // Preview is free
+  return config.pricing.tiers[tier as Exclude<AnalysisTier, 'preview'>];
 }
 
 /**

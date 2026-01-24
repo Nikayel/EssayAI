@@ -347,14 +347,16 @@ async function queueHumanReview(analysisSession: any) {
   // Calculate due date (48 hours from now)
   const dueAt = new Date(Date.now() + 48 * 60 * 60 * 1000);
 
-  // Create human review assignment
+  // Create human review assignment with required fields
   const assignment = await prisma.humanReviewAssignment.create({
     data: {
-      sessionId: analysisSession.id,
       reviewerId: availableReviewer?.id,
       studentEmail: analysisSession.userEmail,
+      essayText: analysisSession.essayText,
       targetSchool: analysisSession.targetSchool,
       essayType: analysisSession.essayType,
+      intakeData: analysisSession.intakeData as any,
+      aiAnalysis: analysisSession.aiResult as any || {},
       dueAt,
       status: availableReviewer ? 'ASSIGNED' : 'QUEUED',
       assignedAt: availableReviewer ? new Date() : undefined,

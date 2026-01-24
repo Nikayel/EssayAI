@@ -315,10 +315,11 @@ export default function Home() {
                 </tbody>
               </table>
             </div>
+          </div>
 
-            <p className="text-center text-neutral-500 mt-6 text-sm">
-              Generic tools don't understand what gets you admitted. We do.
-            </p>
+          <p className="text-center text-neutral-500 mt-6 text-sm">
+            Generic tools don't understand what gets you admitted. We do.
+          </p>
           </div>
         </div>
       </section>
