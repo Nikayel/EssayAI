@@ -408,7 +408,10 @@ export async function retrieveAllContext(
         : Promise.resolve([] as SchoolInsightMatch[]),
     ];
 
-    const [exampleEssays, feedbackPatterns, schoolInsights] = await Promise.all(retrievalPromises);
+    const results = await Promise.all(retrievalPromises);
+    const exampleEssays = results[0] as ExampleEssayMatch[];
+    const feedbackPatterns = results[1] as FeedbackPatternMatch[];
+    const schoolInsights = results[2] as SchoolInsightMatch[];
 
     const totalTimeMs = Date.now() - startTime;
 

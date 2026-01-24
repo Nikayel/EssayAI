@@ -3,10 +3,10 @@ import { createClient } from '@/lib/supabase/server';
 import { prisma } from '@/lib/prisma';
 import { z } from 'zod';
 
-// Input validation schema
+// Input validation schema - must match Prisma DeadlineType enum
 const AddSchoolSchema = z.object({
   schoolName: z.string().min(1).max(200),
-  deadlineType: z.enum(['EARLY_DECISION', 'EARLY_ACTION', 'REGULAR_DECISION', 'ROLLING', 'RESTRICTIVE_EARLY_ACTION']),
+  deadlineType: z.enum(['EARLY_DECISION', 'EARLY_ACTION', 'REGULAR_DECISION', 'ROLLING', 'RESTRICTIVE_EA']),
   deadline: z.string().refine((val) => !isNaN(Date.parse(val)), { message: 'Invalid date format' }),
   notes: z.string().max(1000).optional(),
 });

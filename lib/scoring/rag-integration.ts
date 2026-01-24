@@ -4,7 +4,11 @@
  */
 
 import type { StudentIntake, EssayAnalysisResult, BenchmarkComparison } from './types';
-import type { StudentProfile, RAGContext, AnalysisHistory } from '../rag/types';
+import type { StudentProfile, RetrievedContext, AnalysisHistoryEntry } from '../rag/types';
+
+// Type aliases for backwards compatibility
+type RAGContext = RetrievedContext;
+type AnalysisHistory = AnalysisHistoryEntry;
 
 // =============================================================================
 // CONVERT INTAKE TO STUDENT PROFILE (for RAG compatibility)
@@ -81,15 +85,15 @@ export function studentProfileToIntake(
   return {
     demographics: {
       isFirstGen: profile.isFirstGen || false,
-      familyEducationLevel: profile.familyEducationLevel || 'bachelors',
+      familyEducationLevel: (profile.familyEducationLevel || 'bachelors') as 'no_college' | 'some_college' | 'bachelors' | 'graduate',
       householdIncome: undefined,
       isInternational: profile.isInternational || false,
       countryOfOrigin: profile.countryOfOrigin,
       primaryLanguage: profile.primaryLanguage,
-      immigrationStory: profile.immigrationStory,
-      geographicContext: profile.geographicContext || 'suburban',
-      schoolType: profile.schoolType || 'public',
-      familyResponsibilities: profile.familyResponsibilities || [],
+      immigrationStory: profile.immigrationStory as 'citizen' | 'visa' | 'undocumented' | 'prefer_not_say' | 'immigrant_self' | 'immigrant_parent' | undefined,
+      geographicContext: (profile.geographicContext || 'suburban') as 'rural' | 'suburban' | 'urban',
+      schoolType: (profile.schoolType || 'public') as 'public' | 'private' | 'charter' | 'magnet' | 'homeschool' | 'international',
+      familyResponsibilities: (profile.familyResponsibilities || []) as ('none' | 'caregiving' | 'work_to_support' | 'sibling_care' | 'translation')[],
     },
     academic: {
       intendedMajor: profile.intendedMajor || '',
@@ -114,7 +118,7 @@ export function studentProfileToIntake(
       workExperience: profile.workExperience?.map(w => ({
         job: w.job,
         hoursPerWeek: w.hoursPerWeek,
-        reasonForWorking: w.reasonForWorking as StudentIntake['activities']['workExperience'][0]['reasonForWorking'],
+        reasonForWorking: w.reasonForWorking as any,
       })),
       leadershipRoles: profile.leadershipRoles || [],
       summerExperiences: profile.summerExperiences,
@@ -139,17 +143,20 @@ export function studentProfileToIntake(
 // =============================================================================
 
 /**
- * Convert EssayAnalysisResult to format compatible with RAG AnalysisHistory
+ * Convert EssayAnalysisResult to format compatible with RAG AnalysisHistoryEntry
  */
 export function scoringResultToAnalysisHistory(
   result: EssayAnalysisResult,
   essayVersionId: string,
-  userId: string
+  userId: string,
+  schoolId?: string,
+  essayType?: string
 ): Omit<AnalysisHistory, 'id' | 'createdAt'> {
   return {
     essayVersionId,
     userId,
-    analysisType: 'scoring_engine',
+    schoolId,
+    essayType: essayType || 'personal_statement',
     overallScore: result.overallScore,
     dimensionScores: {
       authenticity: result.dimensions.authenticity.totalScore,
@@ -158,24 +165,13 @@ export function scoringResultToAnalysisHistory(
       specificity: result.dimensions.specificity.totalScore,
       risk: result.dimensions.risk.totalScore,
     },
-    issuesFound: result.topIssues.map(i => ({
-      type: i.dimension.toLowerCase(),
-      description: i.issue,
-      severity: 'medium',
-      location: undefined,
-    })),
+    issuesIdentified: result.topIssues.map(i => `${i.dimension}: ${i.issue}`),
     patternsMatched: [], // Would be filled from RAG retrieval
     ragContextUsed: {
-      exampleEssays: [],
-      feedbackPatterns: [],
-      schoolInsights: [],
+      exampleIds: [],
+      patternIds: [],
+      insightIds: [],
     },
-    sanitizationReport: {
-      trustScore: 100, // Scoring engine is deterministic
-      modificationsApplied: [],
-      originalResponse: result,
-    },
-    processingTimeMs: result.metadata.processingTimeMs,
   };
 }
 

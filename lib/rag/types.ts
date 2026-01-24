@@ -140,10 +140,11 @@ export interface StudentProfile {
   primaryLanguage?: string;
   culturalContext?: string; // e.g., "Indian immigrant family", "rural community"
   socioeconomicContext?: 'low-income' | 'middle-income' | 'high-income';
-  familyEducationLevel?: 'no_college' | 'some_college' | 'bachelors' | 'graduate';
+  familyEducationLevel?: 'no_college' | 'some_college' | 'bachelors' | 'graduate' | string;
   immigrationStatus?: 'citizen' | 'permanent_resident' | 'visa' | 'undocumented' | 'daca' | 'prefer_not_say';
-  geographicContext?: 'rural' | 'suburban' | 'urban';
-  schoolType?: 'public' | 'private' | 'charter' | 'magnet' | 'homeschool' | 'international';
+  immigrationStory?: string; // Prisma field alias for immigration context
+  geographicContext?: 'rural' | 'suburban' | 'urban' | string;
+  schoolType?: 'public' | 'private' | 'charter' | 'magnet' | 'homeschool' | 'international' | string;
   familyResponsibilities?: string[];
 
   // Additional Identity Contexts (for comprehensive cultural sensitivity)

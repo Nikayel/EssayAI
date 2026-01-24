@@ -97,7 +97,6 @@ async function scoreDepthOfReflection(
           endLine: i + 1,
           startChar,
           endChar,
-          sentenceIndex: i,
         });
         break;
       }
@@ -112,7 +111,6 @@ async function scoreDepthOfReflection(
           endLine: i + 1,
           startChar,
           endChar,
-          sentenceIndex: i,
         });
         break;
       }

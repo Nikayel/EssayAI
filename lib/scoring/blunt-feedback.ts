@@ -299,7 +299,7 @@ export function generateBluntFeedback(
 
   const template = specific
     ? categoryTemplates[specific as keyof typeof categoryTemplates]
-    : categoryTemplates.generic;
+    : 'generic' in categoryTemplates ? (categoryTemplates as any).generic : null;
 
   if (!template) return null;
 
@@ -460,10 +460,4 @@ function determineSeverity(issueType: string): BluntFeedback['severity'] {
   return 'minor';
 }
 
-// =============================================================================
-// EXPORTS
-// =============================================================================
-
-export {
-  BLUNT_TEMPLATES,
-};
+// BLUNT_TEMPLATES is already exported at definition

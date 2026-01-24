@@ -130,7 +130,7 @@ export function IntakeForm({
   // =============================================================================
 
   return (
-    <Card className="w-full max-w-2xl mx-auto">
+    <Card className="w-full max-w-2xl mx-4 sm:mx-auto">
       <CardHeader>
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-2 text-sm text-muted-foreground">

@@ -252,8 +252,11 @@ export function validateIntakeForTier(
   const missingFields: string[] = [];
 
   // Preview and Quick tier require minimal fields
-  if (!intake.targetSchool) missingFields.push('targetSchool');
-  if (!intake.essayType) missingFields.push('essayType');
+  // Check both direct fields (QuickIntake) and nested fields (FullIntake)
+  const targetSchool = (intake as any).targetSchool || (intake as any).essayContext?.targetSchool;
+  const essayType = (intake as any).essayType || (intake as any).essayContext?.essayType;
+  if (!targetSchool) missingFields.push('targetSchool');
+  if (!essayType) missingFields.push('essayType');
 
   // Standard and Premium require full intake
   if (tier !== 'preview' && tier !== 'quick') {

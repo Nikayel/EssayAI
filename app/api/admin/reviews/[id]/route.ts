@@ -5,10 +5,10 @@ import { z } from 'zod';
 
 type Params = Promise<{ id: string }>;
 
-// Input validation schema
+// Input validation schema - must match Prisma ReviewStatus enum
 const ReviewUpdateSchema = z.object({
   summaryText: z.string().max(10000).optional(),
-  status: z.enum(['PENDING', 'IN_PROGRESS', 'COMPLETED', 'REVISION_NEEDED']).optional(),
+  status: z.enum(['ASSIGNED', 'IN_PROGRESS', 'DELIVERED', 'REVISION_REQUESTED']).optional(),
   reviewerId: z.string().optional(),
 });
 

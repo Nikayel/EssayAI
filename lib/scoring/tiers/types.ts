@@ -276,7 +276,7 @@ export interface PersonalizedTip {
 // OUTPUT TYPES - PREMIUM TIER ($249)
 // =============================================================================
 
-export interface PremiumAnalysisResult extends StandardAnalysisResult {
+export interface PremiumAnalysisResult extends Omit<StandardAnalysisResult, 'tier'> {
   tier: 'premium';
 
   // AI-generated rewrite suggestions for worst issues
