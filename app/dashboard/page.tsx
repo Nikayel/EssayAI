@@ -24,6 +24,13 @@ import {
   GraduationCap,
 } from 'lucide-react';
 import { ReferralCard } from '@/components/referral/referral-card';
+import {
+  getEssayStatusConfig,
+  getAnalysisSessionStatus,
+  getTierDisplayName,
+  getResultsUrl,
+  ESSAY_STATUS_CONFIG,
+} from '@/lib/utils/status';
 
 async function getEssays(userId: string) {
   return await prisma.essay.findMany({
@@ -52,30 +59,29 @@ async function getEssays(userId: string) {
   });
 }
 
-function getEssayStatus(essay: any) {
+/**
+ * Derive essay status from essay data using shared status config
+ * Returns config with `variant` alias for Badge component compatibility
+ */
+function deriveEssayStatus(essay: any) {
   const latestVersion = essay.versions[0];
   const latestOrder = essay.orders[0];
   const latestReview = latestVersion?.reviews[0];
 
+  const mapConfig = (status: string, config: ReturnType<typeof getEssayStatusConfig>) => ({
+    status,
+    ...config,
+    variant: config.badgeVariant, // Alias for Badge component
+  });
+
   // Check payment status
   if (!latestOrder || latestOrder.status !== 'PAID') {
-    return {
-      status: 'PAYMENT_PENDING',
-      label: 'Payment Required',
-      icon: Clock,
-      variant: 'warning' as const,
-    };
+    return mapConfig('PAYMENT_PENDING', getEssayStatusConfig('PAYMENT_PENDING'));
   }
 
   // Check if AI analysis is complete
   if (!latestVersion?.analyses[0]) {
-    return {
-      status: 'AI_ANALYZING',
-      label: 'AI Analyzing...',
-      icon: Loader2,
-      variant: 'info' as const,
-      animate: true,
-    };
+    return mapConfig('AI_ANALYZING', getEssayStatusConfig('AI_ANALYZING'));
   }
 
   // Check if human review is needed
@@ -83,106 +89,26 @@ function getEssayStatus(essay: any) {
 
   if (needsHumanReview) {
     if (!latestReview) {
-      return {
-        status: 'AWAITING_ASSIGNMENT',
-        label: 'Awaiting Reviewer',
-        icon: Clock,
-        variant: 'default' as const,
-      };
+      return mapConfig('AWAITING_ASSIGNMENT', getEssayStatusConfig('AWAITING_ASSIGNMENT'));
     }
-
     if (latestReview.status === 'ASSIGNED' || latestReview.status === 'IN_PROGRESS') {
-      return {
-        status: 'IN_HUMAN_REVIEW',
-        label: 'Under Review',
-        icon: Loader2,
-        variant: 'default' as const,
-        animate: true,
-      };
+      return mapConfig('IN_HUMAN_REVIEW', getEssayStatusConfig('IN_HUMAN_REVIEW'));
     }
-
     if (latestReview.status === 'DELIVERED') {
-      return {
-        status: 'REVIEW_COMPLETE',
-        label: 'Complete',
-        icon: CheckCircle2,
-        variant: 'success' as const,
-      };
+      return mapConfig('REVIEW_COMPLETE', getEssayStatusConfig('REVIEW_COMPLETE'));
     }
   }
 
   // AI-only packages - complete once analysis is done
-  return {
-    status: 'AI_COMPLETE',
-    label: 'Complete',
-    icon: CheckCircle2,
-    variant: 'success' as const,
-  };
+  return mapConfig('AI_COMPLETE', getEssayStatusConfig('AI_COMPLETE'));
 }
 
 async function getAnalysisSessions(userId: string) {
   return await prisma.analysisSession.findMany({
     where: { userId },
     orderBy: { createdAt: 'desc' },
-    take: 10, // Show last 10 sessions
+    take: 10,
   });
-}
-
-function getSessionStatusInfo(status: string, tier: string) {
-  switch (status) {
-    case 'PENDING':
-      return {
-        label: 'Payment Pending',
-        icon: Clock,
-        variant: 'warning' as const,
-      };
-    case 'ANALYZING':
-      return {
-        label: 'Analyzing...',
-        icon: Loader2,
-        variant: 'info' as const,
-        animate: true,
-      };
-    case 'AI_COMPLETE':
-    case 'COMPLETED':
-      return {
-        label: 'Complete',
-        icon: CheckCircle2,
-        variant: 'success' as const,
-      };
-    case 'HUMAN_QUEUED':
-    case 'HUMAN_IN_PROGRESS':
-      return {
-        label: 'Expert Review',
-        icon: Loader2,
-        variant: 'default' as const,
-        animate: true,
-      };
-    case 'FAILED':
-      return {
-        label: 'Failed',
-        icon: Clock,
-        variant: 'destructive' as const,
-      };
-    default:
-      return {
-        label: status,
-        icon: Clock,
-        variant: 'default' as const,
-      };
-  }
-}
-
-function getTierDisplayName(tier: string) {
-  const tierNames: Record<string, string> = {
-    quick: 'Quick Score',
-    standard: 'Full Analysis',
-    premium: 'Premium + Expert',
-    ivy_single: 'Ivy Single',
-    ivy_bundle_3: 'Ivy 3-Pack',
-    ivy_bundle_8: 'Ivy Complete',
-  };
-  return tierNames[tier] || tier;
 }
 
 async function getQASessions(userId: string) {
@@ -358,12 +284,9 @@ export default async function DashboardPage() {
             </div>
             <div className="grid gap-4">
               {analysisSessions.map((session) => {
-                const statusInfo = getSessionStatusInfo(session.status, session.tier);
+                const statusInfo = getAnalysisSessionStatus(session.status);
                 const StatusIcon = statusInfo.icon;
-                const isIvyTier = session.tier.startsWith('ivy_');
-                const resultsUrl = isIvyTier
-                  ? `/ivy/results/${session.id}`
-                  : `/analysis/${session.id}`;
+                const resultsUrl = getResultsUrl(session.id, session.tier);
 
                 return (
                   <Card key={session.id} variant="interactive">
@@ -386,7 +309,7 @@ export default async function DashboardPage() {
                             {new Date(session.createdAt).toLocaleDateString()}
                           </CardDescription>
                         </div>
-                        <Badge variant={statusInfo.variant}>
+                        <Badge variant={statusInfo.badgeVariant}>
                           <StatusIcon
                             className={`w-3 h-3 ${statusInfo.animate ? 'animate-spin' : ''}`}
                           />
@@ -514,7 +437,7 @@ export default async function DashboardPage() {
         ) : (
           <div className="space-y-4">
             {essays.map((essay) => {
-              const status = getEssayStatus(essay);
+              const status = deriveEssayStatus(essay);
               const StatusIcon = status.icon;
               const latestVersion = essay.versions[0];
               const latestAnalysis = latestVersion?.analyses[0];

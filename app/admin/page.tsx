@@ -2,9 +2,16 @@ import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
 import { prisma } from '@/lib/prisma';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
-import { Clock, CheckCircle2, AlertCircle } from 'lucide-react';
+import { Clock, CheckCircle2, AlertCircle, Loader2, Users, Sparkles, ArrowRight } from 'lucide-react';
+import {
+  getAnalysisSessionStatus,
+  getReviewStatus,
+  getTierDisplayName,
+  getResultsUrl,
+} from '@/lib/utils/status';
 
 async function getReviews() {
   return await prisma.review.findMany({
@@ -49,6 +56,40 @@ async function getReviews() {
   });
 }
 
+/**
+ * Get analysis sessions for admin overview
+ * Focuses on sessions needing attention: human review queue, failed, stuck
+ */
+async function getAnalysisSessions() {
+  return await prisma.analysisSession.findMany({
+    where: {
+      status: {
+        in: ['HUMAN_QUEUED', 'HUMAN_IN_PROGRESS', 'FAILED', 'ANALYZING'],
+      },
+    },
+    orderBy: {
+      createdAt: 'asc', // Oldest first for queue
+    },
+    take: 50,
+  });
+}
+
+/**
+ * Get summary stats for all analysis sessions
+ */
+async function getAnalysisStats() {
+  const [pending, analyzing, humanQueued, humanInProgress, completed, failed] = await Promise.all([
+    prisma.analysisSession.count({ where: { status: 'PENDING' } }),
+    prisma.analysisSession.count({ where: { status: 'ANALYZING' } }),
+    prisma.analysisSession.count({ where: { status: 'HUMAN_QUEUED' } }),
+    prisma.analysisSession.count({ where: { status: 'HUMAN_IN_PROGRESS' } }),
+    prisma.analysisSession.count({ where: { status: { in: ['COMPLETED', 'AI_COMPLETE'] } } }),
+    prisma.analysisSession.count({ where: { status: 'FAILED' } }),
+  ]);
+
+  return { pending, analyzing, humanQueued, humanInProgress, completed, failed };
+}
+
 export default async function AdminDashboard() {
   const supabase = await createClient();
   const { data: { user }, error } = await supabase.auth.getUser();
@@ -66,9 +107,13 @@ export default async function AdminDashboard() {
     redirect('/dashboard');
   }
 
-  const reviews = await getReviews();
+  const [reviews, analysisSessions, analysisStats] = await Promise.all([
+    getReviews(),
+    getAnalysisSessions(),
+    getAnalysisStats(),
+  ]);
 
-  const stats = {
+  const reviewStats = {
     assigned: reviews.filter(r => r.status === 'ASSIGNED').length,
     inProgress: reviews.filter(r => r.status === 'IN_PROGRESS').length,
     overdue: reviews.filter(r => new Date(r.dueAt) < new Date()).length,
@@ -79,7 +124,7 @@ export default async function AdminDashboard() {
       <header className="bg-white dark:bg-neutral-800 border-b border-neutral-200 dark:border-neutral-700">
         <div className="container mx-auto px-4 py-4 flex justify-between items-center">
           <h1 className="text-2xl font-bold text-neutral-900 dark:text-neutral-100">Admin Panel</h1>
-          <div className="flex gap-4">
+          <div className="flex gap-4 flex-wrap">
             <Link href="/admin/users">
               <Button variant="ghost">Users</Button>
             </Link>
@@ -106,39 +151,152 @@ export default async function AdminDashboard() {
       </header>
 
       <main className="container mx-auto px-4 py-8">
-        <h2 className="text-3xl font-bold mb-6 text-neutral-900 dark:text-neutral-100">Review Queue</h2>
+        {/* Analysis Sessions Stats (New Tiered Flow) */}
+        <div className="mb-10">
+          <div className="flex items-center gap-2 mb-4">
+            <Sparkles className="w-5 h-5 text-brand-600" />
+            <h2 className="text-2xl font-bold text-neutral-900 dark:text-neutral-100">Analysis Sessions</h2>
+          </div>
+          <div className="grid grid-cols-2 md:grid-cols-6 gap-4 mb-6">
+            <Card>
+              <CardHeader className="pb-2">
+                <CardDescription>Pending Payment</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold text-neutral-600">{analysisStats.pending}</div>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader className="pb-2">
+                <CardDescription>AI Analyzing</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold text-blue-600">{analysisStats.analyzing}</div>
+              </CardContent>
+            </Card>
+            <Card className={analysisStats.humanQueued > 0 ? 'border-2 border-warning-500' : ''}>
+              <CardHeader className="pb-2">
+                <CardDescription>Expert Queue</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold text-warning-600">{analysisStats.humanQueued}</div>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader className="pb-2">
+                <CardDescription>Expert Review</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold text-purple-600">{analysisStats.humanInProgress}</div>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader className="pb-2">
+                <CardDescription>Completed</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold text-success-600">{analysisStats.completed}</div>
+              </CardContent>
+            </Card>
+            <Card className={analysisStats.failed > 0 ? 'border-2 border-error-500' : ''}>
+              <CardHeader className="pb-2">
+                <CardDescription>Failed</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold text-error-600">{analysisStats.failed}</div>
+              </CardContent>
+            </Card>
+          </div>
 
-        {/* Stats */}
-        <div className="grid md:grid-cols-3 gap-4 mb-8">
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-warning-600">Assigned</CardTitle>
-              <CardDescription>Awaiting review</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="text-4xl font-bold">{stats.assigned}</div>
-            </CardContent>
-          </Card>
+          {/* Analysis Sessions Needing Attention */}
+          {analysisSessions.length > 0 && (
+            <div className="space-y-3">
+              <h3 className="text-lg font-semibold text-neutral-800 dark:text-neutral-200">
+                Needs Attention ({analysisSessions.length})
+              </h3>
+              {analysisSessions.slice(0, 10).map((session) => {
+                const statusInfo = getAnalysisSessionStatus(session.status);
+                const StatusIcon = statusInfo.icon;
+                const userName = session.userEmail?.split('@')[0] || 'Guest';
 
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-brand-600">In Progress</CardTitle>
-              <CardDescription>Being reviewed</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="text-4xl font-bold">{stats.inProgress}</div>
-            </CardContent>
-          </Card>
+                return (
+                  <Card key={session.id} className="border-l-4 border-l-brand-500">
+                    <CardContent className="py-4">
+                      <div className="flex justify-between items-center">
+                        <div className="flex items-center gap-4">
+                          <Badge variant={statusInfo.badgeVariant}>
+                            <StatusIcon className={`w-3 h-3 ${statusInfo.animate ? 'animate-spin' : ''}`} />
+                            {statusInfo.label}
+                          </Badge>
+                          <div>
+                            <span className="font-medium">{getTierDisplayName(session.tier)}</span>
+                            {session.targetSchool && (
+                              <span className="text-neutral-500 ml-2">· {session.targetSchool}</span>
+                            )}
+                          </div>
+                          <span className="text-sm text-neutral-500">{userName}</span>
+                          {session.aiScore !== null && (
+                            <span className="text-sm font-medium text-brand-600">
+                              {Math.round(session.aiScore)}/100
+                            </span>
+                          )}
+                        </div>
+                        <div className="flex items-center gap-3">
+                          <span className="text-xs text-neutral-400">
+                            {new Date(session.createdAt).toLocaleDateString()}
+                          </span>
+                          <Link href={getResultsUrl(session.id, session.tier)}>
+                            <Button variant="outline" size="sm">
+                              View
+                              <ArrowRight className="w-3 h-3" />
+                            </Button>
+                          </Link>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                );
+              })}
+            </div>
+          )}
+        </div>
 
-          <Card className="border-2 border-error-500">
-            <CardHeader>
-              <CardTitle className="text-error-600">Overdue</CardTitle>
-              <CardDescription>Past SLA deadline</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="text-4xl font-bold">{stats.overdue}</div>
-            </CardContent>
-          </Card>
+        {/* Legacy Review Queue */}
+        <div className="mb-10">
+          <div className="flex items-center gap-2 mb-4">
+            <Users className="w-5 h-5 text-purple-600" />
+            <h2 className="text-2xl font-bold text-neutral-900 dark:text-neutral-100">Legacy Review Queue</h2>
+          </div>
+
+          {/* Stats */}
+          <div className="grid md:grid-cols-3 gap-4 mb-6">
+            <Card>
+              <CardHeader className="pb-2">
+                <CardDescription>Assigned</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold text-warning-600">{reviewStats.assigned}</div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader className="pb-2">
+                <CardDescription>In Progress</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold text-brand-600">{reviewStats.inProgress}</div>
+              </CardContent>
+            </Card>
+
+            <Card className={reviewStats.overdue > 0 ? 'border-2 border-error-500' : ''}>
+              <CardHeader className="pb-2">
+                <CardDescription>Overdue</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold text-error-600">{reviewStats.overdue}</div>
+              </CardContent>
+            </Card>
+          </div>
         </div>
 
         {/* Reviews List */}
