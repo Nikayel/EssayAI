@@ -1,13 +1,15 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useParams } from 'next/navigation';
+import { useParams, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { IvyAnalysisDisplay } from '@/components/ivy/ivy-analysis-display';
+import { PostPurchaseUpsell } from '@/components/ivy/post-purchase-upsell';
 import type { IvyAnalysisResult } from '@/lib/scoring/tiers/ivy-analysis';
+import type { AllTiers } from '@/lib/pricing';
 import {
   PenTool,
   ArrowLeft,
@@ -15,6 +17,7 @@ import {
   AlertCircle,
   Download,
   Share2,
+  CheckCircle2,
 } from 'lucide-react';
 
 type SessionStatus = 'loading' | 'analyzing' | 'complete' | 'error';
@@ -28,12 +31,33 @@ interface AnalysisProgress {
 
 export default function IvyResultsPage() {
   const params = useParams();
+  const searchParams = useSearchParams();
   const sessionId = params.sessionId as string;
 
   const [status, setStatus] = useState<SessionStatus>('loading');
   const [result, setResult] = useState<IvyAnalysisResult | null>(null);
   const [progress, setProgress] = useState<AnalysisProgress | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [currentTier, setCurrentTier] = useState<AllTiers>('quick');
+  const [showUpsell, setShowUpsell] = useState(false);
+  const [justPaid, setJustPaid] = useState(false);
+
+  // Check for payment/upgrade success
+  useEffect(() => {
+    const paymentStatus = searchParams.get('payment');
+    const upgradeStatus = searchParams.get('upgrade');
+    const newTier = searchParams.get('tier');
+
+    if (paymentStatus === 'success' || upgradeStatus === 'success') {
+      setJustPaid(true);
+      setShowUpsell(true);
+      if (newTier && ['quick', 'standard', 'premium', 'ivy_single', 'ivy_bundle_3', 'ivy_bundle_8'].includes(newTier)) {
+        setCurrentTier(newTier as AllTiers);
+      }
+      // Auto-hide success banner after 5 seconds
+      setTimeout(() => setJustPaid(false), 5000);
+    }
+  }, [searchParams]);
 
   useEffect(() => {
     let pollInterval: NodeJS.Timeout;
@@ -52,6 +76,10 @@ export default function IvyResultsPage() {
         if (data.status === 'COMPLETE' && data.result) {
           setResult(data.result);
           setStatus('complete');
+          // Set tier from session data
+          if (data.tier) {
+            setCurrentTier(data.tier as AllTiers);
+          }
           if (pollInterval) clearInterval(pollInterval);
         } else if (data.status === 'ANALYZING') {
           setStatus('analyzing');
@@ -202,6 +230,31 @@ export default function IvyResultsPage() {
         {/* Results */}
         {status === 'complete' && result && (
           <div className="space-y-6">
+            {/* Payment Success Banner */}
+            {justPaid && (
+              <Card className="border-green-200 bg-green-50">
+                <CardContent className="py-4">
+                  <div className="flex items-center gap-3">
+                    <CheckCircle2 className="w-5 h-5 text-green-600" />
+                    <div>
+                      <p className="font-medium text-green-800">Payment successful!</p>
+                      <p className="text-sm text-green-600">Your full analysis is now unlocked.</p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Post-Purchase Upsell */}
+            {showUpsell && currentTier !== 'ivy_bundle_8' && (
+              <PostPurchaseUpsell
+                currentTier={currentTier}
+                sessionId={sessionId}
+                onDismiss={() => setShowUpsell(false)}
+                onUpgrade={(tier) => setCurrentTier(tier)}
+              />
+            )}
+
             {/* Actions Bar */}
             <div className="flex justify-between items-center">
               <div>

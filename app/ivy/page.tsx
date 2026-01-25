@@ -13,6 +13,12 @@ import { IntakeForm } from '@/components/intake/intake-form';
 import type { StudentIntake } from '@/lib/scoring';
 import { cn } from '@/lib/utils/cn';
 import {
+  TIER_CONFIG,
+  formatPrice,
+  type AllTiers,
+  type IvyTier,
+} from '@/lib/pricing';
+import {
   PenTool,
   ArrowRight,
   ArrowLeft,
@@ -28,6 +34,8 @@ import {
   Lock,
   Eye,
   Star,
+  TrendingUp,
+  Gift,
 } from 'lucide-react';
 
 type Step = 'school' | 'intake' | 'essays' | 'analyzing' | 'results';
@@ -110,7 +118,7 @@ export default function IvyAnalysisPage() {
   };
 
   // Handle payment/unlock
-  const handleUnlock = async (tier: 'quick' | 'standard' | 'ivy_single') => {
+  const handleUnlock = async (tier: AllTiers) => {
     try {
       const response = await fetch('/api/tiered-analysis/checkout', {
         method: 'POST',
@@ -137,6 +145,11 @@ export default function IvyAnalysisPage() {
       console.error('Checkout error:', err);
     }
   };
+
+  // Pricing config for Ivy page
+  const quickTier = TIER_CONFIG.quick;
+  const ivySingleTier = TIER_CONFIG.ivy_single;
+  const ivyBundle3Tier = TIER_CONFIG.ivy_bundle_3;
 
   const canProceedToIntake = selectedSchool !== null;
   const canProceedToAnalysis = essays.length > 0 && essays.every(e => e.content.trim().length > 50);
@@ -450,37 +463,53 @@ export default function IvyAnalysisPage() {
                     See exactly what AOs will think, line-by-line feedback, and how to fix each issue.
                   </p>
 
-                  {/* Pricing Options */}
-                  <div className="space-y-3">
+                  {/* Pricing Options - Value Ladder */}
+                  <div className="space-y-4">
+                    {/* Entry: Quick Feedback */}
                     <Button
                       size="lg"
                       className="w-full"
                       onClick={() => handleUnlock('quick')}
                     >
                       <Eye className="w-4 h-4" />
-                      Unlock for $9.99
+                      Unlock Quick Feedback - {formatPrice(quickTier.priceInCents)}
                     </Button>
 
-                    <p className="text-xs text-neutral-500">
-                      Or upgrade for more features:
-                    </p>
-
-                    <div className="grid grid-cols-2 gap-2">
+                    {/* Upsell: Ivy Single */}
+                    <div className="relative">
+                      <div className="absolute -top-2 left-1/2 -translate-x-1/2 z-10">
+                        <Badge variant="premium" size="sm">
+                          <TrendingUp className="w-3 h-3" />
+                          Most Value
+                        </Badge>
+                      </div>
                       <Button
                         variant="outline"
-                        size="sm"
-                        onClick={() => handleUnlock('standard')}
-                      >
-                        Full Analysis - $79
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
+                        size="lg"
+                        className="w-full border-amber-300 bg-amber-50/50 hover:bg-amber-100/50 pt-4"
                         onClick={() => handleUnlock('ivy_single')}
                       >
-                        Ivy Deep Dive - $39
+                        <div className="flex flex-col items-center gap-1">
+                          <span className="font-semibold">
+                            {ivySingleTier.name} - {formatPrice(ivySingleTier.priceInCents)}
+                          </span>
+                          <span className="text-xs text-neutral-500">
+                            School-specific AO feedback + portfolio analysis
+                          </span>
+                        </div>
                       </Button>
                     </div>
+
+                    {/* Bundle Option */}
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="w-full text-neutral-600"
+                      onClick={() => handleUnlock('ivy_bundle_3')}
+                    >
+                      <Gift className="w-4 h-4" />
+                      Applying to 3+ schools? Save {formatPrice(ivyBundle3Tier.savingsVsIndividual || 0)} with bundle - {formatPrice(ivyBundle3Tier.priceInCents)}
+                    </Button>
                   </div>
                 </div>
               </div>
@@ -557,10 +586,21 @@ export default function IvyAnalysisPage() {
                 </div>
               </CardContent>
               <CardFooter className="flex-col gap-4 border-t pt-6">
-                <Button size="lg" className="w-full" onClick={() => handleUnlock('quick')}>
-                  <Eye className="w-4 h-4" />
-                  Unlock Full Analysis - $9.99
-                </Button>
+                <div className="w-full space-y-3">
+                  <Button size="lg" className="w-full" onClick={() => handleUnlock('quick')}>
+                    <Eye className="w-4 h-4" />
+                    Quick Feedback - {formatPrice(quickTier.priceInCents)}
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="lg"
+                    className="w-full border-amber-300 bg-amber-50/30"
+                    onClick={() => handleUnlock('ivy_single')}
+                  >
+                    <TrendingUp className="w-4 h-4 text-amber-600" />
+                    Full Ivy Analysis - {formatPrice(ivySingleTier.priceInCents)}
+                  </Button>
+                </div>
                 <p className="text-xs text-neutral-500 text-center">
                   Secure payment via Stripe. 100% money-back guarantee if not satisfied.
                 </p>
