@@ -33,16 +33,16 @@ function getDaysUntil(date: Date): number {
 }
 
 export function DeadlineUrgency() {
-  const [deadline, setDeadline] = useState<typeof IVY_DEADLINES[0] | null>(null);
-  const [days, setDays] = useState<number>(0);
-
-  useEffect(() => {
+  // Compute deadline info on mount - this is a static computation
+  const [deadlineInfo] = useState(() => {
     const next = getNextDeadline();
     if (next) {
-      setDeadline(next);
-      setDays(getDaysUntil(next.date));
+      return { deadline: next, days: getDaysUntil(next.date) };
     }
-  }, []);
+    return { deadline: null, days: 0 };
+  });
+
+  const { deadline, days } = deadlineInfo;
 
   // Don't show if no upcoming deadline or too far away
   if (!deadline || days > 60) return null;

@@ -6,13 +6,14 @@ import { createClient } from '@/lib/supabase/client';
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import type { AuthChangeEvent, Session } from '@supabase/supabase-js';
 
 export default function LoginPage() {
   const router = useRouter();
   const [supabase] = useState(() => createClient());
 
   useEffect(() => {
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event: AuthChangeEvent, session: Session | null) => {
       if (event === 'SIGNED_IN' && session) {
         // Check if user has completed onboarding
         try {

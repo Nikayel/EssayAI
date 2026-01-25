@@ -455,19 +455,27 @@ export default async function AdminDashboard() {
 
         {/* Reviews List */}
         <div className="space-y-4">
-          {reviews.length === 0 ? (
-            <Card>
-              <CardContent className="py-12 text-center">
-                <CheckCircle2 className="w-12 h-12 mx-auto text-success-600 mb-4" />
-                <h3 className="text-xl font-semibold">All caught up!</h3>
-                <p className="text-neutral-600 dark:text-neutral-400 mt-2">No pending reviews at this time</p>
-              </CardContent>
-            </Card>
-          ) : (
-            reviews.map((review) => {
-              const isOverdue = new Date(review.dueAt) < new Date();
+          {(() => {
+            // Compute current time once outside the render loop for pure rendering
+            const now = Date.now();
+            const currentDate = new Date(now);
+
+            if (reviews.length === 0) {
+              return (
+                <Card>
+                  <CardContent className="py-12 text-center">
+                    <CheckCircle2 className="w-12 h-12 mx-auto text-success-600 mb-4" />
+                    <h3 className="text-xl font-semibold">All caught up!</h3>
+                    <p className="text-neutral-600 dark:text-neutral-400 mt-2">No pending reviews at this time</p>
+                  </CardContent>
+                </Card>
+              );
+            }
+
+            return reviews.map((review) => {
+              const isOverdue = new Date(review.dueAt) < currentDate;
               const hoursUntilDue = Math.round(
-                (new Date(review.dueAt).getTime() - Date.now()) / (1000 * 60 * 60)
+                (new Date(review.dueAt).getTime() - now) / (1000 * 60 * 60)
               );
               const wordCount = review.version.content.split(/\s+/).length;
               const aiAnalysis = review.version.analyses[0];
@@ -584,8 +592,8 @@ export default async function AdminDashboard() {
                   </CardContent>
                 </Card>
               );
-            })
-          )}
+            });
+          })()}
         </div>
       </main>
     </div>
