@@ -92,8 +92,8 @@ export default function Home() {
             </h1>
 
             <p className="text-lg md:text-xl text-neutral-600 mb-6 max-w-2xl mx-auto leading-relaxed">
-              AI analysis trained on successful admits + expert reviewers who've read 10,000+ essays.
-              See exactly what's missing and how to fix it.
+              AI that knows YOUR story - your spike, your activities, your background.
+              Not generic advice. Feedback that actually helps you stand out.
             </p>
 
             {/* Trust badges */}
@@ -215,27 +215,27 @@ export default function Home() {
               {[
                 {
                   step: 1,
-                  title: 'Upload Your Essay',
-                  desc: 'Paste your draft, select essay type, and add your prompt',
-                  icon: PenTool,
+                  title: 'Tell Us Your Story',
+                  desc: 'Share your spike, top activities, and target school. Takes 30 seconds.',
+                  icon: Users,
                 },
                 {
                   step: 2,
-                  title: 'Get AI Analysis',
-                  desc: 'Receive detailed scores, flags, and targeted improvement suggestions',
-                  icon: Sparkles,
+                  title: 'Upload Your Essay',
+                  desc: 'Paste your draft. We analyze it against YOUR narrative, not generic advice.',
+                  icon: PenTool,
                 },
                 {
                   step: 3,
-                  title: 'Apply & Iterate',
-                  desc: 'Review suggestions, make edits, track progress across versions',
-                  icon: BarChart3,
+                  title: 'Get Personalized Feedback',
+                  desc: '"Your spike is X but your essay doesn\'t mention it" - feedback that actually helps.',
+                  icon: Sparkles,
                 },
                 {
                   step: 4,
-                  title: 'Add Human Review',
-                  desc: 'Get professional editor feedback with comments and coaching',
-                  icon: MessageSquare,
+                  title: 'Upgrade for More Depth',
+                  desc: 'Get line-by-line fixes, school-specific AO feedback, or human expert review.',
+                  icon: BarChart3,
                 },
               ].map((item) => (
                 <div key={item.step} className="flex gap-5 p-6 rounded-2xl bg-white border border-neutral-200/60 shadow-sm hover:shadow-md transition-shadow">
