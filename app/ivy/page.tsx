@@ -1,14 +1,16 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Progress } from '@/components/ui/progress';
 import { IvySchoolSelector, IVY_SCHOOLS } from '@/components/ivy/school-selector';
 import { IvyPortfolioUpload } from '@/components/ivy/portfolio-upload';
-import { PRICING, PACKAGE_INFO } from '@/lib/stripe/config';
+import { IntakeForm } from '@/components/intake/intake-form';
+import type { StudentIntake } from '@/lib/scoring';
 import { cn } from '@/lib/utils/cn';
 import {
   PenTool,
@@ -22,159 +24,132 @@ import {
   Zap,
   Users,
   ChevronRight,
+  Loader2,
+  Lock,
+  Eye,
+  Star,
 } from 'lucide-react';
 
-type IvyTier = 'ivy_single' | 'ivy_bundle_3' | 'ivy_bundle_8';
+type Step = 'school' | 'intake' | 'essays' | 'analyzing' | 'results';
 
-interface TierOption {
-  id: IvyTier;
-  name: string;
-  price: number;
-  schoolsIncluded: number;
-  description: string;
-  features: string[];
-  popular?: boolean;
-  bestValue?: boolean;
-}
+const STEP_LABELS: Record<Step, string> = {
+  school: 'Choose School',
+  intake: 'About You',
+  essays: 'Your Essays',
+  analyzing: 'Analyzing',
+  results: 'Results',
+};
 
-const TIER_OPTIONS: TierOption[] = [
-  {
-    id: 'ivy_single',
-    name: 'Single School',
-    price: PRICING.IVY_SINGLE,
-    schoolsIncluded: 1,
-    description: 'Complete analysis for ONE Ivy League school',
-    features: [
-      'ALL essays for this school analyzed',
-      'School-specific AO perspective',
-      'Portfolio coherence analysis',
-      'Resume-essay detection',
-      '"So What?" test on each essay',
-      'Instant reject signal detection',
-    ],
-  },
-  {
-    id: 'ivy_bundle_3',
-    name: '3-School Bundle',
-    price: PRICING.IVY_BUNDLE_3,
-    schoolsIncluded: 3,
-    description: 'Complete analysis for THREE Ivy League schools',
-    features: [
-      'Everything in Single School x3',
-      'Cross-school narrative consistency',
-      'Strategic differentiation tips',
-      'Portfolio comparison across schools',
-      'Save $38 vs buying individually',
-    ],
-    popular: true,
-  },
-  {
-    id: 'ivy_bundle_8',
-    name: 'Complete Ivy',
-    price: PRICING.IVY_BUNDLE_8,
-    schoolsIncluded: 8,
-    description: 'All 8 Ivy League schools covered',
-    features: [
-      'Everything for ALL 8 schools',
-      'Master narrative tracking',
-      'Full cross-school analysis',
-      'Best value for serious applicants',
-      'Save $163 vs buying individually',
-    ],
-    bestValue: true,
-  },
-];
-
-type Step = 'tier' | 'schools' | 'essays' | 'review';
-
-export default function IvyTierSelectorPage() {
+export default function IvyAnalysisPage() {
   const router = useRouter();
-  const [step, setStep] = useState<Step>('tier');
-  const [selectedTier, setSelectedTier] = useState<IvyTier | null>(null);
-  const [selectedSchools, setSelectedSchools] = useState<string[]>([]);
-  const [essaysBySchool, setEssaysBySchool] = useState<Record<string, { promptId: string; content: string }[]>>({});
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [step, setStep] = useState<Step>('school');
+  const [selectedSchool, setSelectedSchool] = useState<string | null>(null);
+  const [intake, setIntake] = useState<StudentIntake | null>(null);
+  const [essays, setEssays] = useState<{ promptId: string; content: string }[]>([]);
+  const [analysisResult, setAnalysisResult] = useState<any>(null);
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  const currentTier = TIER_OPTIONS.find(t => t.id === selectedTier);
+  const selectedSchoolInfo = IVY_SCHOOLS.find(s => s.id === selectedSchool);
 
-  const formatPrice = (cents: number) => `$${(cents / 100).toFixed(0)}`;
-
-  const canProceedToSchools = selectedTier !== null;
-  const canProceedToEssays = selectedSchools.length === (currentTier?.schoolsIncluded || 0);
-  const canProceedToReview = Object.keys(essaysBySchool).length === selectedSchools.length &&
-    Object.values(essaysBySchool).every(essays => essays.length > 0);
-
-  const handleTierSelect = (tierId: IvyTier) => {
-    setSelectedTier(tierId);
-    // Reset schools if changing tier
-    if (tierId === 'ivy_bundle_8') {
-      setSelectedSchools(IVY_SCHOOLS.map(s => s.id));
-    } else {
-      setSelectedSchools([]);
-    }
-    setEssaysBySchool({});
+  // Handle school selection
+  const handleSchoolSelect = (schoolId: string) => {
+    setSelectedSchool(schoolId);
   };
 
-  const handleSchoolsChange = (schools: string[]) => {
-    const tier = TIER_OPTIONS.find(t => t.id === selectedTier);
-    if (tier && schools.length <= tier.schoolsIncluded) {
-      setSelectedSchools(schools);
-      // Remove essays for unselected schools
-      const newEssaysBySchool = { ...essaysBySchool };
-      Object.keys(newEssaysBySchool).forEach(schoolId => {
-        if (!schools.includes(schoolId)) {
-          delete newEssaysBySchool[schoolId];
-        }
+  // Handle intake completion
+  const handleIntakeComplete = (data: StudentIntake) => {
+    setIntake(data);
+    setStep('essays');
+  };
+
+  // Handle essays update
+  const handleEssaysUpdate = useCallback((schoolId: string, newEssays: { promptId: string; content: string }[]) => {
+    setEssays(newEssays);
+  }, []);
+
+  // Run analysis (FREE - then blur results)
+  const runAnalysis = async () => {
+    if (!selectedSchool || !intake || essays.length === 0) return;
+
+    setStep('analyzing');
+    setIsAnalyzing(true);
+    setError(null);
+
+    try {
+      const response = await fetch('/api/ivy/analyze', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          schoolId: selectedSchool,
+          essays: essays.map(e => ({
+            promptId: e.promptId,
+            essayText: e.content,
+          })),
+          intake,
+          // No payment - this is the free analysis
+          tier: 'preview',
+        }),
       });
-      setEssaysBySchool(newEssaysBySchool);
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Analysis failed');
+      }
+
+      setAnalysisResult(data.result);
+      setStep('results');
+    } catch (err) {
+      console.error('Analysis error:', err);
+      setError(err instanceof Error ? err.message : 'Analysis failed');
+      setStep('essays'); // Go back to essays step
+    } finally {
+      setIsAnalyzing(false);
     }
   };
 
-  const handleEssaysUpdate = (schoolId: string, essays: { promptId: string; content: string }[]) => {
-    setEssaysBySchool(prev => ({
-      ...prev,
-      [schoolId]: essays,
-    }));
-  };
-
-  const handleCheckout = async () => {
-    if (!selectedTier || !canProceedToReview) return;
-
-    setIsSubmitting(true);
+  // Handle payment/unlock
+  const handleUnlock = async (tier: 'quick' | 'standard' | 'ivy_single') => {
     try {
       const response = await fetch('/api/tiered-analysis/checkout', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          tier: selectedTier,
-          schools: selectedSchools,
-          essaysBySchool,
+          tier,
+          essayText: essays.map(e => e.content).join('\n\n---\n\n'),
+          intake,
+          schools: [selectedSchool],
+          essaysBySchool: {
+            [selectedSchool!]: essays.map(e => ({
+              promptId: e.promptId,
+              essayText: e.content,
+            })),
+          },
         }),
       });
 
       const data = await response.json();
-      if (data.url) {
-        window.location.href = data.url;
-      } else {
-        console.error('No checkout URL returned');
+      if (data.checkoutUrl) {
+        window.location.href = data.checkoutUrl;
       }
-    } catch (error) {
-      console.error('Checkout error:', error);
-    } finally {
-      setIsSubmitting(false);
+    } catch (err) {
+      console.error('Checkout error:', err);
     }
   };
 
+  const canProceedToIntake = selectedSchool !== null;
+  const canProceedToAnalysis = essays.length > 0 && essays.every(e => e.content.trim().length > 50);
+
   const goBack = () => {
-    if (step === 'schools') setStep('tier');
-    else if (step === 'essays') setStep('schools');
-    else if (step === 'review') setStep('essays');
+    if (step === 'intake') setStep('school');
+    else if (step === 'essays') setStep('intake');
+    else if (step === 'results') setStep('essays');
   };
 
   const goForward = () => {
-    if (step === 'tier' && canProceedToSchools) setStep('schools');
-    else if (step === 'schools' && canProceedToEssays) setStep('essays');
-    else if (step === 'essays' && canProceedToReview) setStep('review');
+    if (step === 'school' && canProceedToIntake) setStep('intake');
+    else if (step === 'essays' && canProceedToAnalysis) runAnalysis();
   };
 
   return (
@@ -189,325 +164,408 @@ export default function IvyTierSelectorPage() {
             <span className="text-xl font-bold text-neutral-900">IvyWay</span>
           </Link>
           <Link href="/dashboard">
-            <Button variant="outline">Back to Dashboard</Button>
+            <Button variant="outline" size="sm">Dashboard</Button>
           </Link>
         </div>
       </header>
 
       {/* Progress Steps */}
-      <div className="container mx-auto px-4 py-6">
-        <div className="flex items-center justify-center gap-2 md:gap-4">
-          {(['tier', 'schools', 'essays', 'review'] as Step[]).map((s, i) => (
-            <div key={s} className="flex items-center">
-              <div
-                className={cn(
-                  'flex items-center justify-center w-8 h-8 rounded-full text-sm font-medium transition-colors',
-                  step === s
-                    ? 'bg-brand-600 text-white'
-                    : ['tier', 'schools', 'essays', 'review'].indexOf(step) > i
-                    ? 'bg-brand-100 text-brand-700'
-                    : 'bg-neutral-100 text-neutral-400'
-                )}
-              >
-                {i + 1}
+      {step !== 'analyzing' && step !== 'results' && (
+        <div className="container mx-auto px-4 py-6">
+          <div className="flex items-center justify-center gap-2 md:gap-4">
+            {(['school', 'intake', 'essays'] as Step[]).map((s, i) => (
+              <div key={s} className="flex items-center">
+                <div
+                  className={cn(
+                    'flex items-center justify-center w-8 h-8 rounded-full text-sm font-medium transition-colors',
+                    step === s
+                      ? 'bg-brand-600 text-white'
+                      : ['school', 'intake', 'essays'].indexOf(step) > i
+                      ? 'bg-brand-100 text-brand-700'
+                      : 'bg-neutral-100 text-neutral-400'
+                  )}
+                >
+                  {['school', 'intake', 'essays'].indexOf(step) > i ? (
+                    <Check className="w-4 h-4" />
+                  ) : (
+                    i + 1
+                  )}
+                </div>
+                <span
+                  className={cn(
+                    'ml-2 text-sm hidden md:block',
+                    step === s ? 'text-brand-700 font-medium' : 'text-neutral-500'
+                  )}
+                >
+                  {STEP_LABELS[s]}
+                </span>
+                {i < 2 && <ChevronRight className="w-4 h-4 text-neutral-300 mx-2 md:mx-4" />}
               </div>
-              <span
-                className={cn(
-                  'ml-2 text-sm hidden md:block',
-                  step === s ? 'text-brand-700 font-medium' : 'text-neutral-500'
-                )}
-              >
-                {s === 'tier' && 'Choose Plan'}
-                {s === 'schools' && 'Select Schools'}
-                {s === 'essays' && 'Upload Essays'}
-                {s === 'review' && 'Review & Pay'}
-              </span>
-              {i < 3 && <ChevronRight className="w-4 h-4 text-neutral-300 mx-2 md:mx-4" />}
-            </div>
-          ))}
+            ))}
+          </div>
         </div>
-      </div>
+      )}
 
       <main className="container mx-auto px-4 py-8">
-        {/* Step 1: Tier Selection */}
-        {step === 'tier' && (
+        {/* Step 1: School Selection */}
+        {step === 'school' && (
           <div className="space-y-8">
             <div className="text-center max-w-2xl mx-auto">
-              <Badge variant="default" size="lg" className="mb-4">
-                <School className="w-3.5 h-3.5" />
-                Ivy League Analysis
+              <Badge variant="new" size="lg" className="mb-4">
+                <Sparkles className="w-3.5 h-3.5" />
+                Free Ivy Analysis
               </Badge>
               <h1 className="text-3xl md:text-4xl font-bold text-neutral-900 mb-4">
-                Choose Your Ivy Package
+                Which Ivy Are You Applying To?
               </h1>
               <p className="text-lg text-neutral-600">
                 Get school-specific feedback from the perspective of actual admissions officers.
-                Every essay analyzed as a cohesive portfolio.
-              </p>
-            </div>
-
-            <div className="grid md:grid-cols-3 gap-6 max-w-5xl mx-auto">
-              {TIER_OPTIONS.map((tier) => (
-                <Card
-                  key={tier.id}
-                  className={cn(
-                    'relative cursor-pointer transition-all',
-                    selectedTier === tier.id
-                      ? 'border-2 border-brand-500 ring-4 ring-brand-500/20'
-                      : 'border-2 border-transparent hover:border-brand-300',
-                    tier.popular && 'md:-my-2 shadow-xl shadow-brand-500/10',
-                    tier.bestValue && 'bg-gradient-to-b from-amber-50/50 to-white'
-                  )}
-                  onClick={() => handleTierSelect(tier.id)}
-                >
-                  {tier.popular && (
-                    <div className="absolute -top-4 left-1/2 -translate-x-1/2 bg-gradient-to-r from-brand-500 to-brand-600 text-white px-4 py-1 rounded-full text-sm font-semibold">
-                      Most Popular
-                    </div>
-                  )}
-                  {tier.bestValue && (
-                    <div className="absolute -top-4 left-1/2 -translate-x-1/2 bg-gradient-to-r from-amber-500 to-orange-500 text-white px-4 py-1 rounded-full text-sm font-semibold">
-                      Best Value
-                    </div>
-                  )}
-
-                  <CardHeader className="text-center pb-2">
-                    <div
-                      className={cn(
-                        'w-12 h-12 mx-auto mb-4 rounded-2xl flex items-center justify-center',
-                        tier.popular
-                          ? 'bg-gradient-to-br from-brand-500 to-brand-600'
-                          : tier.bestValue
-                          ? 'bg-gradient-to-br from-amber-500 to-orange-500'
-                          : 'bg-neutral-100'
-                      )}
-                    >
-                      {tier.schoolsIncluded === 1 && <School className={cn('w-6 h-6', tier.popular || tier.bestValue ? 'text-white' : 'text-neutral-600')} />}
-                      {tier.schoolsIncluded === 3 && <Users className={cn('w-6 h-6', tier.popular || tier.bestValue ? 'text-white' : 'text-neutral-600')} />}
-                      {tier.schoolsIncluded === 8 && <Sparkles className={cn('w-6 h-6', tier.popular || tier.bestValue ? 'text-white' : 'text-neutral-600')} />}
-                    </div>
-                    <CardTitle className="text-xl">{tier.name}</CardTitle>
-                    <CardDescription>{tier.description}</CardDescription>
-                    <div className="text-4xl font-bold mt-4">{formatPrice(tier.price)}</div>
-                    <p className="text-sm text-neutral-500">
-                      {tier.schoolsIncluded === 1 ? '1 school' : `${tier.schoolsIncluded} schools`}
-                    </p>
-                  </CardHeader>
-
-                  <CardContent className="pt-4">
-                    <ul className="space-y-2">
-                      {tier.features.map((feature, i) => (
-                        <li key={i} className="flex gap-2 text-sm">
-                          <Check className="w-4 h-4 text-green-600 flex-shrink-0 mt-0.5" />
-                          <span>{feature}</span>
-                        </li>
-                      ))}
-                    </ul>
-                  </CardContent>
-
-                  <CardFooter>
-                    <Button
-                      className="w-full"
-                      variant={selectedTier === tier.id ? 'default' : 'outline'}
-                    >
-                      {selectedTier === tier.id ? 'Selected' : 'Select'}
-                    </Button>
-                  </CardFooter>
-                </Card>
-              ))}
-            </div>
-
-            <div className="flex justify-center">
-              <Button
-                size="lg"
-                onClick={goForward}
-                disabled={!canProceedToSchools}
-              >
-                Continue to School Selection
-                <ArrowRight className="w-4 h-4" />
-              </Button>
-            </div>
-          </div>
-        )}
-
-        {/* Step 2: School Selection */}
-        {step === 'schools' && currentTier && (
-          <div className="space-y-8 max-w-4xl mx-auto">
-            <div className="text-center">
-              <h1 className="text-3xl font-bold text-neutral-900 mb-2">
-                Select Your {currentTier.schoolsIncluded === 1 ? 'School' : 'Schools'}
-              </h1>
-              <p className="text-neutral-600">
-                {currentTier.schoolsIncluded === 8
-                  ? 'All 8 Ivy League schools are included'
-                  : `Choose ${currentTier.schoolsIncluded} ${currentTier.schoolsIncluded === 1 ? 'school' : 'schools'} for your analysis`}
+                <span className="block text-brand-600 font-medium mt-2">
+                  Start for free - pay only to unlock full results.
+                </span>
               </p>
             </div>
 
             <IvySchoolSelector
-              selectedSchool={selectedSchools[0] || null}
-              onSelect={(schoolId) => {
-                if (currentTier.schoolsIncluded === 1) {
-                  setSelectedSchools([schoolId]);
-                }
-              }}
-              mode={currentTier.schoolsIncluded > 1 ? 'multi' : 'single'}
-              selectedSchools={selectedSchools}
-              onMultiSelect={handleSchoolsChange}
-              disabled={currentTier.schoolsIncluded === 8}
+              selectedSchool={selectedSchool}
+              onSelect={handleSchoolSelect}
+              mode="single"
             />
 
-            {currentTier.schoolsIncluded > 1 && currentTier.schoolsIncluded < 8 && (
-              <p className="text-center text-sm text-neutral-500">
-                {selectedSchools.length} of {currentTier.schoolsIncluded} schools selected
-              </p>
-            )}
-
-            <div className="flex justify-between">
-              <Button variant="outline" onClick={goBack}>
-                <ArrowLeft className="w-4 h-4" />
-                Back
-              </Button>
-              <Button onClick={goForward} disabled={!canProceedToEssays}>
-                Continue to Essays
+            <div className="flex justify-center">
+              <Button
+                size="lg"
+                onClick={() => setStep('intake')}
+                disabled={!canProceedToIntake}
+              >
+                Continue
                 <ArrowRight className="w-4 h-4" />
               </Button>
+            </div>
+
+            {/* Trust indicators */}
+            <div className="flex flex-wrap justify-center gap-6 text-sm text-neutral-500">
+              <div className="flex items-center gap-2">
+                <Shield className="w-4 h-4" />
+                <span>Essays never shared</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <Zap className="w-4 h-4" />
+                <span>Results in 60 seconds</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <Star className="w-4 h-4" />
+                <span>10,000+ essays analyzed</span>
+              </div>
             </div>
           </div>
         )}
 
-        {/* Step 3: Essay Upload */}
-        {step === 'essays' && (
-          <div className="space-y-8 max-w-4xl mx-auto">
-            <div className="text-center">
-              <h1 className="text-3xl font-bold text-neutral-900 mb-2">
-                Upload Your Essays
-              </h1>
-              <p className="text-neutral-600">
-                Add all essays for each school. We&apos;ll analyze them as a cohesive portfolio.
-              </p>
-            </div>
-
-            <IvyPortfolioUpload
-              selectedSchools={selectedSchools}
-              essaysBySchool={essaysBySchool}
-              onEssaysUpdate={handleEssaysUpdate}
-            />
-
-            <div className="flex justify-between">
-              <Button variant="outline" onClick={goBack}>
+        {/* Step 2: Intake Form */}
+        {step === 'intake' && selectedSchoolInfo && (
+          <div className="max-w-3xl mx-auto space-y-6">
+            <div className="flex items-center gap-3 mb-6">
+              <Button variant="ghost" size="sm" onClick={goBack}>
                 <ArrowLeft className="w-4 h-4" />
-                Back
               </Button>
-              <Button onClick={goForward} disabled={!canProceedToReview}>
-                Review Order
-                <ArrowRight className="w-4 h-4" />
-              </Button>
-            </div>
-          </div>
-        )}
-
-        {/* Step 4: Review & Checkout */}
-        {step === 'review' && currentTier && (
-          <div className="space-y-8 max-w-3xl mx-auto">
-            <div className="text-center">
-              <h1 className="text-3xl font-bold text-neutral-900 mb-2">
-                Review Your Order
-              </h1>
-              <p className="text-neutral-600">
-                Confirm your selections before proceeding to payment.
-              </p>
+              <div
+                className="w-10 h-10 rounded-lg flex items-center justify-center text-white font-bold"
+                style={{ backgroundColor: selectedSchoolInfo.color }}
+              >
+                {selectedSchoolInfo.name[0]}
+              </div>
+              <div>
+                <h2 className="font-semibold">{selectedSchoolInfo.fullName}</h2>
+                <p className="text-sm text-neutral-500">Tell us about yourself for personalized feedback</p>
+              </div>
             </div>
 
             <Card>
               <CardHeader>
-                <CardTitle>Order Summary</CardTitle>
+                <CardTitle>Help Us Help You</CardTitle>
+                <CardDescription>
+                  This context lets our AI calibrate feedback specifically for your background.
+                  First-gen? Low-income? International? We adjust our analysis accordingly.
+                </CardDescription>
               </CardHeader>
-              <CardContent className="space-y-6">
-                {/* Package */}
-                <div className="flex justify-between items-center pb-4 border-b">
-                  <div>
-                    <p className="font-medium">{currentTier.name}</p>
-                    <p className="text-sm text-neutral-500">{currentTier.description}</p>
-                  </div>
-                  <p className="text-xl font-bold">{formatPrice(currentTier.price)}</p>
-                </div>
+              <CardContent>
+                <IntakeForm
+                  onComplete={handleIntakeComplete}
+                  onSkip={() => {
+                    // Create minimal intake and proceed
+                    setIntake({
+                      demographics: {
+                        isFirstGen: false,
+                        familyEducationLevel: 'bachelors',
+                        isInternational: false,
+                        geographicContext: 'suburban',
+                        schoolType: 'public',
+                        familyResponsibilities: ['none'],
+                      },
+                      academic: {
+                        intendedMajor: 'Undecided',
+                        academicInterests: [],
+                      },
+                      activities: {
+                        spike: '',
+                        topActivities: [],
+                        leadershipRoles: [],
+                      },
+                      personal: {
+                        identityFactors: [],
+                      },
+                      essayContext: {
+                        targetSchool: selectedSchool!,
+                        essayType: 'supplemental',
+                        essayPrompt: '',
+                        wordLimit: 650,
+                        biggestConcern: 'school_fit',
+                        draftNumber: 'first',
+                      },
+                      voice: {
+                        toneSample: '',
+                        writingStyle: 'conversational',
+                        usesHumor: false,
+                      },
+                    } as StudentIntake);
+                    setStep('essays');
+                  }}
+                  targetSchool={selectedSchool!}
+                />
+              </CardContent>
+            </Card>
+          </div>
+        )}
 
-                {/* Schools */}
-                <div>
-                  <p className="font-medium mb-3">Selected Schools ({selectedSchools.length})</p>
-                  <div className="flex flex-wrap gap-2">
-                    {selectedSchools.map((schoolId) => {
-                      const school = IVY_SCHOOLS.find(s => s.id === schoolId);
-                      return (
-                        <Badge key={schoolId} variant="secondary">
-                          {school?.name || schoolId}
-                        </Badge>
-                      );
-                    })}
-                  </div>
-                </div>
+        {/* Step 3: Essay Upload */}
+        {step === 'essays' && selectedSchool && (
+          <div className="max-w-3xl mx-auto space-y-6">
+            <div className="flex items-center gap-3 mb-6">
+              <Button variant="ghost" size="sm" onClick={goBack}>
+                <ArrowLeft className="w-4 h-4" />
+              </Button>
+              <div
+                className="w-10 h-10 rounded-lg flex items-center justify-center text-white font-bold"
+                style={{ backgroundColor: selectedSchoolInfo?.color }}
+              >
+                {selectedSchoolInfo?.name[0]}
+              </div>
+              <div>
+                <h2 className="font-semibold">Upload Your {selectedSchoolInfo?.name} Essays</h2>
+                <p className="text-sm text-neutral-500">Add all essays for this school</p>
+              </div>
+            </div>
 
-                {/* Essays */}
-                <div>
-                  <p className="font-medium mb-3">Essays to Analyze</p>
-                  <div className="space-y-2">
-                    {selectedSchools.map((schoolId) => {
-                      const school = IVY_SCHOOLS.find(s => s.id === schoolId);
-                      const essays = essaysBySchool[schoolId] || [];
-                      return (
-                        <div key={schoolId} className="flex items-center gap-3 text-sm">
-                          <FileText className="w-4 h-4 text-neutral-400" />
-                          <span>{school?.name}</span>
-                          <span className="text-neutral-400">-</span>
-                          <span className="text-neutral-500">{essays.length} essay{essays.length !== 1 ? 's' : ''}</span>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
+            {error && (
+              <Card className="border-red-200 bg-red-50">
+                <CardContent className="py-4">
+                  <p className="text-red-700">{error}</p>
+                </CardContent>
+              </Card>
+            )}
 
-                {/* What you get */}
-                <div className="bg-brand-50 rounded-xl p-4">
-                  <p className="font-medium mb-3 text-brand-900">What&apos;s Included</p>
-                  <ul className="space-y-2">
-                    {currentTier.features.slice(0, 4).map((feature, i) => (
-                      <li key={i} className="flex gap-2 text-sm text-brand-800">
-                        <Check className="w-4 h-4 text-brand-600 flex-shrink-0 mt-0.5" />
-                        <span>{feature}</span>
-                      </li>
-                    ))}
-                  </ul>
+            <IvyPortfolioUpload
+              selectedSchools={[selectedSchool]}
+              essaysBySchool={{ [selectedSchool]: essays }}
+              onEssaysUpdate={handleEssaysUpdate}
+            />
+
+            <div className="flex justify-between items-center pt-4">
+              <p className="text-sm text-neutral-500">
+                {essays.length} essay{essays.length !== 1 ? 's' : ''} ready
+              </p>
+              <Button
+                size="lg"
+                onClick={runAnalysis}
+                disabled={!canProceedToAnalysis}
+              >
+                <Sparkles className="w-4 h-4" />
+                Analyze My Essays (Free)
+              </Button>
+            </div>
+          </div>
+        )}
+
+        {/* Step 4: Analyzing */}
+        {step === 'analyzing' && (
+          <div className="max-w-xl mx-auto text-center">
+            <Card>
+              <CardContent className="py-16">
+                <div className="w-20 h-20 mx-auto mb-6 rounded-full bg-brand-100 flex items-center justify-center">
+                  <Loader2 className="w-10 h-10 text-brand-600 animate-spin" />
+                </div>
+                <h2 className="text-2xl font-bold text-neutral-900 mb-2">
+                  Analyzing Your Essays...
+                </h2>
+                <p className="text-neutral-600 mb-6">
+                  Our AI is reviewing your essays from {selectedSchoolInfo?.name}&apos;s AO perspective
+                </p>
+                <div className="space-y-2 text-sm text-neutral-500">
+                  <p>Checking for &quot;resume essay&quot; patterns...</p>
+                  <p>Running the &quot;So What?&quot; test...</p>
+                  <p>Evaluating school fit signals...</p>
                 </div>
               </CardContent>
-              <CardFooter className="flex-col gap-4">
-                <Button
-                  className="w-full"
-                  size="lg"
-                  onClick={handleCheckout}
-                  disabled={isSubmitting}
-                >
-                  {isSubmitting ? (
-                    <>Processing...</>
-                  ) : (
-                    <>
-                      <Shield className="w-4 h-4" />
-                      Secure Checkout - {formatPrice(currentTier.price)}
-                    </>
-                  )}
+            </Card>
+          </div>
+        )}
+
+        {/* Step 5: Results (BLURRED with Paywall) */}
+        {step === 'results' && analysisResult && (
+          <div className="max-w-4xl mx-auto space-y-6">
+            {/* Score Teaser - Visible */}
+            <Card className="border-brand-200 bg-gradient-to-br from-brand-50 to-white">
+              <CardContent className="py-8">
+                <div className="flex flex-col md:flex-row items-center justify-between gap-6">
+                  <div className="text-center md:text-left">
+                    <h2 className="text-2xl font-bold text-neutral-900 mb-2">
+                      Your {selectedSchoolInfo?.name} Analysis is Ready!
+                    </h2>
+                    <p className="text-neutral-600">
+                      We found <span className="font-semibold text-brand-600">
+                        {analysisResult.issueCount || 5} specific issues
+                      </span> to improve
+                    </p>
+                  </div>
+                  <div className="text-center">
+                    <div className="text-5xl font-bold text-brand-600">
+                      {analysisResult.overallScore || 72}
+                    </div>
+                    <p className="text-sm text-neutral-500">Overall Score</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Blurred Results Preview */}
+            <div className="relative">
+              {/* Blur Overlay */}
+              <div className="absolute inset-0 z-10 bg-white/60 backdrop-blur-md rounded-2xl flex flex-col items-center justify-center">
+                <div className="text-center max-w-md px-6">
+                  <Lock className="w-12 h-12 text-brand-600 mx-auto mb-4" />
+                  <h3 className="text-2xl font-bold text-neutral-900 mb-2">
+                    Unlock Your Full Analysis
+                  </h3>
+                  <p className="text-neutral-600 mb-6">
+                    See exactly what AOs will think, line-by-line feedback, and how to fix each issue.
+                  </p>
+
+                  {/* Pricing Options */}
+                  <div className="space-y-3">
+                    <Button
+                      size="lg"
+                      className="w-full"
+                      onClick={() => handleUnlock('quick')}
+                    >
+                      <Eye className="w-4 h-4" />
+                      Unlock for $9.99
+                    </Button>
+
+                    <p className="text-xs text-neutral-500">
+                      Or upgrade for more features:
+                    </p>
+
+                    <div className="grid grid-cols-2 gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleUnlock('standard')}
+                      >
+                        Full Analysis - $79
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleUnlock('ivy_single')}
+                      >
+                        Ivy Deep Dive - $39
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Blurred Content (teaser) */}
+              <Card className="select-none">
+                <CardHeader>
+                  <CardTitle>Detailed Analysis</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                  {/* Fake blurred sections */}
+                  <div className="space-y-4">
+                    <div>
+                      <h4 className="font-medium mb-2">AO First Impression</h4>
+                      <div className="h-4 bg-neutral-200 rounded w-full" />
+                      <div className="h-4 bg-neutral-200 rounded w-3/4 mt-2" />
+                    </div>
+
+                    <div>
+                      <h4 className="font-medium mb-2">Top Issues to Fix</h4>
+                      {[1, 2, 3].map(i => (
+                        <div key={i} className="flex gap-3 items-start mb-3">
+                          <div className="w-6 h-6 rounded-full bg-amber-200" />
+                          <div className="flex-1">
+                            <div className="h-4 bg-neutral-200 rounded w-full" />
+                            <div className="h-3 bg-neutral-100 rounded w-2/3 mt-2" />
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+
+                    <div>
+                      <h4 className="font-medium mb-2">School-Specific Feedback</h4>
+                      <div className="h-4 bg-neutral-200 rounded w-full" />
+                      <div className="h-4 bg-neutral-200 rounded w-5/6 mt-2" />
+                      <div className="h-4 bg-neutral-200 rounded w-4/5 mt-2" />
+                    </div>
+
+                    <div>
+                      <h4 className="font-medium mb-2">Line-by-Line Suggestions</h4>
+                      <div className="border rounded-lg p-4">
+                        {[1, 2, 3, 4].map(i => (
+                          <div key={i} className="h-3 bg-neutral-100 rounded mb-2" style={{ width: `${80 + Math.random() * 20}%` }} />
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* What you get */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-lg">What You&apos;ll Unlock</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="grid md:grid-cols-2 gap-4 text-sm">
+                  {[
+                    'AO first impression & honest assessment',
+                    '"So What?" test - does your essay reveal something?',
+                    'Resume-essay detection (common killer)',
+                    'School-specific fit signals',
+                    'Top 5 issues ranked by impact',
+                    'Line-by-line suggestions',
+                    'Strength highlights to keep',
+                    'Committee pitch readiness check',
+                  ].map((item, i) => (
+                    <div key={i} className="flex items-center gap-2">
+                      <Check className="w-4 h-4 text-green-600" />
+                      <span>{item}</span>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+              <CardFooter className="flex-col gap-4 border-t pt-6">
+                <Button size="lg" className="w-full" onClick={() => handleUnlock('quick')}>
+                  <Eye className="w-4 h-4" />
+                  Unlock Full Analysis - $9.99
                 </Button>
                 <p className="text-xs text-neutral-500 text-center">
-                  Secure payment powered by Stripe. Your essay is never shared or used to train AI.
+                  Secure payment via Stripe. 100% money-back guarantee if not satisfied.
                 </p>
               </CardFooter>
             </Card>
-
-            <div className="flex justify-start">
-              <Button variant="outline" onClick={goBack}>
-                <ArrowLeft className="w-4 h-4" />
-                Back to Essays
-              </Button>
-            </div>
           </div>
         )}
       </main>

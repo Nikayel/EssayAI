@@ -49,40 +49,86 @@ export default function PricingPage() {
         </p>
       </section>
 
+      {/* How It Works - Value-first funnel */}
+      <section className="container mx-auto px-4 py-12 border-t border-neutral-200 bg-brand-50/30">
+        <div className="max-w-4xl mx-auto text-center">
+          <h3 className="text-2xl font-bold text-neutral-900 mb-8">
+            How It Works: Try Before You Buy
+          </h3>
+          <div className="grid md:grid-cols-4 gap-6">
+            <div className="text-center">
+              <div className="w-12 h-12 mx-auto mb-3 rounded-full bg-brand-100 flex items-center justify-center text-brand-600 font-bold">1</div>
+              <h4 className="font-medium mb-1">Choose School</h4>
+              <p className="text-sm text-neutral-500">Pick your target school</p>
+            </div>
+            <div className="text-center">
+              <div className="w-12 h-12 mx-auto mb-3 rounded-full bg-brand-100 flex items-center justify-center text-brand-600 font-bold">2</div>
+              <h4 className="font-medium mb-1">Answer Questions</h4>
+              <p className="text-sm text-neutral-500">Tell us your background</p>
+            </div>
+            <div className="text-center">
+              <div className="w-12 h-12 mx-auto mb-3 rounded-full bg-brand-100 flex items-center justify-center text-brand-600 font-bold">3</div>
+              <h4 className="font-medium mb-1">Upload Essays</h4>
+              <p className="text-sm text-neutral-500">Paste your essay(s)</p>
+            </div>
+            <div className="text-center">
+              <div className="w-12 h-12 mx-auto mb-3 rounded-full bg-green-100 flex items-center justify-center text-green-600 font-bold">4</div>
+              <h4 className="font-medium mb-1">See Results</h4>
+              <p className="text-sm text-neutral-500">Unlock for $9.99</p>
+            </div>
+          </div>
+          <Link href="/ivy" className="inline-block mt-8">
+            <Button size="lg">
+              <Sparkles className="w-4 h-4" />
+              Start Free Analysis
+              <ArrowRight className="w-4 h-4" />
+            </Button>
+          </Link>
+        </div>
+      </section>
+
       {/* Main 3 Tiers - Clear Choice */}
-      <section className="container mx-auto px-4 pb-16">
+      <section className="container mx-auto px-4 py-16">
+        <div className="text-center mb-10">
+          <h3 className="text-2xl font-bold text-neutral-900 mb-2">Pricing Tiers</h3>
+          <p className="text-neutral-600">Choose the depth of analysis you need</p>
+        </div>
         <div className="grid md:grid-cols-3 gap-8 max-w-5xl mx-auto">
-          {/* Tier 1: Free */}
+          {/* Tier 1: Quick Unlock - $9.99 */}
           <Card className="border-2 border-neutral-200 relative">
             <CardHeader className="text-center pb-2">
               <div className="w-12 h-12 mx-auto mb-4 rounded-2xl bg-neutral-100 flex items-center justify-center">
                 <Zap className="w-6 h-6 text-neutral-600" />
               </div>
-              <CardTitle className="text-2xl">Free Check</CardTitle>
-              <CardDescription className="text-base">See if your essay has red flags</CardDescription>
-              <div className="text-4xl font-bold mt-4">$0</div>
-              <p className="text-sm text-neutral-500">No credit card</p>
+              <CardTitle className="text-2xl">Quick Feedback</CardTitle>
+              <CardDescription className="text-base">Essential fixes in 60 seconds</CardDescription>
+              <div className="text-4xl font-bold mt-4">$9.99</div>
+              <p className="text-sm text-neutral-500">per essay</p>
             </CardHeader>
             <CardContent className="pt-6">
               <ul className="space-y-3">
                 <li className="flex gap-3">
                   <Check className="w-5 h-5 text-green-600 flex-shrink-0" />
-                  <span>Commons Check (650 words)</span>
+                  <span>Overall score (0-100)</span>
                 </li>
                 <li className="flex gap-3">
                   <Check className="w-5 h-5 text-green-600 flex-shrink-0" />
-                  <span>Pass/fail red flag detection</span>
+                  <span>Top 5 issues with fixes</span>
                 </li>
                 <li className="flex gap-3">
                   <Check className="w-5 h-5 text-green-600 flex-shrink-0" />
-                  <span>3 quick improvement tips</span>
+                  <span>AI detection check</span>
+                </li>
+                <li className="flex gap-3">
+                  <Check className="w-5 h-5 text-green-600 flex-shrink-0" />
+                  <span>Strength highlights</span>
                 </li>
               </ul>
             </CardContent>
             <CardFooter>
-              <Link href="/signup" className="w-full">
+              <Link href="/ivy" className="w-full">
                 <Button className="w-full" variant="outline" size="lg">
-                  Start Free
+                  Start Free, Unlock for $9.99
                 </Button>
               </Link>
             </CardFooter>
