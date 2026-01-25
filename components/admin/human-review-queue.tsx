@@ -9,8 +9,9 @@
  * - Monitor status and due dates
  */
 
-import { useState, useMemo } from 'react';
+import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { useToastActions } from '@/components/ui/toast';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -70,6 +71,7 @@ interface HumanReviewQueueProps {
 
 export function HumanReviewQueue({ assignments, reviewers }: HumanReviewQueueProps) {
   const router = useRouter();
+  const toast = useToastActions();
   const [assigningId, setAssigningId] = useState<string | null>(null);
 
   async function handleAssignReviewer(assignmentId: string, reviewerId: string) {
@@ -84,15 +86,15 @@ export function HumanReviewQueue({ assignments, reviewers }: HumanReviewQueuePro
       });
 
       if (res.ok) {
-        // Refresh the page to show updated data
+        toast.success('Reviewer assigned successfully');
         router.refresh();
       } else {
         const data = await res.json();
-        alert(data.error || 'Failed to assign reviewer');
+        toast.error(data.error || 'Failed to assign reviewer');
       }
     } catch (error) {
       console.error('Failed to assign reviewer:', error);
-      alert('Failed to assign reviewer');
+      toast.error('Failed to assign reviewer');
     } finally {
       setAssigningId(null);
     }

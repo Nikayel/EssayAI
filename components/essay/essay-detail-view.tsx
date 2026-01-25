@@ -8,12 +8,14 @@ import { ArrowLeft, Download, AlertTriangle, CheckCircle2, XCircle } from 'lucid
 import Link from 'next/link';
 import { downloadPDFReport } from '@/lib/pdf/export';
 import { SmartUpsell } from '@/components/upsell/smart-upsell';
+import { useToastActions } from '@/components/ui/toast';
 
 export function EssayDetailView({ essay, userName, userEmail }: { essay: any; userName: string; userEmail: string }) {
   const latestVersion = essay.versions[0];
   const latestAnalysis = latestVersion?.analyses[0];
   const latestReview = latestVersion?.reviews?.[0];
   const latestOrder = essay.orders[0];
+  const toast = useToastActions();
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [analysis, setAnalysis] = useState(latestAnalysis?.analysisJson || null);
   const [rewriteSuggestions, setRewriteSuggestions] = useState<any>(null);
@@ -105,9 +107,10 @@ export function EssayDetailView({ essay, userName, userEmail }: { essay: any; us
 
       const data = await res.json();
       setRewriteSuggestions(data.rewrite);
+      toast.success('Rewrite suggestions generated!');
     } catch (error) {
       console.error('Rewrite generation error:', error);
-      alert('Failed to generate rewrite suggestions. Please try again.');
+      toast.error('Failed to generate rewrite suggestions. Please try again.');
     } finally {
       setIsGeneratingRewrites(false);
     }

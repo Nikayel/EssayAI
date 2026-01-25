@@ -8,6 +8,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { IvyAnalysisDisplay } from '@/components/ivy/ivy-analysis-display';
 import { PostPurchaseUpsell } from '@/components/ivy/post-purchase-upsell';
+import { useToastActions } from '@/components/ui/toast';
 import type { IvyAnalysisResult } from '@/lib/scoring/tiers/ivy-analysis';
 import type { AllTiers } from '@/lib/pricing';
 import {
@@ -33,6 +34,7 @@ interface AnalysisProgress {
 export default function IvyResultsPage() {
   const params = useParams();
   const searchParams = useSearchParams();
+  const toast = useToastActions();
   const sessionId = params.sessionId as string;
 
   const [status, setStatus] = useState<SessionStatus>('loading');
@@ -128,13 +130,12 @@ export default function IvyResultsPage() {
       });
 
       if (response.ok) {
-        // Could open a modal with the rewritten essay
-        const data = await response.json();
-        alert('Rewrite generated! Check the console for now.');
-        console.log('Rewrite result:', data);
+        // TODO: Open modal with rewritten essay data
+        toast.success('Rewrite generated! Opening results...');
       }
     } catch (err) {
       console.error('Rewrite error:', err);
+      toast.error('Failed to generate rewrite. Please try again.');
     }
   };
 

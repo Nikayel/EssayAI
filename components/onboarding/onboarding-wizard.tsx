@@ -8,6 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Progress } from '@/components/ui/progress';
 import { Calendar, GraduationCap, Target, Sparkles, AlertCircle, Users, Plus, X } from 'lucide-react';
+import { useToastActions } from '@/components/ui/toast';
 
 interface TargetSchoolInput {
   schoolName: string;
@@ -63,6 +64,7 @@ const IVY_SCHOOLS = [
 
 export function OnboardingWizard() {
   const router = useRouter();
+  const toast = useToastActions();
   const [step, setStep] = useState(1);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [data, setData] = useState<OnboardingData>({
@@ -137,7 +139,7 @@ export function OnboardingWizard() {
       router.push('/dashboard');
     } catch (error) {
       console.error('Onboarding error:', error);
-      alert('Failed to save. Please try again.');
+      toast.error('Failed to save. Please try again.');
     } finally {
       setIsSubmitting(false);
     }

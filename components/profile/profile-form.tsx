@@ -5,9 +5,11 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useRouter } from 'next/navigation';
+import { useToastActions } from '@/components/ui/toast';
 
 export function ProfileForm({ user }: { user: any }) {
   const router = useRouter();
+  const toast = useToastActions();
   const [formData, setFormData] = useState({
     name: user.profile?.name || '',
     gradeLevel: user.profile?.gradeLevel || '',
@@ -28,11 +30,11 @@ export function ProfileForm({ user }: { user: any }) {
 
       if (!res.ok) throw new Error('Failed to update profile');
 
-      alert('Profile updated successfully!');
+      toast.success('Profile updated successfully!');
       router.refresh();
     } catch (error) {
       console.error('Profile update error:', error);
-      alert('Failed to update profile. Please try again.');
+      toast.error('Failed to update profile. Please try again.');
     } finally {
       setIsSubmitting(false);
     }

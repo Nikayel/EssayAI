@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Send } from 'lucide-react';
 import { useRouter } from 'next/navigation';
+import { useToastActions } from '@/components/ui/toast';
 
 interface QAMessageFormProps {
   orderId: string;
@@ -12,6 +13,7 @@ interface QAMessageFormProps {
 
 export function QAMessageForm({ orderId }: QAMessageFormProps) {
   const router = useRouter();
+  const toast = useToastActions();
   const [message, setMessage] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -37,10 +39,11 @@ export function QAMessageForm({ orderId }: QAMessageFormProps) {
       }
 
       setMessage('');
+      toast.success('Message sent!');
       router.refresh();
     } catch (error) {
       console.error('Failed to send message:', error);
-      alert('Failed to send message. Please try again.');
+      toast.error('Failed to send message. Please try again.');
     } finally {
       setIsSubmitting(false);
     }
