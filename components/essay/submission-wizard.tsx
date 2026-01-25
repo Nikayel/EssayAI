@@ -1,15 +1,115 @@
 'use client';
 
+/**
+ * Essay Submission Wizard
+ *
+ * 4-Step Flow:
+ * 1. Basic Info (essay type, school, prompt)
+ * 2. Essay Content (paste essay)
+ * 3. Quick Intake (personalization - spike, activities, background)
+ * 4. Package Selection (Quick $9.99, Ivy Single $39, Ivy 3-Pack $79, Premium $249)
+ *
+ * Uses tiered-analysis checkout API to process payment and store intake data.
+ */
+
 import { useState, useEffect } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Badge } from '@/components/ui/badge';
+import { QuickIntakeForm } from '@/components/intake/quick-intake-form';
+import type { QuickIntake } from '@/lib/scoring/tiers/types';
+import { Check, Sparkles, Star, Crown, Zap } from 'lucide-react';
+
+// =============================================================================
+// TYPES
+// =============================================================================
+
+type AnalysisTier = 'quick' | 'ivy_single' | 'ivy_bundle_3' | 'premium';
+
+interface TierOption {
+  id: AnalysisTier;
+  name: string;
+  price: number;
+  description: string;
+  features: string[];
+  badge?: string;
+  icon: React.ReactNode;
+  popular?: boolean;
+}
+
+const TIER_OPTIONS: TierOption[] = [
+  {
+    id: 'quick',
+    name: 'Quick Score',
+    price: 9.99,
+    description: 'Personalized feedback using YOUR spike & activities',
+    icon: <Zap className="w-5 h-5" />,
+    features: [
+      'Overall score (0-100)',
+      'Top 5 critical issues',
+      'Resume-essay detection',
+      'Personalized to YOUR story',
+    ],
+  },
+  {
+    id: 'ivy_single',
+    name: 'Full Analysis',
+    price: 39,
+    description: 'Complete analysis with line-by-line feedback',
+    icon: <Sparkles className="w-5 h-5" />,
+    popular: true,
+    badge: 'Most Popular',
+    features: [
+      'Everything in Quick',
+      'Line-by-line annotations',
+      'School-fit analysis',
+      'AO perspective simulation',
+      '"So What?" test on each paragraph',
+      'Rewrite suggestions',
+    ],
+  },
+  {
+    id: 'ivy_bundle_3',
+    name: '3-School Bundle',
+    price: 79,
+    description: 'Full analysis for 3 different schools',
+    icon: <Star className="w-5 h-5" />,
+    badge: 'Best Value',
+    features: [
+      'Everything in Full Analysis',
+      'Tailored for 3 schools',
+      'Cross-school narrative check',
+      'Strategic differentiation tips',
+      'Save $38 vs individual',
+    ],
+  },
+  {
+    id: 'premium',
+    name: 'Premium + Expert',
+    price: 249,
+    description: 'AI analysis + human expert review',
+    icon: <Crown className="w-5 h-5" />,
+    features: [
+      'Everything in 3-School Bundle',
+      'Former AO human review',
+      'Detailed margin comments',
+      'Video feedback option',
+      '48-hour turnaround',
+    ],
+  },
+];
+
+// =============================================================================
+// COMPONENT
+// =============================================================================
 
 export function EssaySubmissionWizard() {
   const searchParams = useSearchParams();
   const [step, setStep] = useState(1);
+  const totalSteps = 4;
 
   // Read URL params for pre-filling from portfolio
   const schoolFromUrl = searchParams.get('school') || '';
@@ -26,8 +126,11 @@ export function EssaySubmissionWizard() {
     // Step 2: Essay Content
     content: '',
 
-    // Step 3: Package Selection
-    package: 'AI_LITE',
+    // Step 3: Quick Intake (filled by QuickIntakeForm)
+    intake: null as QuickIntake | null,
+
+    // Step 4: Package Selection
+    tier: 'ivy_single' as AnalysisTier,
   });
 
   // Pre-fill from URL params on mount
@@ -43,6 +146,10 @@ export function EssaySubmissionWizard() {
 
   const [wordCount, setWordCount] = useState(0);
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // =============================================================================
+  // HANDLERS
+  // =============================================================================
 
   const updateField = (field: string, value: any) => {
     setFormData(prev => ({ ...prev, [field]: value }));
@@ -60,6 +167,22 @@ export function EssaySubmissionWizard() {
     countWords(text);
   };
 
+  const handleIntakeComplete = (intake: QuickIntake) => {
+    setFormData(prev => ({ ...prev, intake }));
+    setStep(4); // Move to package selection
+  };
+
+  const handleIntakeSkip = () => {
+    // Create minimal intake with just the school from step 1
+    const minimalIntake: QuickIntake = {
+      targetSchool: formData.targetSchool,
+      essayType: formData.essayType.toLowerCase(),
+      wordLimit: formData.wordLimit,
+    };
+    setFormData(prev => ({ ...prev, intake: minimalIntake }));
+    setStep(4);
+  };
+
   const canProceed = () => {
     if (step === 1) {
       return formData.essayType && formData.prompt.length > 10;
@@ -71,43 +194,36 @@ export function EssaySubmissionWizard() {
   };
 
   const handleSubmit = async () => {
+    if (!formData.intake) {
+      alert('Please complete the personalization step first.');
+      return;
+    }
+
     setIsSubmitting(true);
     try {
-      // Transform field names to match API schema
-      const apiPayload = {
-        type: formData.essayType,           // essayType → type
-        promptText: formData.prompt,         // prompt → promptText
-        targetSchool: formData.targetSchool,
-        targetSchoolId: formData.targetSchoolId || undefined,
-        wordLimit: formData.wordLimit,
-        content: formData.content,
-      };
-
-      // Create essay first
-      const essayRes = await fetch('/api/essays', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(apiPayload),
-      });
-
-      if (!essayRes.ok) throw new Error('Failed to create essay');
-
-      const { essay } = await essayRes.json();
-
-      // Redirect to payment
-      const checkoutRes = await fetch('/api/stripe/checkout', {
+      // Use the new tiered-analysis checkout API
+      const checkoutRes = await fetch('/api/tiered-analysis/checkout', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          package: formData.package,
-          essayId: essay.id,
+          tier: formData.tier,
+          essayText: formData.content,
+          intake: {
+            ...formData.intake,
+            // Include essay prompt in intake for context
+            essayPrompt: formData.prompt,
+            wordLimit: formData.wordLimit,
+          },
         }),
       });
 
-      if (!checkoutRes.ok) throw new Error('Failed to create checkout');
+      if (!checkoutRes.ok) {
+        const error = await checkoutRes.json();
+        throw new Error(error.error || 'Failed to create checkout');
+      }
 
-      const { url } = await checkoutRes.json();
-      window.location.href = url; // Redirect to Stripe
+      const { checkoutUrl } = await checkoutRes.json();
+      window.location.href = checkoutUrl; // Redirect to Stripe
     } catch (error) {
       console.error('Submission error:', error);
       alert('Failed to submit essay. Please try again.');
@@ -116,23 +232,63 @@ export function EssaySubmissionWizard() {
     }
   };
 
+  // =============================================================================
+  // STEP LABELS
+  // =============================================================================
+
+  const getStepLabel = (s: number) => {
+    switch (s) {
+      case 1: return 'Basic Information';
+      case 2: return 'Your Essay';
+      case 3: return 'Personalize';
+      case 4: return 'Choose Package';
+      default: return '';
+    }
+  };
+
+  // =============================================================================
+  // RENDER
+  // =============================================================================
+
   return (
     <div className="max-w-3xl mx-auto py-6 sm:py-8 px-4">
       {/* Progress Indicator */}
       <div className="mb-6 sm:mb-8">
         <div className="flex items-center justify-between mb-2">
-          <span className="text-sm font-medium text-neutral-900 dark:text-neutral-100">Step {step} of 3</span>
+          <span className="text-sm font-medium text-neutral-900 dark:text-neutral-100">
+            Step {step} of {totalSteps}
+          </span>
           <span className="text-sm text-neutral-600 dark:text-neutral-400">
-            {step === 1 && 'Basic Information'}
-            {step === 2 && 'Your Essay'}
-            {step === 3 && 'Choose Package'}
+            {getStepLabel(step)}
           </span>
         </div>
         <div className="w-full bg-neutral-200 dark:bg-neutral-700 rounded-full h-2">
           <div
             className="bg-brand-600 h-2 rounded-full transition-all duration-300"
-            style={{ width: `${(step / 3) * 100}%` }}
+            style={{ width: `${(step / totalSteps) * 100}%` }}
           />
+        </div>
+        {/* Step dots */}
+        <div className="flex justify-between mt-2">
+          {[1, 2, 3, 4].map((s) => (
+            <div
+              key={s}
+              className={`flex items-center gap-1 text-xs ${
+                s <= step ? 'text-brand-600' : 'text-neutral-400'
+              }`}
+            >
+              <div
+                className={`w-2 h-2 rounded-full ${
+                  s < step
+                    ? 'bg-brand-600'
+                    : s === step
+                    ? 'bg-brand-600 ring-2 ring-brand-200'
+                    : 'bg-neutral-300'
+                }`}
+              />
+              <span className="hidden sm:inline">{getStepLabel(s)}</span>
+            </div>
+          ))}
         </div>
       </div>
 
@@ -148,7 +304,7 @@ export function EssaySubmissionWizard() {
               <Label htmlFor="essayType">Essay Type</Label>
               <select
                 id="essayType"
-                className="w-full mt-1 px-3 py-2 border rounded-md"
+                className="w-full mt-1 px-3 py-2 border rounded-md bg-background"
                 value={formData.essayType}
                 onChange={(e) => updateField('essayType', e.target.value)}
               >
@@ -185,7 +341,7 @@ export function EssaySubmissionWizard() {
               <Label htmlFor="prompt">Essay Prompt *</Label>
               <textarea
                 id="prompt"
-                className="w-full mt-1 px-3 py-2 border rounded-md min-h-[100px]"
+                className="w-full mt-1 px-3 py-2 border rounded-md min-h-[100px] bg-background"
                 placeholder="Paste your essay prompt here. Example: 'The lessons we take from obstacles we encounter can be fundamental to later success...'"
                 value={formData.prompt}
                 onChange={(e) => updateField('prompt', e.target.value)}
@@ -220,7 +376,7 @@ export function EssaySubmissionWizard() {
               <Label htmlFor="content">Essay Content *</Label>
               <textarea
                 id="content"
-                className="w-full mt-1 px-3 py-2 border rounded-md min-h-[200px] sm:min-h-[400px] font-serif"
+                className="w-full mt-1 px-3 py-2 border rounded-md min-h-[200px] sm:min-h-[400px] font-serif bg-background"
                 placeholder="Start typing or paste your essay here..."
                 value={formData.content}
                 onChange={handleContentChange}
@@ -250,101 +406,117 @@ export function EssaySubmissionWizard() {
                 className="flex-1"
                 disabled={!canProceed()}
               >
-                Next: Choose Package
+                Next: Personalize Feedback
               </Button>
             </div>
           </CardContent>
         </Card>
       )}
 
-      {/* Step 3: Package Selection */}
+      {/* Step 3: Quick Intake Form */}
       {step === 3 && (
+        <div className="space-y-4">
+          <Button
+            onClick={() => setStep(2)}
+            variant="ghost"
+            className="mb-2"
+          >
+            ← Back to essay
+          </Button>
+
+          <QuickIntakeForm
+            initialData={{
+              targetSchool: formData.targetSchool,
+              essayType: formData.essayType.toLowerCase(),
+              wordLimit: formData.wordLimit,
+            }}
+            targetSchool={formData.targetSchool || undefined}
+            onComplete={handleIntakeComplete}
+            onSkip={handleIntakeSkip}
+          />
+        </div>
+      )}
+
+      {/* Step 4: Package Selection */}
+      {step === 4 && (
         <Card>
           <CardHeader>
-            <CardTitle>Choose your package</CardTitle>
+            <CardTitle>Choose your analysis</CardTitle>
             <CardDescription>
-              Pay now, get instant AI feedback in ~1 minute
+              Your feedback will be personalized based on your spike & activities
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            {/* AI Lite */}
-            <div
-              className={`border-2 rounded-lg p-4 cursor-pointer transition-all ${
-                formData.package === 'AI_LITE' ? 'border-brand-500 bg-brand-50 dark:bg-brand-900/20' : 'border-neutral-200 dark:border-neutral-700'
-              }`}
-              onClick={() => updateField('package', 'AI_LITE')}
-            >
-              <div className="flex flex-col sm:flex-row justify-between items-start gap-4">
-                <div>
-                  <h3 className="font-semibold text-lg">AI Lite</h3>
-                  <p className="text-sm text-neutral-600 dark:text-neutral-400">Fast feedback in ~30 seconds</p>
-                  <ul className="mt-2 text-sm space-y-1 text-neutral-700 dark:text-neutral-300">
-                    <li>✓ Commons Check flags</li>
-                    <li>✓ Basic rubric scores (0-100)</li>
-                    <li>✓ Top 5 improvement suggestions</li>
-                  </ul>
+            {/* Tier Options */}
+            <div className="grid gap-4">
+              {TIER_OPTIONS.map((tier) => (
+                <div
+                  key={tier.id}
+                  className={`relative border-2 rounded-lg p-4 cursor-pointer transition-all ${
+                    formData.tier === tier.id
+                      ? 'border-brand-500 bg-brand-50 dark:bg-brand-900/20'
+                      : 'border-neutral-200 dark:border-neutral-700 hover:border-neutral-300'
+                  }`}
+                  onClick={() => updateField('tier', tier.id)}
+                >
+                  {tier.badge && (
+                    <Badge
+                      className={`absolute -top-2 right-4 ${
+                        tier.popular ? 'bg-brand-600' : 'bg-accent-600'
+                      }`}
+                    >
+                      {tier.badge}
+                    </Badge>
+                  )}
+
+                  <div className="flex flex-col sm:flex-row justify-between items-start gap-4">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2 mb-1">
+                        <div className={`p-1.5 rounded-lg ${
+                          formData.tier === tier.id
+                            ? 'bg-brand-100 text-brand-600'
+                            : 'bg-neutral-100 text-neutral-600'
+                        }`}>
+                          {tier.icon}
+                        </div>
+                        <h3 className="font-semibold text-lg">{tier.name}</h3>
+                      </div>
+                      <p className="text-sm text-neutral-600 dark:text-neutral-400 mb-2">
+                        {tier.description}
+                      </p>
+                      <ul className="text-sm space-y-1 text-neutral-700 dark:text-neutral-300">
+                        {tier.features.map((feature, i) => (
+                          <li key={i} className="flex items-start gap-2">
+                            <Check className="w-4 h-4 text-brand-500 mt-0.5 flex-shrink-0" />
+                            {feature}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                    <div className="text-right">
+                      <div className="text-2xl font-bold">
+                        ${tier.price < 10 ? tier.price.toFixed(2) : tier.price}
+                      </div>
+                      <div className="text-xs text-neutral-500">one-time</div>
+                    </div>
+                  </div>
                 </div>
-                <div className="text-right">
-                  <div className="text-2xl font-bold">$9</div>
-                  <div className="text-xs text-neutral-500">one-time</div>
-                </div>
-              </div>
+              ))}
             </div>
 
-            {/* AI Pro */}
-            <div
-              className={`border-2 rounded-lg p-4 cursor-pointer transition-all ${
-                formData.package === 'AI_PRO_SINGLE' ? 'border-brand-500 bg-brand-50 dark:bg-brand-900/20' : 'border-neutral-200 dark:border-neutral-700'
-              }`}
-              onClick={() => updateField('package', 'AI_PRO_SINGLE')}
-            >
-              <div className="flex flex-col sm:flex-row justify-between items-start gap-4">
-                <div>
-                  <h3 className="font-semibold text-lg">AI Pro</h3>
-                  <p className="text-sm text-neutral-600 dark:text-neutral-400">Comprehensive analysis in ~1 minute</p>
-                  <ul className="mt-2 text-sm space-y-1 text-neutral-700 dark:text-neutral-300">
-                    <li>✓ Everything in AI Lite</li>
-                    <li>✓ Full 7-dimension rubric breakdown</li>
-                    <li>✓ Paragraph rewrites with voice notes</li>
-                    <li>✓ School-fit analysis</li>
-                    <li>✓ Tone preservation check</li>
-                  </ul>
-                </div>
-                <div className="text-right">
-                  <div className="text-2xl font-bold">$29</div>
-                  <div className="text-xs text-neutral-500">one-time</div>
-                </div>
+            {/* Personalization indicator */}
+            {formData.intake?.spike && (
+              <div className="p-3 bg-brand-50 border border-brand-100 rounded-lg">
+                <p className="text-sm text-brand-800">
+                  <Sparkles className="w-4 h-4 inline mr-1" />
+                  <strong>Personalized for:</strong> "{formData.intake.spike.slice(0, 60)}..."
+                </p>
               </div>
-            </div>
-
-            {/* Human Review */}
-            <div
-              className={`border-2 rounded-lg p-4 cursor-pointer transition-all ${
-                formData.package === 'HUMAN_LITE' ? 'border-accent-500 bg-accent-50 dark:bg-accent-900/20' : 'border-neutral-200 dark:border-neutral-700'
-              }`}
-              onClick={() => updateField('package', 'HUMAN_LITE')}
-            >
-              <div className="flex flex-col sm:flex-row justify-between items-start gap-4">
-                <div>
-                  <h3 className="font-semibold text-lg">Human Review</h3>
-                  <p className="text-sm text-neutral-600 dark:text-neutral-400">AI analysis + expert human editor</p>
-                  <ul className="mt-2 text-sm space-y-1 text-neutral-700 dark:text-neutral-300">
-                    <li>✓ Instant AI Pro analysis first</li>
-                    <li>✓ Professional editor review (48h)</li>
-                    <li>✓ Detailed margin comments</li>
-                    <li>✓ Written summary & recommendations</li>
-                  </ul>
-                </div>
-                <div className="text-right">
-                  <div className="text-2xl font-bold">$79</div>
-                  <div className="text-xs text-neutral-500">48h delivery</div>
-                </div>
-              </div>
-            </div>
+            )}
 
             <div className="flex flex-col sm:flex-row gap-2">
               <Button
-                onClick={() => setStep(2)}
+                onClick={() => setStep(3)}
                 variant="outline"
                 className="flex-1"
               >
@@ -355,7 +527,9 @@ export function EssaySubmissionWizard() {
                 className="flex-1"
                 disabled={isSubmitting}
               >
-                {isSubmitting ? 'Processing...' : 'Continue to Payment'}
+                {isSubmitting ? 'Processing...' : `Continue to Payment - $${
+                  TIER_OPTIONS.find(t => t.id === formData.tier)?.price || 39
+                }`}
               </Button>
             </div>
 

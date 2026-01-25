@@ -24,6 +24,13 @@ import {
   GraduationCap,
 } from 'lucide-react';
 import { ReferralCard } from '@/components/referral/referral-card';
+import {
+  getEssayStatusConfig,
+  getAnalysisSessionStatus,
+  getTierDisplayName,
+  getResultsUrl,
+  ESSAY_STATUS_CONFIG,
+} from '@/lib/utils/status';
 
 async function getEssays(userId: string) {
   return await prisma.essay.findMany({
@@ -52,30 +59,29 @@ async function getEssays(userId: string) {
   });
 }
 
-function getEssayStatus(essay: any) {
+/**
+ * Derive essay status from essay data using shared status config
+ * Returns config with `variant` alias for Badge component compatibility
+ */
+function deriveEssayStatus(essay: any) {
   const latestVersion = essay.versions[0];
   const latestOrder = essay.orders[0];
   const latestReview = latestVersion?.reviews[0];
 
+  const mapConfig = (status: string, config: ReturnType<typeof getEssayStatusConfig>) => ({
+    status,
+    ...config,
+    variant: config.badgeVariant, // Alias for Badge component
+  });
+
   // Check payment status
   if (!latestOrder || latestOrder.status !== 'PAID') {
-    return {
-      status: 'PAYMENT_PENDING',
-      label: 'Payment Required',
-      icon: Clock,
-      variant: 'warning' as const,
-    };
+    return mapConfig('PAYMENT_PENDING', getEssayStatusConfig('PAYMENT_PENDING'));
   }
 
   // Check if AI analysis is complete
   if (!latestVersion?.analyses[0]) {
-    return {
-      status: 'AI_ANALYZING',
-      label: 'AI Analyzing...',
-      icon: Loader2,
-      variant: 'info' as const,
-      animate: true,
-    };
+    return mapConfig('AI_ANALYZING', getEssayStatusConfig('AI_ANALYZING'));
   }
 
   // Check if human review is needed
@@ -83,41 +89,26 @@ function getEssayStatus(essay: any) {
 
   if (needsHumanReview) {
     if (!latestReview) {
-      return {
-        status: 'AWAITING_ASSIGNMENT',
-        label: 'Awaiting Reviewer',
-        icon: Clock,
-        variant: 'default' as const,
-      };
+      return mapConfig('AWAITING_ASSIGNMENT', getEssayStatusConfig('AWAITING_ASSIGNMENT'));
     }
-
     if (latestReview.status === 'ASSIGNED' || latestReview.status === 'IN_PROGRESS') {
-      return {
-        status: 'IN_HUMAN_REVIEW',
-        label: 'Under Review',
-        icon: Loader2,
-        variant: 'default' as const,
-        animate: true,
-      };
+      return mapConfig('IN_HUMAN_REVIEW', getEssayStatusConfig('IN_HUMAN_REVIEW'));
     }
-
     if (latestReview.status === 'DELIVERED') {
-      return {
-        status: 'REVIEW_COMPLETE',
-        label: 'Complete',
-        icon: CheckCircle2,
-        variant: 'success' as const,
-      };
+      return mapConfig('REVIEW_COMPLETE', getEssayStatusConfig('REVIEW_COMPLETE'));
     }
   }
 
   // AI-only packages - complete once analysis is done
-  return {
-    status: 'AI_COMPLETE',
-    label: 'Complete',
-    icon: CheckCircle2,
-    variant: 'success' as const,
-  };
+  return mapConfig('AI_COMPLETE', getEssayStatusConfig('AI_COMPLETE'));
+}
+
+async function getAnalysisSessions(userId: string) {
+  return await prisma.analysisSession.findMany({
+    where: { userId },
+    orderBy: { createdAt: 'desc' },
+    take: 10,
+  });
 }
 
 async function getQASessions(userId: string) {
@@ -170,6 +161,7 @@ export default async function DashboardPage() {
 
   const essays = await getEssays(user.id);
   const qaSessions = await getQASessions(user.id);
+  const analysisSessions = await getAnalysisSessions(user.id);
 
   return (
     <div className="min-h-screen bg-background">
@@ -273,6 +265,113 @@ export default async function DashboardPage() {
           </div>
         )}
 
+        {/* Analysis Sessions (New Tiered Flow) */}
+        {analysisSessions.length > 0 && (
+          <div className="mb-10">
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-2">
+                <Badge variant="default" size="lg">
+                  <Sparkles className="w-3.5 h-3.5" />
+                  Recent Analyses
+                </Badge>
+              </div>
+              <Link href="/dashboard/new">
+                <Button variant="outline" size="sm">
+                  <Plus className="w-4 h-4" />
+                  New Analysis
+                </Button>
+              </Link>
+            </div>
+            <div className="grid gap-4">
+              {analysisSessions.map((session) => {
+                const statusInfo = getAnalysisSessionStatus(session.status);
+                const StatusIcon = statusInfo.icon;
+                const resultsUrl = getResultsUrl(session.id, session.tier);
+
+                return (
+                  <Card key={session.id} variant="interactive">
+                    <CardHeader className="pb-3">
+                      <div className="flex justify-between items-start gap-4">
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-3 mb-1">
+                            <CardTitle className="text-lg truncate">
+                              {getTierDisplayName(session.tier)}
+                            </CardTitle>
+                            {session.targetSchool && (
+                              <Badge variant="secondary" size="sm">
+                                {session.targetSchool}
+                              </Badge>
+                            )}
+                          </div>
+                          <CardDescription className="line-clamp-1">
+                            {session.essayType?.replace(/_/g, ' ') || 'Essay Analysis'}
+                            {' · '}
+                            {new Date(session.createdAt).toLocaleDateString()}
+                          </CardDescription>
+                        </div>
+                        <Badge variant={statusInfo.badgeVariant}>
+                          <StatusIcon
+                            className={`w-3 h-3 ${statusInfo.animate ? 'animate-spin' : ''}`}
+                          />
+                          {statusInfo.label}
+                        </Badge>
+                      </div>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                        <div className="flex items-center gap-3 sm:gap-6 text-sm">
+                          {session.aiScore !== null && (
+                            <div className="flex items-center gap-3">
+                              <div className="w-20 sm:w-24">
+                                <Progress value={session.aiScore} size="sm" />
+                              </div>
+                              <span className="text-sm font-semibold text-neutral-900">
+                                {Math.round(session.aiScore)}/100
+                              </span>
+                            </div>
+                          )}
+                          {session.paidAmount && (
+                            <span className="text-neutral-500">
+                              ${(session.paidAmount / 100).toFixed(2)}
+                            </span>
+                          )}
+                        </div>
+
+                        {session.status === 'COMPLETED' || session.status === 'AI_COMPLETE' ? (
+                          <Link href={resultsUrl} className="w-full sm:w-auto">
+                            <Button variant="outline" size="sm" className="w-full sm:w-auto">
+                              View Results
+                              <ArrowRight className="w-4 h-4" />
+                            </Button>
+                          </Link>
+                        ) : session.status === 'ANALYZING' ? (
+                          <Link href={resultsUrl} className="w-full sm:w-auto">
+                            <Button variant="outline" size="sm" className="w-full sm:w-auto">
+                              Check Progress
+                              <ArrowRight className="w-4 h-4" />
+                            </Button>
+                          </Link>
+                        ) : session.status === 'PENDING' ? (
+                          <Button variant="premium" size="sm" disabled className="w-full sm:w-auto">
+                            Awaiting Payment
+                          </Button>
+                        ) : (
+                          <Link href={resultsUrl} className="w-full sm:w-auto">
+                            <Button variant="outline" size="sm" className="w-full sm:w-auto">
+                              View Details
+                              <ArrowRight className="w-4 h-4" />
+                            </Button>
+                          </Link>
+                        )}
+                      </div>
+                    </CardContent>
+                  </Card>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
         {/* Essays Header */}
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6 sm:mb-8">
           <div>
@@ -338,7 +437,7 @@ export default async function DashboardPage() {
         ) : (
           <div className="space-y-4">
             {essays.map((essay) => {
-              const status = getEssayStatus(essay);
+              const status = deriveEssayStatus(essay);
               const StatusIcon = status.icon;
               const latestVersion = essay.versions[0];
               const latestAnalysis = latestVersion?.analyses[0];

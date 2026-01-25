@@ -1,15 +1,24 @@
 'use client';
 
+/**
+ * Analysis Results Page
+ *
+ * Displays results for Quick, Standard, and Premium tier analyses.
+ * For Ivy-specific analyses, users are redirected to /ivy/results/[sessionId].
+ */
+
 import { useEffect, useState } from 'react';
-import { useParams, useSearchParams } from 'next/navigation';
+import { useParams, useSearchParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { IvyAnalysisDisplay } from '@/components/ivy/ivy-analysis-display';
+import { AnalysisResults } from '@/components/analysis/analysis-results';
 import { PostPurchaseUpsell } from '@/components/ivy/post-purchase-upsell';
-import type { IvyAnalysisResult } from '@/lib/scoring/tiers/ivy-analysis';
+import type { QuickAnalysisResult, StandardAnalysisResult, PremiumAnalysisResult } from '@/lib/scoring/tiers/types';
 import type { AllTiers } from '@/lib/pricing';
+
+// Local type that includes legacy 'standard' for backwards compatibility
+type ResultTier = AllTiers | 'standard';
 import {
   PenTool,
   ArrowLeft,
@@ -22,28 +31,23 @@ import {
 } from 'lucide-react';
 
 type SessionStatus = 'loading' | 'analyzing' | 'complete' | 'error';
+type AnalysisResult = QuickAnalysisResult | StandardAnalysisResult | PremiumAnalysisResult;
 
-interface AnalysisProgress {
-  stage: string;
-  schoolsComplete: number;
-  totalSchools: number;
-  currentSchool?: string;
-}
-
-export default function IvyResultsPage() {
+export default function AnalysisResultsPage() {
   const params = useParams();
   const searchParams = useSearchParams();
+  const router = useRouter();
   const sessionId = params.sessionId as string;
 
   const [status, setStatus] = useState<SessionStatus>('loading');
-  const [result, setResult] = useState<IvyAnalysisResult | null>(null);
-  const [progress, setProgress] = useState<AnalysisProgress | null>(null);
+  const [result, setResult] = useState<AnalysisResult | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [currentTier, setCurrentTier] = useState<AllTiers>('quick');
+  const [currentTier, setCurrentTier] = useState<ResultTier>('quick');
   const [showUpsell, setShowUpsell] = useState(false);
   const [justPaid, setJustPaid] = useState(false);
+  const [targetSchool, setTargetSchool] = useState<string | null>(null);
 
-  // Check for payment/upgrade success
+  // Check for payment success
   useEffect(() => {
     const paymentStatus = searchParams.get('payment');
     const upgradeStatus = searchParams.get('upgrade');
@@ -52,14 +56,15 @@ export default function IvyResultsPage() {
     if (paymentStatus === 'success' || upgradeStatus === 'success') {
       setJustPaid(true);
       setShowUpsell(true);
-      if (newTier && ['quick', 'standard', 'premium', 'ivy_single', 'ivy_bundle_3', 'ivy_bundle_8'].includes(newTier)) {
-        setCurrentTier(newTier as AllTiers);
+      if (newTier && ['quick', 'standard', 'premium', 'ivy_single', 'ivy_bundle_3'].includes(newTier)) {
+        setCurrentTier(newTier as ResultTier);
       }
       // Auto-hide success banner after 5 seconds
       setTimeout(() => setJustPaid(false), 5000);
     }
   }, [searchParams]);
 
+  // Fetch session data
   useEffect(() => {
     let pollInterval: NodeJS.Timeout;
 
@@ -74,29 +79,49 @@ export default function IvyResultsPage() {
           return;
         }
 
+        // Redirect Ivy tiers to the Ivy results page
+        if (data.tier?.startsWith('ivy_')) {
+          router.replace(`/ivy/results/${sessionId}`);
+          return;
+        }
+
+        // Set school name for display
+        if (data.targetSchool) {
+          setTargetSchool(data.targetSchool);
+        }
+
         if (data.status === 'COMPLETED' && data.result) {
           setResult(data.result);
           setStatus('complete');
-          // Set tier from session data
           if (data.tier) {
-            setCurrentTier(data.tier as AllTiers);
+            setCurrentTier(data.tier as ResultTier);
           }
           if (pollInterval) clearInterval(pollInterval);
-        } else if (data.status === 'ANALYZING') {
+        } else if (data.status === 'ANALYZING' || data.status === 'AI_COMPLETE') {
           setStatus('analyzing');
-          setProgress(data.progress);
         } else if (data.status === 'FAILED') {
           setError(data.error || 'Analysis failed');
           setStatus('error');
           if (pollInterval) clearInterval(pollInterval);
         } else if (data.status === 'PENDING') {
-          // Still waiting for payment confirmation or analysis to start
-          setStatus('loading');
+          // Trigger analysis run after payment
+          await triggerAnalysis();
+          setStatus('analyzing');
         }
       } catch (err) {
         console.error('Fetch error:', err);
         setError('Failed to connect to server');
         setStatus('error');
+      }
+    };
+
+    const triggerAnalysis = async () => {
+      try {
+        await fetch(`/api/tiered-analysis/${sessionId}/run`, {
+          method: 'POST',
+        });
+      } catch (err) {
+        console.error('Failed to trigger analysis:', err);
       }
     };
 
@@ -112,29 +137,26 @@ export default function IvyResultsPage() {
     return () => {
       if (pollInterval) clearInterval(pollInterval);
     };
-  }, [sessionId, status]);
+  }, [sessionId, status, router]);
 
-  const handleRewrite = async (schoolId: string, essayIndex: number, goals: string[]) => {
+  const handleUpgrade = async (tier: 'standard' | 'premium' | 'ivy_single' | 'ivy_bundle_3') => {
     try {
-      const response = await fetch('/api/ivy/rewrite', {
+      const response = await fetch('/api/tiered-analysis/upgrade', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           sessionId,
-          schoolId,
-          essayIndex,
-          goals,
+          fromTier: currentTier,
+          toTier: tier,
         }),
       });
 
       if (response.ok) {
-        // Could open a modal with the rewritten essay
-        const data = await response.json();
-        alert('Rewrite generated! Check the console for now.');
-        console.log('Rewrite result:', data);
+        const { checkoutUrl } = await response.json();
+        window.location.href = checkoutUrl;
       }
     } catch (err) {
-      console.error('Rewrite error:', err);
+      console.error('Upgrade error:', err);
     }
   };
 
@@ -170,7 +192,7 @@ export default function IvyResultsPage() {
         )}
 
         {/* Analyzing State */}
-        {status === 'analyzing' && progress && (
+        {status === 'analyzing' && (
           <div className="max-w-xl mx-auto">
             <Card>
               <CardContent className="py-12 text-center">
@@ -178,26 +200,15 @@ export default function IvyResultsPage() {
                   <Loader2 className="w-8 h-8 text-brand-600 animate-spin" />
                 </div>
                 <h2 className="text-2xl font-bold text-neutral-900 mb-2">
-                  Analyzing Your Essays
+                  Analyzing Your Essay
                 </h2>
-                <p className="text-neutral-600 mb-6">
-                  {progress.currentSchool
-                    ? `Currently analyzing: ${progress.currentSchool}`
-                    : progress.stage}
+                <p className="text-neutral-600 mb-4">
+                  {targetSchool
+                    ? `We're reviewing your essay for ${targetSchool}...`
+                    : "We're reviewing your essay..."}
                 </p>
-                <div className="flex items-center justify-center gap-2 mb-4">
-                  <Badge variant="default">
-                    {progress.schoolsComplete} of {progress.totalSchools} schools complete
-                  </Badge>
-                </div>
-                <div className="w-full bg-neutral-200 rounded-full h-2">
-                  <div
-                    className="bg-brand-600 h-2 rounded-full transition-all duration-500"
-                    style={{ width: `${(progress.schoolsComplete / progress.totalSchools) * 100}%` }}
-                  />
-                </div>
-                <p className="text-sm text-neutral-500 mt-6">
-                  This usually takes 1-2 minutes per school. Please don&apos;t close this page.
+                <p className="text-sm text-neutral-500">
+                  This usually takes 30-60 seconds. Please don&apos;t close this page.
                 </p>
               </CardContent>
             </Card>
@@ -242,18 +253,19 @@ export default function IvyResultsPage() {
                     <CheckCircle2 className="w-5 h-5 text-green-600" />
                     <div>
                       <p className="font-medium text-green-800">Payment successful!</p>
-                      <p className="text-sm text-green-600">Your full analysis is now unlocked.</p>
+                      <p className="text-sm text-green-600">Your analysis is ready below.</p>
                     </div>
                   </div>
                 </CardContent>
               </Card>
             )}
 
-            {/* Post-Purchase Upsell */}
-            {showUpsell && currentTier !== 'premium' && (
+            {/* Post-Purchase Upsell (only for quick tier) */}
+            {showUpsell && currentTier === 'quick' && (
               <PostPurchaseUpsell
                 currentTier={currentTier}
                 sessionId={sessionId}
+                schoolName={targetSchool || undefined}
                 onDismiss={() => setShowUpsell(false)}
                 onUpgrade={(tier) => setCurrentTier(tier)}
               />
@@ -262,16 +274,20 @@ export default function IvyResultsPage() {
             {/* Actions Bar */}
             <div className="flex justify-between items-center">
               <div>
-                <h1 className="text-2xl font-bold text-neutral-900">Analysis Complete</h1>
+                <h1 className="text-2xl font-bold text-neutral-900">
+                  {targetSchool ? `${targetSchool} Essay Analysis` : 'Essay Analysis'}
+                </h1>
                 <p className="text-neutral-600">
-                  Review your detailed feedback below
+                  {currentTier === 'quick' && 'Quick feedback - upgrade for full analysis'}
+                  {currentTier === 'standard' && 'Full analysis with school-specific insights'}
+                  {currentTier === 'premium' && 'Premium analysis with expert review'}
                 </p>
               </div>
               <div className="flex gap-2">
-                <Link href="/ivy">
+                <Link href="/dashboard/new">
                   <Button size="sm">
                     <Plus className="w-4 h-4" />
-                    New Ivy Analysis
+                    New Essay
                   </Button>
                 </Link>
                 <Button variant="outline" size="sm">
@@ -286,9 +302,9 @@ export default function IvyResultsPage() {
             </div>
 
             {/* Analysis Display */}
-            <IvyAnalysisDisplay
+            <AnalysisResults
               result={result}
-              onRequestRewrite={handleRewrite}
+              onUpgrade={handleUpgrade}
             />
           </div>
         )}
