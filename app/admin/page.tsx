@@ -5,13 +5,14 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
-import { Clock, CheckCircle2, AlertCircle, Loader2, Users, Sparkles, ArrowRight } from 'lucide-react';
+import { Clock, CheckCircle2, AlertCircle, Loader2, Users, Sparkles, ArrowRight, UserCheck, FileText } from 'lucide-react';
 import {
   getAnalysisSessionStatus,
-  getReviewStatus,
+  getReviewAssignmentStatus,
   getTierDisplayName,
   getResultsUrl,
 } from '@/lib/utils/status';
+import { HumanReviewQueue } from '@/components/admin/human-review-queue';
 
 async function getReviews() {
   return await prisma.review.findMany({
@@ -90,6 +91,73 @@ async function getAnalysisStats() {
   return { pending, analyzing, humanQueued, humanInProgress, completed, failed };
 }
 
+/**
+ * Get human review assignments for admin queue management
+ */
+async function getHumanReviewAssignments() {
+  return await prisma.humanReviewAssignment.findMany({
+    where: {
+      status: {
+        in: ['QUEUED', 'ASSIGNED', 'IN_PROGRESS', 'OVERDUE'],
+      },
+    },
+    include: {
+      reviewer: {
+        select: {
+          id: true,
+          name: true,
+          email: true,
+          credentials: true,
+        },
+      },
+    },
+    orderBy: [
+      { status: 'asc' },
+      { dueAt: 'asc' },
+    ],
+    take: 20,
+  });
+}
+
+/**
+ * Get human review assignment stats
+ */
+async function getHumanReviewStats() {
+  const [queued, assigned, inProgress, completed, overdue] = await Promise.all([
+    prisma.humanReviewAssignment.count({ where: { status: 'QUEUED' } }),
+    prisma.humanReviewAssignment.count({ where: { status: 'ASSIGNED' } }),
+    prisma.humanReviewAssignment.count({ where: { status: 'IN_PROGRESS' } }),
+    prisma.humanReviewAssignment.count({ where: { status: 'COMPLETED' } }),
+    prisma.humanReviewAssignment.count({ where: { status: 'OVERDUE' } }),
+  ]);
+
+  return { queued, assigned, inProgress, completed, overdue };
+}
+
+/**
+ * Get available reviewers for assignment dropdown
+ */
+async function getAvailableReviewers() {
+  return await prisma.humanReviewer.findMany({
+    where: { isActive: true },
+    select: {
+      id: true,
+      name: true,
+      email: true,
+      credentials: true,
+      maxActiveReviews: true,
+      _count: {
+        select: {
+          assignments: {
+            where: { status: { in: ['ASSIGNED', 'IN_PROGRESS'] } },
+          },
+        },
+      },
+    },
+    orderBy: { name: 'asc' },
+  });
+}
+
 export default async function AdminDashboard() {
   const supabase = await createClient();
   const { data: { user }, error } = await supabase.auth.getUser();
@@ -107,10 +175,13 @@ export default async function AdminDashboard() {
     redirect('/dashboard');
   }
 
-  const [reviews, analysisSessions, analysisStats] = await Promise.all([
+  const [reviews, analysisSessions, analysisStats, humanReviewAssignments, humanReviewStats, availableReviewers] = await Promise.all([
     getReviews(),
     getAnalysisSessions(),
     getAnalysisStats(),
+    getHumanReviewAssignments(),
+    getHumanReviewStats(),
+    getAvailableReviewers(),
   ]);
 
   const reviewStats = {
@@ -259,6 +330,89 @@ export default async function AdminDashboard() {
               })}
             </div>
           )}
+        </div>
+
+        {/* Human Review Assignments (Premium Tier) */}
+        <div className="mb-10">
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-2">
+              <UserCheck className="w-5 h-5 text-pink-600" />
+              <h2 className="text-2xl font-bold text-neutral-900 dark:text-neutral-100">Expert Review Queue</h2>
+            </div>
+            <Link href="/admin/reviewers">
+              <Button variant="outline" size="sm">
+                Manage Reviewers
+              </Button>
+            </Link>
+          </div>
+
+          {/* Human Review Stats */}
+          <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-6">
+            <Card className={humanReviewStats.queued > 0 ? 'border-2 border-warning-500' : ''}>
+              <CardHeader className="pb-2">
+                <CardDescription>Queued</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold text-warning-600">{humanReviewStats.queued}</div>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader className="pb-2">
+                <CardDescription>Assigned</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold text-blue-600">{humanReviewStats.assigned}</div>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader className="pb-2">
+                <CardDescription>In Progress</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold text-purple-600">{humanReviewStats.inProgress}</div>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader className="pb-2">
+                <CardDescription>Completed</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold text-success-600">{humanReviewStats.completed}</div>
+              </CardContent>
+            </Card>
+            <Card className={humanReviewStats.overdue > 0 ? 'border-2 border-error-500' : ''}>
+              <CardHeader className="pb-2">
+                <CardDescription>Overdue</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold text-error-600">{humanReviewStats.overdue}</div>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Human Review Assignment Queue */}
+          <HumanReviewQueue
+            assignments={humanReviewAssignments.map(a => ({
+              id: a.id,
+              status: a.status,
+              studentEmail: a.studentEmail,
+              targetSchool: a.targetSchool,
+              essayType: a.essayType,
+              dueAt: a.dueAt.toISOString(),
+              assignedAt: a.assignedAt?.toISOString() || null,
+              createdAt: a.createdAt.toISOString(),
+              isOverdue: a.dueAt < new Date() && a.status !== 'COMPLETED',
+              reviewer: a.reviewer,
+            }))}
+            reviewers={availableReviewers.map(r => ({
+              id: r.id,
+              name: r.name,
+              email: r.email,
+              credentials: r.credentials,
+              activeCount: r._count.assignments,
+              maxActive: r.maxActiveReviews,
+            }))}
+          />
         </div>
 
         {/* Legacy Review Queue */}
