@@ -129,24 +129,32 @@ export async function setConfigOverride(
   value: unknown,
   updatedBy?: string
 ): Promise<void> {
-  // Import prisma lazily to avoid circular deps
-  const { prisma } = await import('@/lib/db');
+  try {
+    // Import prisma lazily to avoid circular deps
+    const { prisma } = await import('@/lib/db');
 
-  await prisma.configOverride.upsert({
-    where: { key: path },
-    update: {
-      value: value as any,
-      updatedBy,
-    },
-    create: {
-      key: path,
-      value: value as any,
-      updatedBy,
-    },
-  });
+    // Cast to JSON-compatible type for Prisma
+    const jsonValue = JSON.parse(JSON.stringify(value));
 
-  // Invalidate cache
-  refreshConfig();
+    await prisma.configOverride.upsert({
+      where: { key: path },
+      update: {
+        value: jsonValue,
+        updatedBy,
+      },
+      create: {
+        key: path,
+        value: jsonValue,
+        updatedBy,
+      },
+    });
+
+    // Invalidate cache
+    refreshConfig();
+  } catch (error) {
+    console.error('[CONFIG] Failed to set config override:', error);
+    throw new Error(`Failed to set config override for path: ${path}`);
+  }
 }
 
 /**

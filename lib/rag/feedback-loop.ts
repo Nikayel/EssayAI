@@ -22,87 +22,92 @@ import type {
 export async function storeAnalysisHistory(
   entry: AnalysisHistoryEntry
 ): Promise<string> {
-  // Get previous version's score if exists
-  let previousVersionScore: number | undefined;
-  let scoreDelta: number | undefined;
+  try {
+    // Get previous version's score if exists
+    let previousVersionScore: number | undefined;
+    let scoreDelta: number | undefined;
 
-  if (entry.essayVersionId) {
-    // Find the essay and check for previous versions
-    const currentVersion = await prisma.essayVersion.findUnique({
-      where: { id: entry.essayVersionId },
-      include: {
-        essay: {
-          include: {
-            versions: {
-              orderBy: { versionIndex: 'desc' },
-              take: 2,
-              include: {
-                analysisHistory: {
-                  orderBy: { createdAt: 'desc' },
-                  take: 1,
+    if (entry.essayVersionId) {
+      // Find the essay and check for previous versions
+      const currentVersion = await prisma.essayVersion.findUnique({
+        where: { id: entry.essayVersionId },
+        include: {
+          essay: {
+            include: {
+              versions: {
+                orderBy: { versionIndex: 'desc' },
+                take: 2,
+                include: {
+                  analysisHistory: {
+                    orderBy: { createdAt: 'desc' },
+                    take: 1,
+                  },
                 },
               },
             },
           },
         },
+      });
+
+      if (currentVersion?.essay?.versions) {
+        // Get the version before current
+        const previousVersion = currentVersion.essay.versions.find(
+          v => v.versionIndex < currentVersion.versionIndex
+        );
+
+        if (previousVersion?.analysisHistory?.[0]) {
+          previousVersionScore = previousVersion.analysisHistory[0].overallScore;
+          scoreDelta = entry.overallScore - previousVersionScore;
+        }
+      }
+    }
+
+    // Generate embedding for the essay if not provided
+    let essayEmbedding = entry.essayEmbedding;
+    if (!essayEmbedding && entry.essayVersionId) {
+      try {
+        const version = await prisma.essayVersion.findUnique({
+          where: { id: entry.essayVersionId },
+          select: { content: true },
+        });
+        if (version?.content) {
+          const result = await generateEmbedding(version.content, 'essay');
+          essayEmbedding = result.embedding;
+        }
+      } catch (error) {
+        console.error('[RAG] Failed to generate embedding for analysis history:', error);
+      }
+    }
+
+    // Store the analysis
+    const history = await prisma.analysisHistory.create({
+      data: {
+        essayVersionId: entry.essayVersionId,
+        userId: entry.userId,
+        schoolId: entry.schoolId || null,
+        essayType: entry.essayType,
+        overallScore: entry.overallScore,
+        dimensionScores: entry.dimensionScores,
+        issuesIdentified: entry.issuesIdentified,
+        patternsMatched: entry.patternsMatched,
+        suggestionsGiven: entry.suggestionsGiven || Prisma.DbNull,
+        previousVersionScore: previousVersionScore ?? entry.previousVersionScore ?? null,
+        scoreDelta: scoreDelta ?? entry.scoreDelta ?? null,
+        essayEmbedding: essayEmbedding || Prisma.DbNull,
+        ragContextUsed: entry.ragContextUsed || Prisma.DbNull,
       },
     });
 
-    if (currentVersion?.essay?.versions) {
-      // Get the version before current
-      const previousVersion = currentVersion.essay.versions.find(
-        v => v.versionIndex < currentVersion.versionIndex
-      );
-
-      if (previousVersion?.analysisHistory?.[0]) {
-        previousVersionScore = previousVersion.analysisHistory[0].overallScore;
-        scoreDelta = entry.overallScore - previousVersionScore;
-      }
+    // Update pattern frequencies if patterns were matched
+    if (entry.patternsMatched && entry.patternsMatched.length > 0) {
+      await updatePatternFrequencies(entry.patternsMatched);
     }
+
+    return history.id;
+  } catch (error) {
+    console.error('[RAG] Failed to store analysis history:', error);
+    throw new Error('Failed to store analysis history');
   }
-
-  // Generate embedding for the essay if not provided
-  let essayEmbedding = entry.essayEmbedding;
-  if (!essayEmbedding && entry.essayVersionId) {
-    try {
-      const version = await prisma.essayVersion.findUnique({
-        where: { id: entry.essayVersionId },
-        select: { content: true },
-      });
-      if (version?.content) {
-        const result = await generateEmbedding(version.content, 'essay');
-        essayEmbedding = result.embedding;
-      }
-    } catch (error) {
-      console.error('Failed to generate embedding for analysis history:', error);
-    }
-  }
-
-  // Store the analysis
-  const history = await prisma.analysisHistory.create({
-    data: {
-      essayVersionId: entry.essayVersionId,
-      userId: entry.userId,
-      schoolId: entry.schoolId || null,
-      essayType: entry.essayType,
-      overallScore: entry.overallScore,
-      dimensionScores: entry.dimensionScores,
-      issuesIdentified: entry.issuesIdentified,
-      patternsMatched: entry.patternsMatched,
-      suggestionsGiven: entry.suggestionsGiven || Prisma.DbNull,
-      previousVersionScore: previousVersionScore ?? entry.previousVersionScore ?? null,
-      scoreDelta: scoreDelta ?? entry.scoreDelta ?? null,
-      essayEmbedding: essayEmbedding || Prisma.DbNull,
-      ragContextUsed: entry.ragContextUsed || Prisma.DbNull,
-    },
-  });
-
-  // Update pattern frequencies if patterns were matched
-  if (entry.patternsMatched && entry.patternsMatched.length > 0) {
-    await updatePatternFrequencies(entry.patternsMatched);
-  }
-
-  return history.id;
 }
 
 // =============================================================================
@@ -189,49 +194,54 @@ export async function processVersionImprovement(
   userId: string,
   essayId: string
 ): Promise<void> {
-  // Get all versions with their analyses
-  const essay = await prisma.essay.findUnique({
-    where: { id: essayId },
-    include: {
-      versions: {
-        orderBy: { versionIndex: 'asc' },
-        include: {
-          analysisHistory: {
-            orderBy: { createdAt: 'desc' },
-            take: 1,
+  try {
+    // Get all versions with their analyses
+    const essay = await prisma.essay.findUnique({
+      where: { id: essayId },
+      include: {
+        versions: {
+          orderBy: { versionIndex: 'asc' },
+          include: {
+            analysisHistory: {
+              orderBy: { createdAt: 'desc' },
+              take: 1,
+            },
           },
         },
       },
-    },
-  });
+    });
 
-  if (!essay || essay.versions.length < 2) return;
+    if (!essay || essay.versions.length < 2) return;
 
-  // Compare consecutive versions
-  for (let i = 1; i < essay.versions.length; i++) {
-    const prevVersion = essay.versions[i - 1];
-    const currVersion = essay.versions[i];
+    // Compare consecutive versions
+    for (let i = 1; i < essay.versions.length; i++) {
+      const prevVersion = essay.versions[i - 1];
+      const currVersion = essay.versions[i];
 
-    const prevAnalysis = prevVersion.analysisHistory[0];
-    const currAnalysis = currVersion.analysisHistory[0];
+      const prevAnalysis = prevVersion.analysisHistory[0];
+      const currAnalysis = currVersion.analysisHistory[0];
 
-    if (!prevAnalysis || !currAnalysis) continue;
+      if (!prevAnalysis || !currAnalysis) continue;
 
-    const improvement = currAnalysis.overallScore - prevAnalysis.overallScore;
+      const improvement = currAnalysis.overallScore - prevAnalysis.overallScore;
 
-    // If student improved by at least 5 points
-    if (improvement >= 5 && prevAnalysis.patternsMatched.length > 0) {
-      const updates: PatternUpdateData[] = prevAnalysis.patternsMatched.map(
-        patternId => ({
-          patternId,
-          matched: true,
-          studentImproved: true,
-          scoreImprovement: improvement,
-        })
-      );
+      // If student improved by at least 5 points
+      if (improvement >= 5 && prevAnalysis.patternsMatched.length > 0) {
+        const updates: PatternUpdateData[] = prevAnalysis.patternsMatched.map(
+          patternId => ({
+            patternId,
+            matched: true,
+            studentImproved: true,
+            scoreImprovement: improvement,
+          })
+        );
 
-      await updatePatternSuccess(updates);
+        await updatePatternSuccess(updates);
+      }
     }
+  } catch (error) {
+    console.error('[RAG] Failed to process version improvement:', error);
+    // Don't throw - this is a background operation
   }
 }
 
