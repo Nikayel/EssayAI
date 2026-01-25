@@ -156,6 +156,12 @@ export interface ConfigOverride {
 
 export type AnalysisTier = 'preview' | 'quick' | 'standard' | 'premium';
 
+// Ivy League tiers (separate from standard tiers - portfolio-based analysis)
+export type IvyTier = 'ivy_single' | 'ivy_bundle_3' | 'ivy_bundle_8';
+
+// Combined tier type for checkout/routing
+export type AnyTier = AnalysisTier | IvyTier;
+
 export interface TierFeatures {
   overallScore: boolean;
   dimensionBreakdown: boolean;
@@ -170,10 +176,29 @@ export interface TierFeatures {
   humanTurnaroundHours: number | null;
 }
 
+// Ivy-specific features (portfolio-based)
+export interface IvyTierFeatures extends TierFeatures {
+  schoolsIncluded: number;           // 1, 3, or 8
+  portfolioAnalysis: boolean;        // Multi-essay coherence
+  resumeEssayDetection: boolean;
+  leveragePointsAnalysis: boolean;
+  crossSchoolAnalysis: boolean;      // Only for bundles
+  instantRejectDetection: boolean;
+  committeePitchAssessment: boolean;
+}
+
 export interface TierConfig {
   id: AnalysisTier;
   name: string;
   displayName: string;
   priceInCents: number;
   features: TierFeatures;
+}
+
+export interface IvyTierConfig {
+  id: IvyTier;
+  name: string;
+  displayName: string;
+  priceInCents: number;
+  features: IvyTierFeatures;
 }

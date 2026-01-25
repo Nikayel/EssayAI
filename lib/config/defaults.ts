@@ -16,7 +16,10 @@ import type {
   GuardrailsConfig,
   TierConfig,
   AnalysisTier,
+  IvyTierConfig,
+  IvyTier,
 } from './types';
+import { PRICING } from '@/lib/stripe/config';
 
 // =============================================================================
 // DYNAMIC CALCULATIONS (Auto-update based on current date)
@@ -237,6 +240,94 @@ export const TIER_CONFIGS: Record<AnalysisTier, TierConfig> = {
       rewriteSuggestions: true,
       humanReview: true,
       humanTurnaroundHours: 48,
+    },
+  },
+};
+
+// =============================================================================
+// IVY LEAGUE TIER CONFIGURATIONS
+// =============================================================================
+
+export const IVY_TIER_CONFIGS: Record<IvyTier, IvyTierConfig> = {
+  ivy_single: {
+    id: 'ivy_single',
+    name: 'ivy_single',
+    displayName: 'Ivy Single School',
+    priceInCents: PRICING.IVY_SINGLE,
+    features: {
+      overallScore: true,
+      dimensionBreakdown: true,
+      lineByLineAnnotations: true,
+      actionableItemsLimit: -1,
+      schoolSpecificFeedback: true,
+      aoInsights: true,
+      aiDetectionReport: true,
+      strengthHighlights: true,
+      rewriteSuggestions: false,
+      humanReview: false,
+      humanTurnaroundHours: null,
+      // Ivy-specific
+      schoolsIncluded: 1,
+      portfolioAnalysis: true,
+      resumeEssayDetection: true,
+      leveragePointsAnalysis: true,
+      crossSchoolAnalysis: false,
+      instantRejectDetection: true,
+      committeePitchAssessment: true,
+    },
+  },
+  ivy_bundle_3: {
+    id: 'ivy_bundle_3',
+    name: 'ivy_bundle_3',
+    displayName: 'Ivy 3-School Bundle',
+    priceInCents: PRICING.IVY_BUNDLE_3,
+    features: {
+      overallScore: true,
+      dimensionBreakdown: true,
+      lineByLineAnnotations: true,
+      actionableItemsLimit: -1,
+      schoolSpecificFeedback: true,
+      aoInsights: true,
+      aiDetectionReport: true,
+      strengthHighlights: true,
+      rewriteSuggestions: false,
+      humanReview: false,
+      humanTurnaroundHours: null,
+      // Ivy-specific
+      schoolsIncluded: 3,
+      portfolioAnalysis: true,
+      resumeEssayDetection: true,
+      leveragePointsAnalysis: true,
+      crossSchoolAnalysis: true,
+      instantRejectDetection: true,
+      committeePitchAssessment: true,
+    },
+  },
+  ivy_bundle_8: {
+    id: 'ivy_bundle_8',
+    name: 'ivy_bundle_8',
+    displayName: 'Complete Ivy Coverage',
+    priceInCents: PRICING.IVY_BUNDLE_8,
+    features: {
+      overallScore: true,
+      dimensionBreakdown: true,
+      lineByLineAnnotations: true,
+      actionableItemsLimit: -1,
+      schoolSpecificFeedback: true,
+      aoInsights: true,
+      aiDetectionReport: true,
+      strengthHighlights: true,
+      rewriteSuggestions: false,
+      humanReview: false,
+      humanTurnaroundHours: null,
+      // Ivy-specific
+      schoolsIncluded: 8,
+      portfolioAnalysis: true,
+      resumeEssayDetection: true,
+      leveragePointsAnalysis: true,
+      crossSchoolAnalysis: true,
+      instantRejectDetection: true,
+      committeePitchAssessment: true,
     },
   },
 };
