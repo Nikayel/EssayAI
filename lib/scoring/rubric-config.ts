@@ -179,7 +179,18 @@ export const DEFAULT_RUBRIC_WEIGHTS = {
  * Essay-type specific weights
  * Different essay types have different priorities
  */
-export const RUBRIC_WEIGHTS_BY_ESSAY_TYPE: Record<EssayType, typeof DEFAULT_RUBRIC_WEIGHTS> = {
+type RubricWeights = {
+  authenticity: number;
+  reflection: number;
+  structure: number;
+  specificity_fit: number;
+  clarity_style: number;
+  mechanics: number;
+  uniqueness: number;
+  ethics: number;
+};
+
+export const RUBRIC_WEIGHTS_BY_ESSAY_TYPE: Record<EssayType, RubricWeights> = {
   // Personal Statement (Common App, Coalition, etc.)
   // Focus: WHO you are, authentic voice, reflection
   personal_statement: {
@@ -359,7 +370,7 @@ export type CommonsCheckFlagKey = keyof typeof COMMONS_CHECK_FLAGS;
 /**
  * Get rubric weights for a specific essay type
  */
-export function getRubricWeights(essayType: EssayType): typeof DEFAULT_RUBRIC_WEIGHTS {
+export function getRubricWeights(essayType: EssayType): RubricWeights {
   return RUBRIC_WEIGHTS_BY_ESSAY_TYPE[essayType] || DEFAULT_RUBRIC_WEIGHTS;
 }
 
@@ -406,7 +417,7 @@ export function getScoreAnchor(score: number, isIvy = false): {
  * Get calibration guidance for a score level
  */
 export function getCalibrationGuidance(score: number, isIvy = false): {
-  expectedPercent: number;
+  percent: number;
   note: string;
 } {
   const calibration = isIvy ? SCORE_CALIBRATION.ivy : SCORE_CALIBRATION.general;

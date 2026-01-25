@@ -45,6 +45,9 @@ export default function Home() {
             <Link href="/pricing">
               <Button variant="ghost" size="sm">Pricing</Button>
             </Link>
+            <Link href="/ivy">
+              <Button variant="ghost" size="sm">Ivy League</Button>
+            </Link>
             <Link href="/for-parents">
               <Button variant="ghost" size="sm">For Parents</Button>
             </Link>

@@ -3,7 +3,8 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { PACKAGE_INFO } from '@/lib/stripe/config';
-import { Check, Sparkles, Users, Zap, PenTool, ArrowRight } from 'lucide-react';
+import { Check, Sparkles, Users, Zap, PenTool, ArrowRight, School } from 'lucide-react';
+import { PRICING } from '@/lib/stripe/config';
 import { MobileNav } from '@/components/layout/mobile-nav';
 
 export default function PricingPage() {
@@ -177,6 +178,154 @@ export default function PricingPage() {
               <Link href="/signup" className="w-full">
                 <Button className="w-full" variant="premium" size="lg">
                   Get Expert Review
+                  <ArrowRight className="w-4 h-4" />
+                </Button>
+              </Link>
+            </CardFooter>
+          </Card>
+        </div>
+      </section>
+
+      {/* Ivy League Section */}
+      <section className="container mx-auto px-4 py-16 border-t border-neutral-200">
+        <div className="text-center max-w-2xl mx-auto mb-10">
+          <Badge variant="premium" size="lg" className="mb-4">
+            <School className="w-3.5 h-3.5" />
+            Ivy League Specialists
+          </Badge>
+          <h3 className="text-3xl font-bold text-neutral-900 mb-4">
+            Applying to Ivy League Schools?
+          </h3>
+          <p className="text-neutral-600">
+            School-specific analysis from the perspective of actual admissions officers.
+            Every essay analyzed as part of your complete portfolio.
+          </p>
+        </div>
+
+        <div className="grid md:grid-cols-3 gap-6 max-w-5xl mx-auto">
+          {/* Ivy Single */}
+          <Card className="border-2 border-neutral-200 relative">
+            <CardHeader className="text-center pb-2">
+              <div className="w-12 h-12 mx-auto mb-4 rounded-2xl bg-neutral-100 flex items-center justify-center">
+                <School className="w-6 h-6 text-neutral-600" />
+              </div>
+              <CardTitle className="text-xl">Ivy Single School</CardTitle>
+              <CardDescription className="text-sm">Complete analysis for ONE Ivy</CardDescription>
+              <div className="text-3xl font-bold mt-4">{formatPrice(PRICING.IVY_SINGLE)}</div>
+              <p className="text-sm text-neutral-500">All essays for 1 school</p>
+            </CardHeader>
+            <CardContent className="pt-4">
+              <ul className="space-y-2 text-sm">
+                <li className="flex gap-2">
+                  <Check className="w-4 h-4 text-green-600 flex-shrink-0 mt-0.5" />
+                  <span>ALL essays analyzed as portfolio</span>
+                </li>
+                <li className="flex gap-2">
+                  <Check className="w-4 h-4 text-green-600 flex-shrink-0 mt-0.5" />
+                  <span>School-specific AO perspective</span>
+                </li>
+                <li className="flex gap-2">
+                  <Check className="w-4 h-4 text-green-600 flex-shrink-0 mt-0.5" />
+                  <span>Resume-essay detection</span>
+                </li>
+                <li className="flex gap-2">
+                  <Check className="w-4 h-4 text-green-600 flex-shrink-0 mt-0.5" />
+                  <span>Instant reject signal detection</span>
+                </li>
+              </ul>
+            </CardContent>
+            <CardFooter>
+              <Link href="/ivy" className="w-full">
+                <Button variant="outline" className="w-full">
+                  Get Started
+                  <ArrowRight className="w-4 h-4" />
+                </Button>
+              </Link>
+            </CardFooter>
+          </Card>
+
+          {/* Ivy 3-Pack - Popular */}
+          <Card className="border-2 border-brand-500 relative shadow-xl shadow-brand-500/10 ring-2 ring-brand-500/20 md:-my-2">
+            <div className="absolute -top-4 left-1/2 -translate-x-1/2 bg-gradient-to-r from-brand-500 to-brand-600 text-white px-4 py-1 rounded-full text-sm font-semibold">
+              Most Popular
+            </div>
+            <CardHeader className="text-center pb-2">
+              <div className="w-12 h-12 mx-auto mb-4 rounded-2xl bg-gradient-to-br from-brand-500 to-brand-600 flex items-center justify-center">
+                <Users className="w-6 h-6 text-white" />
+              </div>
+              <CardTitle className="text-xl">Ivy 3-School Bundle</CardTitle>
+              <CardDescription className="text-sm">Same depth for THREE schools</CardDescription>
+              <div className="text-3xl font-bold mt-4">{formatPrice(PRICING.IVY_BUNDLE_3)}</div>
+              <p className="text-sm text-neutral-500">Save $38 vs individual</p>
+            </CardHeader>
+            <CardContent className="pt-4">
+              <ul className="space-y-2 text-sm">
+                <li className="flex gap-2">
+                  <Check className="w-4 h-4 text-green-600 flex-shrink-0 mt-0.5" />
+                  <span><strong>Everything</strong> in Single School x3</span>
+                </li>
+                <li className="flex gap-2">
+                  <Check className="w-4 h-4 text-green-600 flex-shrink-0 mt-0.5" />
+                  <span>Cross-school narrative check</span>
+                </li>
+                <li className="flex gap-2">
+                  <Check className="w-4 h-4 text-green-600 flex-shrink-0 mt-0.5" />
+                  <span>Strategic differentiation tips</span>
+                </li>
+                <li className="flex gap-2">
+                  <Check className="w-4 h-4 text-green-600 flex-shrink-0 mt-0.5" />
+                  <span>Portfolio comparison</span>
+                </li>
+              </ul>
+            </CardContent>
+            <CardFooter>
+              <Link href="/ivy" className="w-full">
+                <Button className="w-full">
+                  Get 3-School Bundle
+                  <ArrowRight className="w-4 h-4" />
+                </Button>
+              </Link>
+            </CardFooter>
+          </Card>
+
+          {/* Ivy All 8 - Best Value */}
+          <Card className="border-2 border-amber-400 relative bg-gradient-to-b from-amber-50/50 to-white">
+            <div className="absolute -top-4 left-1/2 -translate-x-1/2 bg-gradient-to-r from-amber-500 to-orange-500 text-white px-4 py-1 rounded-full text-sm font-semibold">
+              Best Value
+            </div>
+            <CardHeader className="text-center pb-2">
+              <div className="w-12 h-12 mx-auto mb-4 rounded-2xl bg-gradient-to-br from-amber-500 to-orange-500 flex items-center justify-center">
+                <Sparkles className="w-6 h-6 text-white" />
+              </div>
+              <CardTitle className="text-xl">Complete Ivy Coverage</CardTitle>
+              <CardDescription className="text-sm">All 8 Ivy League schools</CardDescription>
+              <div className="text-3xl font-bold mt-4">{formatPrice(PRICING.IVY_BUNDLE_8)}</div>
+              <p className="text-sm text-neutral-500">Save $163 vs individual</p>
+            </CardHeader>
+            <CardContent className="pt-4">
+              <ul className="space-y-2 text-sm">
+                <li className="flex gap-2">
+                  <Check className="w-4 h-4 text-green-600 flex-shrink-0 mt-0.5" />
+                  <span><strong>All 8</strong> schools fully analyzed</span>
+                </li>
+                <li className="flex gap-2">
+                  <Check className="w-4 h-4 text-green-600 flex-shrink-0 mt-0.5" />
+                  <span>Master narrative tracking</span>
+                </li>
+                <li className="flex gap-2">
+                  <Check className="w-4 h-4 text-green-600 flex-shrink-0 mt-0.5" />
+                  <span>School-by-school tailoring tips</span>
+                </li>
+                <li className="flex gap-2">
+                  <Check className="w-4 h-4 text-green-600 flex-shrink-0 mt-0.5" />
+                  <span>Best for serious applicants</span>
+                </li>
+              </ul>
+            </CardContent>
+            <CardFooter>
+              <Link href="/ivy" className="w-full">
+                <Button variant="premium" className="w-full">
+                  Get Complete Coverage
                   <ArrowRight className="w-4 h-4" />
                 </Button>
               </Link>

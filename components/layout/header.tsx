@@ -56,7 +56,13 @@ export function Header({ variant = 'public', user }: HeaderProps) {
 function PublicNav() {
   return (
     <>
-      <nav className="hidden md:flex gap-4">
+      <nav className="hidden md:flex items-center gap-6">
+        <Link href="/pricing" className="text-sm font-medium text-neutral-600 hover:text-neutral-900 transition-colors">
+          Pricing
+        </Link>
+        <Link href="/ivy" className="text-sm font-medium text-neutral-600 hover:text-neutral-900 transition-colors">
+          Ivy League
+        </Link>
         <Link href="/login">
           <Button variant="outline">Log In</Button>
         </Link>

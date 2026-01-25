@@ -17,6 +17,7 @@ import {
   runIvyThreeSchoolAnalysis,
   runIvyAllSchoolsAnalysis,
 } from '@/lib/scoring/tiers/ivy-analysis';
+import type { FullIntake } from '@/lib/scoring/tiers/types';
 import { isIvyLeagueSchool, getIvyTierConfig, type IvyTier } from '@/lib/config';
 
 // =============================================================================
@@ -139,8 +140,9 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ error: 'Session not found' }, { status: 404 });
       }
 
-      if (session.status !== 'PAID' && session.status !== 'ANALYZING') {
-        return NextResponse.json({ error: 'Payment not completed' }, { status: 402 });
+      // PENDING means payment not yet confirmed, FAILED means something went wrong
+      if (session.status === 'PENDING' || session.status === 'FAILED') {
+        return NextResponse.json({ error: 'Payment not completed or session failed' }, { status: 402 });
       }
 
       // Mark as analyzing
@@ -153,26 +155,29 @@ export async function POST(request: NextRequest) {
     // Run analysis based on tier
     let result;
 
+    // Cast intake to FullIntake - Zod schema validates structure, but types are strict
+    const fullIntake = intake as unknown as FullIntake;
+
     switch (tier) {
       case 'ivy_single':
         result = await runIvySingleSchoolAnalysis(
           schools[0].schoolId,
           schools[0].essays,
-          intake
+          fullIntake
         );
         break;
 
       case 'ivy_bundle_3':
         result = await runIvyThreeSchoolAnalysis(
           schools.map(s => ({ schoolId: s.schoolId, essays: s.essays })),
-          intake
+          fullIntake
         );
         break;
 
       case 'ivy_bundle_8':
         result = await runIvyAllSchoolsAnalysis(
           schools.map(s => ({ schoolId: s.schoolId, essays: s.essays })),
-          intake
+          fullIntake
         );
         break;
     }

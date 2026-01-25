@@ -329,7 +329,7 @@ export function applyBackgroundAdjustments(
     );
   }
 
-  if (context.isFosterCare || context.isSystemInvolved) {
+  if (context.isFosterCare) {
     personalizedNotes.push(
       'Your resilience in navigating challenging circumstances is itself noteworthy. Many top schools actively seek students who have overcome adversity.'
     );
@@ -355,16 +355,4 @@ export function applyBackgroundAdjustments(
   };
 }
 
-// =============================================================================
-// EXPORTS
-// =============================================================================
-
-export {
-  extractBackgroundContext,
-  adjustAuthenticityScore,
-  adjustVocabularyAssessment,
-  adjustSchoolFitScore,
-  adjustActivityContext,
-  adjustMechanicsScore,
-  applyBackgroundAdjustments,
-};
+// Functions are already exported at definition, no need for separate export block
