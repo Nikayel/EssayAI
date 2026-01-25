@@ -462,10 +462,10 @@ export default function IvyAnalysisPage() {
                   </div>
 
                   <h3 className="text-2xl font-bold text-neutral-900 mb-2">
-                    Unlock Your Full Analysis
+                    Unlock Your Personalized Analysis
                   </h3>
                   <p className="text-neutral-600 mb-8">
-                    See exactly what AOs think, line-by-line feedback, and how to fix each issue.
+                    See how your essay connects to YOUR spike, whether you&apos;re listing achievements vs showing who you are, and exactly how to fix each issue.
                   </p>
 
                   {/* Primary CTA - Most common choice */}
@@ -503,14 +503,14 @@ export default function IvyAnalysisPage() {
                         onClick={() => handleUnlock('quick')}
                         className="text-neutral-500 hover:text-neutral-700 underline-offset-2 hover:underline"
                       >
-                        Quick feedback only ({formatPrice(quickTier.priceInCents)})
+                        Quick scan - {formatPrice(quickTier.priceInCents)}
                       </button>
                       <span className="text-neutral-300">|</span>
                       <button
                         onClick={() => handleUnlock('ivy_bundle_3')}
                         className="text-neutral-500 hover:text-neutral-700 underline-offset-2 hover:underline"
                       >
-                        3-school bundle ({formatPrice(ivyBundle3Tier.priceInCents)})
+                        3 schools - {formatPrice(ivyBundle3Tier.priceInCents)}
                       </button>
                     </div>
                   </div>
@@ -589,12 +589,12 @@ export default function IvyAnalysisPage() {
               <CardContent>
                 <div className="grid md:grid-cols-2 gap-3 text-sm">
                   {[
-                    'AO first impression & verdict',
-                    '"So What?" test analysis',
+                    'Spike/narrative connection check',
                     'Resume-essay detection',
-                    'School-specific fit signals',
-                    'Top issues ranked by impact',
-                    'Line-by-line suggestions',
+                    '"So What?" test on each essay',
+                    'School-specific AO feedback',
+                    'Instant reject signal detection',
+                    'Line-by-line fixes',
                   ].map((item, i) => (
                     <div key={i} className="flex items-start gap-2">
                       <div className="mt-0.5 w-4 h-4 rounded-full bg-green-100 flex items-center justify-center shrink-0">

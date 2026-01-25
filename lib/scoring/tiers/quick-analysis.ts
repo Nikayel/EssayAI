@@ -2,8 +2,21 @@
  * Quick Analysis Tier ($9.99)
  * Fast, high-level analysis with 3-5 actionable items
  *
- * What user provides: Essay + target school + essay type
- * What user gets: Score + 3-5 specific issues (no fixes - upgrade for that)
+ * ENHANCED (Jan 2026): Now uses spike, activities, and background context
+ * to deliver personalized feedback that feels worth $9.99.
+ *
+ * What user provides:
+ *   - Essay + target school + essay type (required)
+ *   - Spike/main angle (optional but recommended)
+ *   - Top 3 activities (optional but recommended)
+ *   - First-gen/international status (optional)
+ *   - Draft status (optional)
+ *
+ * What user gets:
+ *   - Score + 3-5 specific issues
+ *   - PERSONALIZED feedback referencing THEIR spike/activities
+ *   - Context-aware feedback for first-gen/international students
+ *   - No fixes (upgrade for that)
  */
 
 import type {
@@ -60,8 +73,8 @@ export async function runQuickAnalysis(
     quickScores
   );
 
-  // Generate teaser for upgrade
-  const teaser = generateUpgradeTeaser(quickScores, intake.targetSchool);
+  // Generate teaser for upgrade (personalized based on intake)
+  const teaser = generateUpgradeTeaser(quickScores, intake.targetSchool, intake);
 
   // Get hidden insights count
   const hiddenInsights = countHiddenInsights(clicheResult, aiDetection, quickScores);
@@ -70,7 +83,7 @@ export async function runQuickAnalysis(
     tier: 'quick',
     overallScore: Math.round(overallScore * 10) / 10,
     scoreLabel,
-    scoreSummary: generateQuickSummary(overallScore, scoreLabel, actionableItems, intake.essayType),
+    scoreSummary: generateQuickSummary(overallScore, scoreLabel, actionableItems, intake.essayType, intake),
 
     actionableItems: actionableItems.slice(0, 5),
 
@@ -105,6 +118,8 @@ interface QuickScores {
   lengthScore: number;
   schoolFitScore: number;
   aiPenalty: number;
+  spikeConnection: number;      // NEW: How well essay connects to their spike
+  activityMentions: number;     // NEW: How many of their activities are mentioned
   issues: QuickIssue[];
 }
 
@@ -113,6 +128,8 @@ interface QuickIssue {
   score: number;
   location: string;
   text?: string;
+  /** Personalized context from intake */
+  personalContext?: string;
 }
 
 function calculateQuickScores(
@@ -245,10 +262,135 @@ function calculateQuickScores(
     });
   }
 
+  // ==========================================================================
+  // 7. SPIKE CONNECTION CHECK (NEW - uses intake context)
+  // Does the essay connect to their stated main angle/theme?
+  // ==========================================================================
+  let spikeConnection = 3; // Default: neutral
+  if (intake.spike && intake.spike.length > 10) {
+    const spikeKeywords = extractKeywords(intake.spike);
+    const essayLower = essayText.toLowerCase();
+    const matchedKeywords = spikeKeywords.filter(kw => essayLower.includes(kw.toLowerCase()));
+    const matchRatio = matchedKeywords.length / Math.max(1, spikeKeywords.length);
+
+    if (matchRatio < 0.2) {
+      // Essay doesn't mention their spike at all
+      spikeConnection = 1;
+      overall -= 12;
+      issues.push({
+        type: 'spike_disconnect',
+        score: 1,
+        location: 'Throughout',
+        text: intake.spike.slice(0, 60),
+        personalContext: `Your spike is "${intake.spike.slice(0, 50)}..." but your essay doesn't clearly connect to this theme.`,
+      });
+    } else if (matchRatio < 0.4) {
+      // Weak connection
+      spikeConnection = 2;
+      overall -= 6;
+      issues.push({
+        type: 'spike_weak',
+        score: 2,
+        location: 'Throughout',
+        personalContext: `Your essay touches on your spike but the connection could be stronger.`,
+      });
+    } else {
+      // Good connection
+      spikeConnection = 4;
+    }
+  }
+
+  // ==========================================================================
+  // 8. ACTIVITY MENTION CHECK (NEW - uses intake context)
+  // Are they leveraging their top activities or listing them resume-style?
+  // ==========================================================================
+  let activityMentions = 0;
+  const mentionedActivities: string[] = [];
+  const missedActivities: string[] = [];
+
+  if (intake.topActivities && intake.topActivities.length > 0) {
+    const essayLower = essayText.toLowerCase();
+
+    for (const activity of intake.topActivities) {
+      if (!activity || activity.length < 3) continue;
+
+      const activityKeywords = extractKeywords(activity);
+      const isDirectlyMentioned = activityKeywords.some(kw =>
+        kw.length > 3 && essayLower.includes(kw.toLowerCase())
+      );
+
+      if (isDirectlyMentioned) {
+        activityMentions++;
+        mentionedActivities.push(activity);
+      } else {
+        missedActivities.push(activity);
+      }
+    }
+
+    // Check for resume-style listing (bad) vs. meaningful integration (good)
+    const resumePatterns = [
+      /I (?:founded|started|created|organized|led) (?:a |the |my )/gi,
+      /As (?:president|founder|captain|leader|editor) of/gi,
+      /I (?:was|am|became) (?:the )?\w+ of/gi,
+    ];
+    const resumeMatches = resumePatterns.reduce((count, p) =>
+      count + (essayText.match(p)?.length || 0), 0);
+
+    if (resumeMatches >= 3 && activityMentions >= 2) {
+      // Resume-style listing detected
+      overall -= 10;
+      issues.push({
+        type: 'resume_essay',
+        score: 1,
+        location: 'Throughout',
+        personalContext: `Your essay reads like a resume - you list achievements (${mentionedActivities.slice(0, 2).join(', ')}) but don't show WHO you are through them.`,
+      });
+    } else if (missedActivities.length > 0 && activityMentions === 0) {
+      // None of their activities are mentioned
+      overall -= 5;
+      issues.push({
+        type: 'activities_missed',
+        score: 2,
+        location: 'Throughout',
+        personalContext: `Your top activities (${missedActivities.slice(0, 2).join(', ')}) aren't mentioned. AOs will wonder about the disconnect.`,
+      });
+    }
+  }
+
+  // ==========================================================================
+  // 9. FIRST-GEN / INTERNATIONAL CONTEXT (NEW)
+  // Adjust feedback tone and note when context matters
+  // ==========================================================================
+  if (intake.isFirstGen || intake.isInternational) {
+    // These students may express things differently - don't penalize certain patterns
+    // But DO note if they're missing opportunities to share their unique perspective
+
+    const hasUniqueContext = /first.*generation|immigrant|country|culture|language|family.*college/i.test(essayText);
+
+    if (!hasUniqueContext && intake.isFirstGen) {
+      // First-gen but not leveraging this perspective
+      issues.push({
+        type: 'firstgen_opportunity',
+        score: 3, // Not a penalty, an opportunity
+        location: 'Throughout',
+        personalContext: `As a first-gen student, your perspective is valuable. Consider whether your unique journey could strengthen this essay.`,
+      });
+    }
+
+    if (!hasUniqueContext && intake.isInternational) {
+      issues.push({
+        type: 'international_opportunity',
+        score: 3,
+        location: 'Throughout',
+        personalContext: `Your international background could add depth. AOs value diverse perspectives when authentically shared.`,
+      });
+    }
+  }
+
   // Clamp score to 0-100
   overall = Math.max(0, Math.min(100, overall));
 
-  // Sort issues by score (lowest first)
+  // Sort issues by score (lowest first = highest priority)
   issues.sort((a, b) => a.score - b.score);
 
   return {
@@ -258,8 +400,32 @@ function calculateQuickScores(
     lengthScore,
     schoolFitScore,
     aiPenalty,
+    spikeConnection,
+    activityMentions,
     issues,
   };
+}
+
+/**
+ * Extract meaningful keywords from a text string (for spike/activity matching)
+ * Filters out common stop words to get the substance
+ */
+function extractKeywords(text: string): string[] {
+  const stopWords = new Set([
+    'a', 'an', 'the', 'and', 'or', 'but', 'in', 'on', 'at', 'to', 'for',
+    'of', 'with', 'by', 'from', 'as', 'is', 'was', 'are', 'were', 'been',
+    'be', 'have', 'has', 'had', 'do', 'does', 'did', 'will', 'would', 'could',
+    'should', 'may', 'might', 'must', 'i', 'my', 'me', 'we', 'our', 'you',
+    'your', 'it', 'its', 'this', 'that', 'these', 'those', 'am', 'about',
+    'through', 'into', 'during', 'before', 'after', 'above', 'below', 'how',
+    'what', 'when', 'where', 'why', 'who', 'which', 'very', 'just', 'also',
+  ]);
+
+  return text
+    .toLowerCase()
+    .replace(/[^\w\s]/g, ' ')
+    .split(/\s+/)
+    .filter(word => word.length > 2 && !stopWords.has(word));
 }
 
 function analyzeOpening(firstSentence: string): number {
@@ -413,6 +579,70 @@ function issueToActionable(
         severity: 'major',
       };
 
+    // =========================================================================
+    // NEW: Personalized feedback types (from enhanced intake)
+    // =========================================================================
+
+    case 'spike_disconnect':
+      return {
+        priority: 0,
+        issue: 'Essay doesn\'t connect to your main angle',
+        location: issue.location,
+        bluntFeedback: issue.personalContext ||
+          'Your essay doesn\'t reflect the spike/theme you shared. AOs want a cohesive narrative across your application.',
+        severity: 'critical',
+      };
+
+    case 'spike_weak':
+      return {
+        priority: 0,
+        issue: 'Weak connection to your main angle',
+        location: issue.location,
+        bluntFeedback: issue.personalContext ||
+          'Your essay touches on your theme but the connection could be stronger. Make it unmistakable.',
+        severity: 'major',
+      };
+
+    case 'resume_essay':
+      return {
+        priority: 0,
+        issue: 'Essay reads like a resume',
+        location: issue.location,
+        bluntFeedback: issue.personalContext ||
+          'You\'re listing achievements instead of showing who you are. AOs already have your activities list - they want to hear your voice.',
+        severity: 'critical',
+      };
+
+    case 'activities_missed':
+      return {
+        priority: 0,
+        issue: 'Top activities not leveraged',
+        location: issue.location,
+        bluntFeedback: issue.personalContext ||
+          'Your major activities aren\'t mentioned. This could be a missed opportunity to create a cohesive narrative.',
+        severity: 'minor',
+      };
+
+    case 'firstgen_opportunity':
+      return {
+        priority: 0,
+        issue: 'First-gen perspective opportunity',
+        location: issue.location,
+        bluntFeedback: issue.personalContext ||
+          'As a first-gen student, you have a unique story. Consider if authentically sharing this could strengthen your essay.',
+        severity: 'minor',
+      };
+
+    case 'international_opportunity':
+      return {
+        priority: 0,
+        issue: 'International perspective opportunity',
+        location: issue.location,
+        bluntFeedback: issue.personalContext ||
+          'Your international background is valuable. AOs appreciate authentic global perspectives when relevant.',
+        severity: 'minor',
+      };
+
     default:
       return null;
   }
@@ -443,13 +673,14 @@ function generateQuickSummary(
   score: number,
   label: string,
   items: QuickActionableItem[],
-  essayType?: string
+  essayType?: string,
+  intake?: QuickIntake
 ): string {
   // Use our supportive score messaging to reduce anxiety and keep users engaged
   const scoreContext: ScoreContext = {
     score,
     essayType: essayType || 'supplemental',
-    isDraft: true, // Assume first submission is a draft - more encouraging
+    isDraft: intake?.draftStatus === 'first_draft',
   };
 
   const message = getScoreMessage(scoreContext);
@@ -462,31 +693,60 @@ function generateQuickSummary(
     summary += ` We found ${criticalCount} critical issue${criticalCount > 1 ? 's' : ''} to address first.`;
   }
 
-  // Add reassurance to keep them engaged (but they need to upgrade for the "how")
-  summary += ` ${message.encouragement}`;
+  // Add personalized context if we have intake data
+  const hasSpikeIssue = items.some(i => i.issue.includes('angle') || i.issue.includes('spike'));
+  const hasResumeIssue = items.some(i => i.issue.includes('resume'));
+
+  if (hasSpikeIssue && intake?.spike) {
+    summary += ` Your stated angle ("${intake.spike.slice(0, 30)}...") isn't coming through clearly.`;
+  } else if (hasResumeIssue) {
+    summary += ` Focus on showing WHO you are, not just WHAT you've done.`;
+  }
+
+  // Adjust tone for first-gen/international students
+  if (intake?.isFirstGen || intake?.isInternational) {
+    summary += ` ${message.encouragement}`;
+    summary += ` Your unique background is an asset - make sure it's authentically represented.`;
+  } else {
+    summary += ` ${message.encouragement}`;
+  }
 
   return summary;
 }
 
-function generateUpgradeTeaser(scores: QuickScores, school: string): string {
+function generateUpgradeTeaser(scores: QuickScores, school: string, intake?: QuickIntake): string {
   const weakest = scores.issues[0];
   const totalIssues = scores.issues.length;
 
   // Build compelling upgrade message based on what we found
   const benefits: string[] = [];
 
-  // If we found issues, emphasize HOW to fix them
-  if (totalIssues > 0) {
+  // Personalized benefits based on what we found
+  const hasSpikeIssue = scores.issues.some(i => i.type.includes('spike'));
+  const hasResumeIssue = scores.issues.some(i => i.type === 'resume_essay');
+  const hasSchoolIssue = scores.issues.some(i => i.type.includes('school'));
+
+  if (hasSpikeIssue && intake?.spike) {
+    benefits.push(`how to weave your "${intake.spike.slice(0, 25)}..." angle throughout`);
+  } else if (totalIssues > 0) {
     benefits.push(`exactly how to fix ${totalIssues === 1 ? 'this issue' : `all ${totalIssues} issues`}`);
   }
 
-  // Always emphasize school-specific value
-  benefits.push(`${school}-specific insights from real AO perspectives`);
+  if (hasResumeIssue) {
+    benefits.push('techniques to show WHO you are (not just list achievements)');
+  }
 
-  // Emphasize line-by-line (this is what consultants charge $10k for)
+  // School-specific value
+  if (hasSchoolIssue) {
+    benefits.push(`what ${school} AOs actually want to see`);
+  } else {
+    benefits.push(`${school}-specific insights from real AO perspectives`);
+  }
+
+  // Line-by-line (consultants charge $10k for this)
   benefits.push('line-by-line feedback on every paragraph');
 
-  // Emphasize strengths (students want to know what to KEEP)
+  // Strengths (students want to know what to KEEP)
   benefits.push('your essay\'s hidden strengths to preserve');
 
   // Build the teaser
@@ -494,17 +754,21 @@ function generateUpgradeTeaser(scores: QuickScores, school: string): string {
     return `Upgrade to see ${benefits.slice(0, 2).join(', ')}.`;
   }
 
-  const issueArea = weakest.type.includes('school')
-    ? `${school}-specific fit`
-    : weakest.type.includes('opening')
-      ? 'opening hook'
-      : weakest.type.includes('ai')
-        ? 'AI detection flags'
-        : weakest.type.includes('reflection')
-          ? 'reflection depth'
-          : 'this issue';
+  const issueArea = weakest.type.includes('spike')
+    ? 'narrative connection'
+    : weakest.type === 'resume_essay'
+      ? 'resume-style writing'
+      : weakest.type.includes('school')
+        ? `${school}-specific fit`
+        : weakest.type.includes('opening')
+          ? 'opening hook'
+          : weakest.type.includes('ai')
+            ? 'AI detection flags'
+            : weakest.type.includes('reflection')
+              ? 'reflection depth'
+              : 'this issue';
 
-  return `Your ${issueArea} needs work. Upgrade to see ${benefits[0]}, plus ${benefits.slice(1).join(', ')}.`;
+  return `Your ${issueArea} needs work. Upgrade to Ivy Single ($39) to see ${benefits[0]}, plus ${benefits.slice(1, 3).join(', ')}.`;
 }
 
 function countHiddenInsights(

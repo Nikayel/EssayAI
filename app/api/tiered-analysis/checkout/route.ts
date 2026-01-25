@@ -173,17 +173,18 @@ export async function POST(request: NextRequest) {
 function getTierDescription(tier: string): string {
   switch (tier) {
     case 'quick':
-      return 'Quick essay score with 3-5 actionable items. Instant results.';
+      return 'Personalized feedback using YOUR spike & activities. Top 5 critical issues with blunt advice.';
     case 'standard':
       return 'Full analysis with line-by-line feedback, school-specific insights, and AO perspective.';
     case 'premium':
-      return 'Complete analysis plus human expert review within 48 hours.';
+      return '3 Ivy schools AI analysis + human expert review from a former admissions officer. 48hr turnaround.';
     case 'ivy_single':
       return 'Complete Ivy analysis for ONE school. All essays analyzed as portfolio with school-specific AO perspective.';
     case 'ivy_bundle_3':
       return 'Complete Ivy analysis for THREE schools. Portfolio analysis per school plus cross-school narrative check.';
     case 'ivy_bundle_8':
-      return 'Complete Ivy analysis for ALL 8 schools. Full portfolio analysis with master narrative tracking.';
+      // Legacy tier - now deprecated
+      return 'Complete Ivy analysis for multiple schools.';
     default:
       return 'Essay analysis';
   }

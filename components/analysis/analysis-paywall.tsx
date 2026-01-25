@@ -1,8 +1,18 @@
 'use client';
 
+/**
+ * Analysis Paywall Component
+ *
+ * Updated Jan 2026: Reflects simplified pricing funnel
+ * - Quick ($9.99): Personalized feedback using spike & activities
+ * - Ivy Single ($39): Full school-specific analysis
+ * - Premium ($249): 3 schools + human expert
+ */
+
 import { useState } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { TIER_CONFIG, formatPrice } from '@/lib/pricing';
 import {
   Lock,
   Check,
@@ -16,6 +26,8 @@ import {
   Clock,
   Star,
   Shield,
+  Zap,
+  TrendingUp,
 } from 'lucide-react';
 
 // =============================================================================
@@ -32,12 +44,17 @@ interface QuickTeaserData {
     schoolSpecificIssues: number;
     strengthsFound: number;
   };
+  // NEW: Context from quick intake
+  hasSpike?: boolean;
+  hasActivities?: boolean;
+  isFirstGen?: boolean;
+  isInternational?: boolean;
 }
 
 interface AnalysisPaywallProps {
   teaser: QuickTeaserData;
   school: string;
-  onSelectTier: (tier: 'quick' | 'standard' | 'premium') => void;
+  onSelectTier: (tier: 'quick' | 'ivy_single' | 'premium') => void;
   isLoading?: boolean;
 }
 
@@ -51,11 +68,16 @@ export function AnalysisPaywall({
   onSelectTier,
   isLoading = false,
 }: AnalysisPaywallProps) {
-  const [selectedTier, setSelectedTier] = useState<'quick' | 'standard' | 'premium'>('standard');
+  const [selectedTier, setSelectedTier] = useState<'quick' | 'ivy_single' | 'premium'>('ivy_single');
 
   const handleContinue = () => {
     onSelectTier(selectedTier);
   };
+
+  // Get tier info from centralized config
+  const quickTier = TIER_CONFIG.quick;
+  const ivySingleTier = TIER_CONFIG.ivy_single;
+  const premiumTier = TIER_CONFIG.premium;
 
   return (
     <div className="max-w-4xl mx-auto py-8 px-4">
@@ -89,55 +111,61 @@ export function AnalysisPaywall({
         </p>
 
         <div className="grid md:grid-cols-3 gap-4">
+          {/* Quick Tier - $9.99 */}
           <TierCard
             tier="quick"
-            name="Essay Score"
-            price="$9.99"
+            name={quickTier.name}
+            price={formatPrice(quickTier.priceInCents)}
             isSelected={selectedTier === 'quick'}
             onSelect={() => setSelectedTier('quick')}
             features={[
               'Overall score with explanation',
-              `Top ${teaser.actionableItemsCount} issues to fix`,
+              `Top ${teaser.actionableItemsCount} critical issues`,
+              teaser.hasSpike ? 'Spike/narrative connection check' : 'Personalized to YOUR story',
+              teaser.hasActivities ? 'Resume-essay detection' : 'Activity integration analysis',
               'AI detection verdict',
-              'Blurred preview of full analysis',
             ]}
             highlighted={false}
+            description="Personalized quick scan"
           />
 
+          {/* Ivy Single - $39 (Recommended) */}
           <TierCard
-            tier="standard"
-            name="Full Analysis"
-            price="$79"
-            isSelected={selectedTier === 'standard'}
-            onSelect={() => setSelectedTier('standard')}
+            tier="ivy_single"
+            name={ivySingleTier.name}
+            price={formatPrice(ivySingleTier.priceInCents)}
+            isSelected={selectedTier === 'ivy_single'}
+            onSelect={() => setSelectedTier('ivy_single')}
             features={[
-              'Everything in Quick',
-              'Full 5-dimension breakdown',
-              'Line-by-line annotations with fixes',
-              `${school}-specific feedback`,
-              'AO perspective insights',
+              'Everything in Quick Scan',
+              'Line-by-line feedback with fixes',
+              `${school}-specific AO perspective`,
+              '"So What?" test on each essay',
+              'Instant reject signal detection',
               'All strengths highlighted',
             ]}
             highlighted={true}
-            badge="Most Popular"
+            badge="Best Value"
+            description="Complete school-specific analysis"
           />
 
+          {/* Premium - $249 */}
           <TierCard
             tier="premium"
-            name="Expert Review"
-            price="$249"
+            name={premiumTier.name}
+            price={formatPrice(premiumTier.priceInCents)}
             isSelected={selectedTier === 'premium'}
             onSelect={() => setSelectedTier('premium')}
             features={[
-              'Everything in Full Analysis',
-              'AI-generated rewrite suggestions',
-              'Human expert review',
-              'Former AO or PhD reviewer',
-              'Direct email feedback',
+              'Everything for 3 Ivy schools',
+              'Cross-school narrative check',
+              'Human expert review (former AO)',
+              'Direct messaging with reviewer',
               '48-hour turnaround',
             ]}
             highlighted={false}
-            badge="Best Value"
+            badge="+ Human Expert"
+            description="3 schools + expert review"
           />
         </div>
       </div>
@@ -147,7 +175,7 @@ export function AnalysisPaywall({
         <button
           onClick={handleContinue}
           disabled={isLoading}
-          className="px-8 py-4 bg-gradient-to-r from-blue-600 to-purple-600 text-white text-lg font-semibold rounded-lg hover:from-blue-700 hover:to-purple-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 mx-auto"
+          className="px-8 py-4 bg-gradient-to-r from-brand-600 to-brand-700 text-white text-lg font-semibold rounded-xl hover:from-brand-700 hover:to-brand-800 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 mx-auto shadow-lg shadow-brand-600/25"
         >
           {isLoading ? (
             <>
@@ -156,7 +184,7 @@ export function AnalysisPaywall({
             </>
           ) : (
             <>
-              Unlock {selectedTier === 'quick' ? 'Results' : 'Full Analysis'}
+              {selectedTier === 'quick' ? 'Get Quick Feedback' : 'Unlock Full Analysis'}
               <ArrowRight className="w-5 h-5" />
             </>
           )}
@@ -168,12 +196,12 @@ export function AnalysisPaywall({
             Secure payment
           </span>
           <span className="flex items-center gap-1">
-            <Clock className="w-4 h-4" />
+            <Zap className="w-4 h-4" />
             Instant access
           </span>
           <span className="flex items-center gap-1">
             <Star className="w-4 h-4" />
-            100% satisfaction
+            Money-back guarantee
           </span>
         </div>
       </div>
@@ -275,8 +303,9 @@ function TierCard({
   features,
   highlighted,
   badge,
+  description,
 }: {
-  tier: 'quick' | 'standard' | 'premium';
+  tier: 'quick' | 'ivy_single' | 'premium';
   name: string;
   price: string;
   isSelected: boolean;
@@ -284,6 +313,7 @@ function TierCard({
   features: string[];
   highlighted: boolean;
   badge?: string;
+  description?: string;
 }) {
   return (
     <button
@@ -291,17 +321,19 @@ function TierCard({
       className={`relative p-6 rounded-xl border-2 text-left transition-all ${
         isSelected
           ? highlighted
-            ? 'border-blue-500 bg-blue-50 shadow-lg shadow-blue-100'
-            : 'border-gray-900 bg-gray-50 shadow-lg'
+            ? 'border-brand-500 bg-brand-50 shadow-lg shadow-brand-100'
+            : 'border-neutral-900 bg-neutral-50 shadow-lg'
           : highlighted
-          ? 'border-blue-200 hover:border-blue-300'
-          : 'border-gray-200 hover:border-gray-300'
+          ? 'border-brand-200 hover:border-brand-300'
+          : 'border-neutral-200 hover:border-neutral-300'
       }`}
     >
       {/* Badge - responsive positioning */}
       {badge && (
         <div className="mb-2 md:mb-0 md:absolute md:-top-3 md:left-1/2 md:transform md:-translate-x-1/2">
-          <Badge className="bg-blue-600 text-white">{badge}</Badge>
+          <Badge className={highlighted ? 'bg-brand-600 text-white' : 'bg-neutral-800 text-white'}>
+            {badge}
+          </Badge>
         </div>
       )}
 
@@ -309,8 +341,8 @@ function TierCard({
       <div
         className={`absolute top-4 right-4 w-5 h-5 rounded-full border-2 ${
           isSelected
-            ? 'border-blue-600 bg-blue-600'
-            : 'border-gray-300 bg-white'
+            ? 'border-brand-600 bg-brand-600'
+            : 'border-neutral-300 bg-white'
         }`}
       >
         {isSelected && <Check className="w-full h-full text-white p-0.5" />}
@@ -319,11 +351,14 @@ function TierCard({
       {/* Content */}
       <div className="pr-8">
         <h4 className="font-bold text-lg">{name}</h4>
-        <p className="text-2xl font-bold text-blue-600 mt-1">{price}</p>
+        {description && (
+          <p className="text-xs text-neutral-500 mt-0.5">{description}</p>
+        )}
+        <p className="text-2xl font-bold text-brand-600 mt-2">{price}</p>
 
         <ul className="mt-4 space-y-2">
           {features.map((feature, i) => (
-            <li key={i} className="flex items-start gap-2 text-sm text-gray-600">
+            <li key={i} className="flex items-start gap-2 text-sm text-neutral-600">
               <Check className="w-4 h-4 text-green-500 mt-0.5 flex-shrink-0" />
               <span>{feature}</span>
             </li>

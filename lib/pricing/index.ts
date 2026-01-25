@@ -12,9 +12,12 @@ import { PRICING, PACKAGE_INFO } from '@/lib/stripe/config';
 // =============================================================================
 
 export type QuickTier = 'quick';
+export type IvyTier = 'ivy_single' | 'ivy_bundle_3';
+export type PremiumTier = 'premium';
+export type AllTiers = QuickTier | IvyTier | PremiumTier;
+
+/** @deprecated Use AllTiers instead */
 export type StandardTier = 'standard' | 'premium';
-export type IvyTier = 'ivy_single' | 'ivy_bundle_3' | 'ivy_bundle_8';
-export type AllTiers = QuickTier | StandardTier | IvyTier;
 
 // =============================================================================
 // TIER CONFIGURATION
@@ -33,117 +36,109 @@ export interface TierInfo {
   savingsVsIndividual?: number; // For bundles
 }
 
+/**
+ * SIMPLIFIED TIER CONFIG (Jan 2026)
+ *
+ * Main Funnel:
+ *   FREE → $9.99 Quick → $39 Ivy Single → $79 Ivy 3-Pack → $249 Premium
+ *
+ * Each tier has clear value proposition and upsell path.
+ */
 export const TIER_CONFIG: Record<AllTiers, TierInfo> = {
-  // Quick tier - entry point
+  // =========================================================================
+  // QUICK TIER - $9.99 (Entry Point)
+  // =========================================================================
   quick: {
     id: 'quick',
-    name: 'Quick Feedback',
+    name: 'Quick Scan',
     shortName: 'Quick',
     priceInCents: PRICING.ANALYSIS_QUICK,
-    description: 'Essential fixes in 60 seconds',
+    description: 'Personalized feedback in 60 seconds',
     features: [
       'Overall score (0-100)',
-      'Top 5 issues with fixes',
+      'Top 5 critical issues identified',
+      'Personalized feedback using YOUR spike & activities',
       'AI detection check',
-      'Strength highlights',
+      'First-gen/international context awareness',
     ],
     isIvy: false,
     upsellTo: 'ivy_single',
   },
 
-  // Standard tier
-  standard: {
-    id: 'standard',
-    name: 'Full Analysis',
-    shortName: 'Full',
-    priceInCents: PRICING.ANALYSIS_STANDARD,
-    description: 'Complete essay analysis with line-by-line feedback',
-    features: [
-      'Everything in Quick',
-      '7-dimension rubric scoring',
-      'Line-by-line suggestions',
-      'School-fit analysis',
-      'Voice preservation check',
-      'Rewrite suggestions',
-    ],
-    isIvy: false,
-    upsellTo: 'ivy_single',
-  },
-
-  // Premium tier
-  premium: {
-    id: 'premium',
-    name: 'Expert Review',
-    shortName: 'Expert',
-    priceInCents: PRICING.ANALYSIS_PREMIUM,
-    description: 'AI + human expert review within 48 hours',
-    features: [
-      'Everything in Full Analysis',
-      'Human expert review',
-      'Detailed margin comments',
-      'Direct messaging with reviewer',
-      '48-hour turnaround',
-    ],
-    isIvy: false,
-  },
-
-  // Ivy Single - primary Ivy entry point
+  // =========================================================================
+  // IVY SINGLE - $39 (Main Conversion Point)
+  // =========================================================================
   ivy_single: {
     id: 'ivy_single',
     name: 'Ivy Single School',
     shortName: 'Ivy Single',
     priceInCents: PRICING.IVY_SINGLE,
-    description: 'Complete analysis for ONE Ivy - all essays as portfolio',
+    description: 'Complete analysis for ONE Ivy school',
     features: [
-      'ALL essays for one school analyzed',
+      'Full portfolio analysis (all essays for this school)',
+      'Line-by-line feedback with fixes',
       'School-specific AO perspective',
-      'Portfolio coherence analysis',
-      'Resume-essay detection',
       '"So What?" test on each essay',
+      'Resume-essay detection',
       'Instant reject signal detection',
-      'Committee pitch assessment',
-      'Line-by-line annotations',
     ],
     schoolsIncluded: 1,
     isIvy: true,
     upsellTo: 'ivy_bundle_3',
   },
 
-  // Ivy 3-School Bundle
+  // =========================================================================
+  // IVY 3-PACK - $79 (Most Popular)
+  // =========================================================================
   ivy_bundle_3: {
     id: 'ivy_bundle_3',
     name: 'Ivy 3-School Bundle',
     shortName: 'Ivy 3-Pack',
     priceInCents: PRICING.IVY_BUNDLE_3,
-    description: 'Complete analysis for THREE Ivies',
+    description: 'Complete analysis for THREE Ivy schools',
     features: [
       'Everything in Ivy Single for 3 schools',
-      'Cross-school narrative check',
+      'Cross-school narrative consistency check',
       'Strategic differentiation tips',
       'Portfolio comparison across schools',
     ],
     schoolsIncluded: 3,
     isIvy: true,
-    savingsVsIndividual: 3800, // $38 savings
-    upsellTo: 'ivy_bundle_8',
+    savingsVsIndividual: 3800, // $38 savings vs buying 3 singles
+    upsellTo: 'premium',
   },
 
-  // Ivy All 8
-  ivy_bundle_8: {
-    id: 'ivy_bundle_8',
-    name: 'Complete Ivy Coverage',
-    shortName: 'All 8 Ivies',
-    priceInCents: PRICING.IVY_BUNDLE_8,
-    description: 'All 8 Ivy League schools covered',
+  // =========================================================================
+  // PREMIUM - $249 (3 Ivies AI + Human Expert)
+  // =========================================================================
+  premium: {
+    id: 'premium',
+    name: 'Premium Expert Review',
+    shortName: 'Premium',
+    priceInCents: PRICING.ANALYSIS_PREMIUM,
+    description: '3 Ivy schools + human expert review',
     features: [
-      'Everything for ALL 8 schools',
-      'Master narrative tracking',
-      'Full cross-school analysis',
-      'School-by-school tailoring tips',
+      'Everything in Ivy 3-Pack',
+      'Human expert review (former AO)',
+      'Detailed margin comments',
+      'Direct messaging with your reviewer',
+      '48-hour turnaround',
     ],
-    schoolsIncluded: 8,
+    schoolsIncluded: 3,
     isIvy: true,
-    savingsVsIndividual: 16300, // $163 savings
+  },
+};
+
+// Legacy alias for backwards compatibility
+/** @deprecated Use TIER_CONFIG instead */
+export const LEGACY_TIER_CONFIG = {
+  ...TIER_CONFIG,
+  // Add standard as alias for ivy_bundle_3 for backwards compat
+  standard: {
+    ...TIER_CONFIG.ivy_bundle_3,
+    id: 'standard' as AllTiers,
+    name: 'Full Analysis',
+    isIvy: false,
   },
 };
 
@@ -238,7 +233,7 @@ export function getIvyTierOptions(): TierInfo[] {
   return [
     TIER_CONFIG.ivy_single,
     TIER_CONFIG.ivy_bundle_3,
-    TIER_CONFIG.ivy_bundle_8,
+    TIER_CONFIG.premium, // Premium includes 3 Ivies + human review
   ];
 }
 
@@ -246,16 +241,17 @@ export function getIvyTierOptions(): TierInfo[] {
  * Validate if a tier is an Ivy tier
  */
 export function isIvyTier(tierId: string): tierId is IvyTier {
-  return ['ivy_single', 'ivy_bundle_3', 'ivy_bundle_8'].includes(tierId);
+  return ['ivy_single', 'ivy_bundle_3'].includes(tierId);
 }
 
 /**
  * Get the appropriate Ivy tier based on number of schools
  */
-export function getRecommendedIvyTier(schoolCount: number): IvyTier {
+export function getRecommendedIvyTier(schoolCount: number): IvyTier | PremiumTier {
   if (schoolCount <= 1) return 'ivy_single';
   if (schoolCount <= 3) return 'ivy_bundle_3';
-  return 'ivy_bundle_8';
+  // For 4+ schools, recommend premium which includes human review
+  return 'premium';
 }
 
 // =============================================================================
@@ -272,6 +268,11 @@ export interface UpsellMessage {
 
 /**
  * Get upsell message for post-purchase screen
+ *
+ * Upsell Flow:
+ *   Quick ($9.99) → Ivy Single ($39): "Get line-by-line fixes"
+ *   Ivy Single ($39) → Ivy 3-Pack ($79): "Add 2 more schools"
+ *   Ivy 3-Pack ($79) → Premium ($249): "Add human expert review"
  */
 export function getUpsellMessage(currentTier: AllTiers): UpsellMessage | null {
   const upsellTier = getUpsellTier(currentTier);
@@ -282,27 +283,29 @@ export function getUpsellMessage(currentTier: AllTiers): UpsellMessage | null {
   switch (upsellTier.id) {
     case 'ivy_single':
       return {
-        headline: 'Applying to an Ivy?',
-        subtext: `Get school-specific AO feedback, portfolio coherence analysis, and instant reject detection for just ${upgradePrice} more.`,
-        ctaText: `Upgrade to Ivy Analysis - ${upgradePrice}`,
+        headline: 'Want line-by-line feedback?',
+        subtext: `Upgrade to see exactly HOW to fix each issue, plus school-specific AO insights and portfolio analysis. Just ${upgradePrice} more.`,
+        ctaText: `Get Full Analysis - ${upgradePrice}`,
         tier: upsellTier,
       };
+
     case 'ivy_bundle_3':
       return {
-        headline: 'Applying to multiple Ivies?',
-        subtext: `Add 2 more schools and get cross-school narrative analysis. Save ${getBundleSavings('ivy_bundle_3')?.formatted} vs buying separately.`,
+        headline: 'Applying to more than one Ivy?',
+        subtext: `Most students apply to 2-4 Ivies. Get full analysis for 3 schools with cross-narrative consistency check. Save ${getBundleSavings('ivy_bundle_3')?.formatted} vs buying separately.`,
         ctaText: `Upgrade to 3-School Bundle - ${upgradePrice}`,
         tier: upsellTier,
         savings: getBundleSavings('ivy_bundle_3')?.formatted,
       };
-    case 'ivy_bundle_8':
+
+    case 'premium':
       return {
-        headline: 'Going for all 8 Ivies?',
-        subtext: `Get complete coverage for all 8 schools with master narrative tracking. Save ${getBundleSavings('ivy_bundle_8')?.formatted}!`,
-        ctaText: `Upgrade to Complete Ivy - ${upgradePrice}`,
+        headline: 'Want a former AO to review your essays?',
+        subtext: `Get everything in the 3-School Bundle PLUS a human expert review from a former admissions officer. 48-hour turnaround, direct messaging.`,
+        ctaText: `Add Expert Review - ${upgradePrice}`,
         tier: upsellTier,
-        savings: getBundleSavings('ivy_bundle_8')?.formatted,
       };
+
     default:
       return null;
   }
