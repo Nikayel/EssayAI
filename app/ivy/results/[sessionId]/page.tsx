@@ -249,7 +249,7 @@ export default function IvyResultsPage() {
             )}
 
             {/* Post-Purchase Upsell */}
-            {showUpsell && currentTier !== 'ivy_bundle_8' && (
+            {showUpsell && currentTier !== 'premium' && (
               <PostPurchaseUpsell
                 currentTier={currentTier}
                 sessionId={sessionId}

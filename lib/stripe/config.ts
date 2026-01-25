@@ -10,48 +10,72 @@ export const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
 
 /**
  * Package pricing in cents
+ *
+ * SIMPLIFIED PRICING STRUCTURE (Jan 2026)
+ * ========================================
+ *
+ * Main Funnel:
+ *   FREE Preview → $9.99 Quick → $39 Ivy Single → $79 Ivy 3-Pack → $249 Premium
+ *
+ * The funnel is designed to:
+ *   1. Hook with free score + blurred issues
+ *   2. $9.99 unlocks personalized feedback (uses spike, activities, background)
+ *   3. $39 is the main conversion point (full Ivy analysis for 1 school)
+ *   4. $79 bundle for 3 schools (most popular)
+ *   5. $249 for premium (3 schools AI + human expert review)
  */
 export const PRICING = {
   // ==========================================================================
-  // NEW TIERED ANALYSIS SYSTEM
+  // ACTIVE TIERS (Main funnel)
   // ==========================================================================
-  ANALYSIS_QUICK: 999, // $9.99 - Quick Score
-  ANALYSIS_STANDARD: 7900, // $79 - Full Analysis
-  ANALYSIS_PREMIUM: 24900, // $249 - Expert Review (includes human)
-
-  // Legacy tiers (kept for backwards compatibility)
-  // Standard tiers
-  AI_LITE: 900, // $9
-  AI_PRO_SINGLE: 2900, // $29
-  AI_PRO_MONTHLY: 4900, // $49/month (up to 6 essays)
+  ANALYSIS_QUICK: 999,      // $9.99 - Quick Score with personalized feedback
+  IVY_SINGLE: 3900,         // $39 - Full analysis for 1 Ivy school
+  IVY_BUNDLE_3: 7900,       // $79 - Full analysis for 3 Ivy schools
+  ANALYSIS_PREMIUM: 24900,  // $249 - 3 Ivies AI + 1 human expert review
 
   // ==========================================================================
-  // IVY LEAGUE TIERS (Restructured Jan 2026)
+  // HUMAN REVIEW ADD-ONS
   // ==========================================================================
-  // $39 Single School = EVERYTHING about that one school (all essays, portfolio analysis)
-  // $79 Three Schools = Same depth for 3 schools
-  // $149 All 8 Ivies = Complete coverage
-  IVY_SINGLE: 3900, // $39 - Single school, ALL essays analyzed as portfolio
-  IVY_BUNDLE_3: 7900, // $79 - 3 schools, ALL essays per school
-  IVY_BUNDLE_8: 14900, // $149 - All 8 Ivies, complete portfolio analysis
-  IVY_UNLIMITED: 24900, // $249 - Unlimited Ivy essays for season (legacy)
+  HUMAN_REVIEW_SINGLE: 7900,   // $79 - Add human review to any AI analysis
+  HUMAN_REVIEW_DEEP: 14900,    // $149 - Deep human review with video call
 
-  // Human review tiers
-  HUMAN_LITE: 7900, // $79
-  HUMAN_OVERALL_REVIEW: 12900, // $129 - NEW!
-  HUMAN_FULL_1: 12900, // $129
-  HUMAN_FULL_3: 27900, // $279
-  HUMAN_FULL_5: 39900, // $399
-  DEEP_REVIEW: 45000, // $450 - NEW PREMIUM!
-
-  // Ivy + Human combos
-  IVY_HUMAN_COMBO: 14900, // $149 - AI + 1 human review for 1 Ivy
-  IVY_PREMIUM_BUNDLE: 49900, // $499 - All 8 Ivies AI + 3 human reviews
-
-  // Add-ons
-  EXPERT_QA_PREMIUM: 30000, // $300 - 2-day unlimited Q&A (DEEP_REVIEW upsell)
-  EXPERT_QA_STANDARD: 15000, // $150 - 1-day Q&A session
-  RUSH_ADDON: 4900, // $49
+  // ==========================================================================
+  // LEGACY TIERS (kept for backwards compatibility - DO NOT USE IN NEW CODE)
+  // ==========================================================================
+  /** @deprecated Use IVY_BUNDLE_3 instead */
+  ANALYSIS_STANDARD: 7900,
+  /** @deprecated */
+  AI_LITE: 900,
+  /** @deprecated */
+  AI_PRO_SINGLE: 2900,
+  /** @deprecated */
+  AI_PRO_MONTHLY: 4900,
+  /** @deprecated - Removed, nobody applies to all 8 Ivies */
+  IVY_BUNDLE_8: 14900,
+  /** @deprecated */
+  IVY_UNLIMITED: 24900,
+  /** @deprecated */
+  HUMAN_LITE: 7900,
+  /** @deprecated */
+  HUMAN_OVERALL_REVIEW: 12900,
+  /** @deprecated */
+  HUMAN_FULL_1: 12900,
+  /** @deprecated */
+  HUMAN_FULL_3: 27900,
+  /** @deprecated */
+  HUMAN_FULL_5: 39900,
+  /** @deprecated */
+  DEEP_REVIEW: 45000,
+  /** @deprecated */
+  IVY_HUMAN_COMBO: 14900,
+  /** @deprecated */
+  IVY_PREMIUM_BUNDLE: 49900,
+  /** @deprecated */
+  EXPERT_QA_PREMIUM: 30000,
+  /** @deprecated */
+  EXPERT_QA_STANDARD: 15000,
+  /** @deprecated */
+  RUSH_ADDON: 4900,
 } as const;
 
 /**

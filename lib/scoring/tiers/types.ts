@@ -18,14 +18,38 @@ export type AnalysisTier = 'preview' | 'quick' | 'standard' | 'premium';
 // =============================================================================
 
 /**
- * Minimal intake for Quick tier ($9.99)
+ * Enhanced intake for Quick tier ($9.99)
+ *
+ * Strategy: Collect enough context to make feedback feel personalized
+ * This increases perceived value AND conversion to paid tiers.
+ *
+ * The intake flow asks these BEFORE payment, so users feel invested.
  */
 export interface QuickIntake {
+  // === REQUIRED (must have to analyze) ===
   targetSchool: string;
   essayType: string;
-  // Optional - improves accuracy but not required
+
+  // === PERSONALIZATION (makes $9.99 feel worth it) ===
+  /** Student's main narrative/angle (1-2 sentences) */
+  spike?: string;
+  /** Top 3 activities/achievements - check if essay mentions them */
+  topActivities?: string[];
+  /** Is this first draft or polished? Adjusts feedback tone */
+  draftStatus?: 'first_draft' | 'revised' | 'final_polish';
+
+  // === BACKGROUND CONTEXT (adjusts feedback sensitivity) ===
+  /** First-generation college student */
   isFirstGen?: boolean;
+  /** International student */
+  isInternational?: boolean;
+  /** Primary language if not English */
+  primaryLanguage?: string;
+  /** Intended major - for checking essay relevance */
   intendedMajor?: string;
+
+  // === WORD LIMIT (for length feedback) ===
+  wordLimit?: number;
 }
 
 /**

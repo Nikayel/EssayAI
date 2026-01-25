@@ -285,25 +285,29 @@ interface UpgradeConfig {
   secondary?: UpgradeOption[];
 }
 
+/**
+ * Upsell Flow (Simplified Jan 2026):
+ *   quick → ivy_single → ivy_bundle_3 → premium
+ */
 function getUpgradeConfig(currentTier: AllTiers): UpgradeConfig | null {
   const ivySingle = TIER_CONFIG.ivy_single;
   const ivyBundle3 = TIER_CONFIG.ivy_bundle_3;
-  const ivyBundle8 = TIER_CONFIG.ivy_bundle_8;
+  const premium = TIER_CONFIG.premium;
 
   switch (currentTier) {
     case 'quick':
       return {
         headline: 'Get the Full Picture',
         subtext: 'See exactly what admissions officers will think about your essay.',
-        socialProof: 'Most students upgrade for school-specific feedback',
+        socialProof: 'Most students upgrade for line-by-line feedback',
         primary: {
           id: 'ivy_single',
           name: ivySingle.name,
           description: 'Complete analysis for your target school',
           keyBenefits: [
-            'School-specific AO perspective & feedback',
-            'Portfolio analysis across all your essays',
-            'Red flag detection & "instant reject" checks',
+            'Line-by-line feedback with fixes',
+            'School-specific AO perspective',
+            '"So What?" test & instant reject detection',
           ],
           savings: 0,
         },
@@ -322,7 +326,7 @@ function getUpgradeConfig(currentTier: AllTiers): UpgradeConfig | null {
     case 'ivy_single':
       return {
         headline: 'Applying to More Schools?',
-        subtext: 'Add cross-school narrative checking to ensure consistency.',
+        subtext: 'Most students apply to 2-4 Ivies. Get cross-school narrative consistency.',
         socialProof: '67% of Ivy applicants apply to 3+ schools',
         primary: {
           id: 'ivy_bundle_3',
@@ -337,11 +341,11 @@ function getUpgradeConfig(currentTier: AllTiers): UpgradeConfig | null {
         },
         secondary: [
           {
-            id: 'ivy_bundle_8',
-            name: 'Complete Ivy Coverage',
-            shortDesc: 'All 8 Ivy League schools',
+            id: 'premium',
+            name: 'Add Human Expert',
+            shortDesc: '3 schools + former AO review',
             keyBenefits: [],
-            savings: ivyBundle8.savingsVsIndividual || 0,
+            savings: 0,
             icon: 'sparkles',
           },
         ],
@@ -349,19 +353,19 @@ function getUpgradeConfig(currentTier: AllTiers): UpgradeConfig | null {
 
     case 'ivy_bundle_3':
       return {
-        headline: 'Complete Your Coverage',
-        subtext: 'Get analysis for all 8 Ivy League schools.',
-        socialProof: 'Serious applicants cover all their options',
+        headline: 'Want a Former AO to Review?',
+        subtext: 'Get human expert feedback from someone who\'s read thousands of essays.',
+        socialProof: 'Premium students are 2x more likely to get interviews',
         primary: {
-          id: 'ivy_bundle_8',
-          name: ivyBundle8.name,
-          description: 'Add 5 more schools for complete coverage',
+          id: 'premium',
+          name: premium.name,
+          description: 'Add expert human review to your 3-school bundle',
           keyBenefits: [
-            'Master narrative tracking across all schools',
-            'School-by-school tailoring recommendations',
-            'Complete portfolio optimization',
+            'Human expert review from former admissions officer',
+            'Detailed margin comments & direct messaging',
+            '48-hour turnaround',
           ],
-          savings: ivyBundle8.savingsVsIndividual || 0,
+          savings: 0,
         },
       };
 

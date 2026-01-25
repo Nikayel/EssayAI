@@ -12,13 +12,11 @@ import {
 } from '@/lib/pricing';
 
 export default function PricingPage() {
-  // Get tier info from centralized config
+  // Get tier info from centralized config (Simplified Jan 2026)
   const quickTier = TIER_CONFIG.quick;
-  const standardTier = TIER_CONFIG.standard;
-  const premiumTier = TIER_CONFIG.premium;
   const ivySingleTier = TIER_CONFIG.ivy_single;
   const ivyBundle3Tier = TIER_CONFIG.ivy_bundle_3;
-  const ivyBundle8Tier = TIER_CONFIG.ivy_bundle_8;
+  const premiumTier = TIER_CONFIG.premium;
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-neutral-50 to-white">
@@ -312,23 +310,23 @@ export default function PricingPage() {
             </CardFooter>
           </Card>
 
-          {/* Ivy All 8 - Best Value */}
+          {/* Premium - 3 Schools + Human Expert */}
           <Card className="border-2 border-amber-400 relative bg-gradient-to-b from-amber-50/50 to-white">
             <div className="absolute -top-4 left-1/2 -translate-x-1/2 bg-gradient-to-r from-amber-500 to-orange-500 text-white px-4 py-1 rounded-full text-sm font-semibold">
-              Best Value
+              + Human Expert
             </div>
             <CardHeader className="text-center pb-2">
               <div className="w-12 h-12 mx-auto mb-4 rounded-2xl bg-gradient-to-br from-amber-500 to-orange-500 flex items-center justify-center">
-                <Sparkles className="w-6 h-6 text-white" />
+                <Users className="w-6 h-6 text-white" />
               </div>
-              <CardTitle className="text-xl">{ivyBundle8Tier.name}</CardTitle>
-              <CardDescription className="text-sm">{ivyBundle8Tier.description}</CardDescription>
-              <div className="text-3xl font-bold mt-4">{formatPrice(ivyBundle8Tier.priceInCents)}</div>
-              <p className="text-sm text-neutral-500">Save {getBundleSavings('ivy_bundle_8')?.formatted} vs individual</p>
+              <CardTitle className="text-xl">{premiumTier.name}</CardTitle>
+              <CardDescription className="text-sm">{premiumTier.description}</CardDescription>
+              <div className="text-3xl font-bold mt-4">{formatPrice(premiumTier.priceInCents)}</div>
+              <p className="text-sm text-neutral-500">3 schools + former AO review</p>
             </CardHeader>
             <CardContent className="pt-4">
               <ul className="space-y-2 text-sm">
-                {ivyBundle8Tier.features.map((feature, i) => (
+                {premiumTier.features.map((feature: string, i: number) => (
                   <li key={i} className="flex gap-2">
                     <Check className="w-4 h-4 text-green-600 flex-shrink-0 mt-0.5" />
                     <span>{feature}</span>
@@ -339,7 +337,7 @@ export default function PricingPage() {
             <CardFooter>
               <Link href="/ivy" className="w-full">
                 <Button variant="premium" className="w-full">
-                  Get Complete Coverage
+                  Get Premium Review
                   <ArrowRight className="w-4 h-4" />
                 </Button>
               </Link>
