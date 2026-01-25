@@ -570,40 +570,53 @@ export interface LeverageAnalysis {
  */
 export function analyzeLeveragePoints(
   essayText: string,
-  intake: StudentIntake
+  intake: StudentIntake | null | undefined
 ): LeverageAnalysis {
   const leveragePoints: LeveragePoint[] = [];
   const untoldStories: string[] = [];
   const narrativeGaps: string[] = [];
+
+  // Early return if no intake data
+  if (!intake) {
+    return {
+      leveragePoints: [],
+      untoldStories: [],
+      narrativeGaps: [],
+      overallAdvice: 'No background information provided. Consider adding intake data for personalized leverage analysis.',
+    };
+  }
+
   const textLower = essayText.toLowerCase();
 
   // Check spike/main narrative
-  if (intake.activities?.spike) {
-    const spikeWords = intake.activities.spike.toLowerCase().split(' ').filter(w => w.length > 4);
+  const spike = intake.activities?.spike;
+  if (spike) {
+    const spikeWords = spike.toLowerCase().split(' ').filter(w => w.length > 4);
     const spikeMentioned = spikeWords.some(w => textLower.includes(w));
 
     if (!spikeMentioned) {
       leveragePoints.push({
         source: 'spike',
-        element: intake.activities.spike,
+        element: spike,
         currentMention: 'not_mentioned',
-        weavingAdvice: `Your spike is "${intake.activities.spike}" but this essay doesn't connect to that narrative. Consider: how did a moment in this essay connect to or influence your main passion?`,
+        weavingAdvice: `Your spike is "${spike}" but this essay doesn't connect to that narrative. Consider: how did a moment in this essay connect to or influence your main passion?`,
         exampleIntegration: 'Don\'t add your spike activities. Instead, show how the THINKING or VALUES from this essay connect to your broader narrative.',
         warning: 'DON\'T just mention your spike. SHOW how the essay\'s theme connects to it thematically.',
       });
-      untoldStories.push(`Connection between this essay and your spike ("${intake.activities.spike}")`);
+      untoldStories.push(`Connection between this essay and your spike ("${spike}")`);
     }
   }
 
   // Check research experience
-  if (intake.academic?.researchExperience?.hasExperience && intake.academic.researchExperience.description) {
-    const researchKeywords = intake.academic.researchExperience.description.toLowerCase().split(' ').filter(w => w.length > 4);
+  const research = intake.academic?.researchExperience;
+  if (research?.hasExperience && research.description) {
+    const researchKeywords = research.description.toLowerCase().split(' ').filter(w => w.length > 4);
     const researchMentioned = researchKeywords.slice(0, 5).some(w => textLower.includes(w));
 
     if (!researchMentioned) {
       leveragePoints.push({
         source: 'research',
-        element: intake.academic.researchExperience.description,
+        element: research.description,
         currentMention: 'not_mentioned',
         weavingAdvice: 'You have research experience but didn\'t mention it. If relevant, share a specific MOMENT of discovery or failure - not a description of your research.',
         exampleIntegration: 'Instead of "I researched X at Y lab," try: "The afternoon I realized my hypothesis was completely wrong was the afternoon I fell in love with science."',
@@ -613,27 +626,30 @@ export function analyzeLeveragePoints(
   }
 
   // Check top activities
-  if (intake.activities?.topActivities && intake.activities.topActivities.length > 0) {
-    const topActivity = intake.activities.topActivities[0];
-    const activityMentioned = textLower.includes(topActivity.name.toLowerCase()) ||
-                             textLower.includes(topActivity.role.toLowerCase());
+  const topActivities = intake.activities?.topActivities;
+  if (topActivities && topActivities.length > 0) {
+    const topActivity = topActivities[0];
+    if (topActivity?.name && topActivity?.role) {
+      const activityMentioned = textLower.includes(topActivity.name.toLowerCase()) ||
+                               textLower.includes(topActivity.role.toLowerCase());
 
-    if (!activityMentioned && topActivity.impact) {
-      // Only suggest if it seems relevant to essay theme
-      leveragePoints.push({
-        source: 'activity',
-        element: `${topActivity.name} (${topActivity.role})`,
-        currentMention: 'not_mentioned',
-        weavingAdvice: `Your top activity (${topActivity.name}) isn't mentioned. IF it connects to this essay's theme, consider: what moment from this activity shaped the person you're describing in this essay?`,
-        exampleIntegration: 'Don\'t add the activity itself. Ask: "Is there a moment from this activity that illustrates who I became?"',
-        warning: 'Only add if genuinely relevant. Forced connections weaken essays.',
-      });
+      if (!activityMentioned && topActivity.impact) {
+        leveragePoints.push({
+          source: 'activity',
+          element: `${topActivity.name} (${topActivity.role})`,
+          currentMention: 'not_mentioned',
+          weavingAdvice: `Your top activity (${topActivity.name}) isn't mentioned. IF it connects to this essay's theme, consider: what moment from this activity shaped the person you're describing in this essay?`,
+          exampleIntegration: 'Don\'t add the activity itself. Ask: "Is there a moment from this activity that illustrates who I became?"',
+          warning: 'Only add if genuinely relevant. Forced connections weaken essays.',
+        });
+      }
     }
   }
 
   // Check challenges/background
-  if (intake.personal?.significantChallenges) {
-    const challengeWords = intake.personal.significantChallenges.toLowerCase().split(' ').filter(w => w.length > 4);
+  const challenges = intake.personal?.significantChallenges;
+  if (challenges) {
+    const challengeWords = challenges.toLowerCase().split(' ').filter(w => w.length > 4);
     const challengeMentioned = challengeWords.slice(0, 5).some(w => textLower.includes(w));
 
     if (!challengeMentioned) {
@@ -643,9 +659,8 @@ export function analyzeLeveragePoints(
   }
 
   // Check family responsibilities
-  if (intake.demographics?.familyResponsibilities &&
-      intake.demographics.familyResponsibilities.length > 0 &&
-      !intake.demographics.familyResponsibilities.includes('none')) {
+  const familyResp = intake.demographics?.familyResponsibilities;
+  if (familyResp && familyResp.length > 0 && !familyResp.includes('none')) {
     const hasFamilyContext = textLower.includes('family') ||
                             textLower.includes('sibling') ||
                             textLower.includes('parent') ||
@@ -654,7 +669,7 @@ export function analyzeLeveragePoints(
     if (!hasFamilyContext) {
       leveragePoints.push({
         source: 'challenge',
-        element: `Family responsibilities: ${intake.demographics.familyResponsibilities.join(', ')}`,
+        element: `Family responsibilities: ${familyResp.join(', ')}`,
         currentMention: 'not_mentioned',
         weavingAdvice: 'You have family responsibilities that affect your time. If relevant, this context helps AOs understand your commitments.',
         exampleIntegration: 'A brief mention that shows maturity: "Between work shifts and helping at home, I found moments to..."',
@@ -664,12 +679,13 @@ export function analyzeLeveragePoints(
   }
 
   // Check intellectual passion
-  if (intake.academic?.intellectualPassion) {
-    const passionWords = intake.academic.intellectualPassion.toLowerCase().split(' ').filter(w => w.length > 4);
+  const passion = intake.academic?.intellectualPassion;
+  if (passion) {
+    const passionWords = passion.toLowerCase().split(' ').filter(w => w.length > 4);
     const passionMentioned = passionWords.slice(0, 3).some(w => textLower.includes(w));
 
     if (!passionMentioned) {
-      untoldStories.push(`Your intellectual passion ("${intake.academic.intellectualPassion.slice(0, 50)}...") and how it connects to this essay`);
+      untoldStories.push(`Your intellectual passion ("${passion.slice(0, 50)}...") and how it connects to this essay`);
     }
   }
 

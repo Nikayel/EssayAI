@@ -353,14 +353,26 @@ async function analyzeIvyEssay(
   essayText: string,
   intake: FullIntake
 ): Promise<IvySingleEssayAnalysis> {
-  const school = getIvySchool(schoolId)!;
+  const school = getIvySchool(schoolId);
+  if (!school) {
+    throw new Error(`Unknown Ivy school: ${schoolId}`);
+  }
+
   const prompt = school.essayPrompts.find(p => p.id === promptId);
   const aoPerspective = SCHOOL_AO_PERSPECTIVES[schoolId];
+  if (!aoPerspective) {
+    throw new Error(`Missing AO perspective for school: ${schoolId}`);
+  }
 
   // Run base analysis
   const baseAnalysis = await analyzeEssay(essayText, intake, {
     includeAnnotations: true,
   });
+
+  // Defensive check for baseAnalysis structure
+  if (!baseAnalysis || !baseAnalysis.dimensions) {
+    throw new Error('Base analysis returned invalid structure');
+  }
 
   // Run resume-essay detection
   const resumeCheck = detectResumeEssay(essayText);
@@ -371,31 +383,34 @@ async function analyzeIvyEssay(
   // Check for instant reject signals
   const instantRejectSignals = detectInstantRejectSignals(
     essayText,
-    aoPerspective.instantRejects
+    aoPerspective.instantRejects || []
   );
 
   // Check for "eyes light up" moments
   const eyesLightUpMoments = detectPositiveSignals(
     essayText,
     baseAnalysis,
-    aoPerspective.whatMakesMyEyesLightUp
+    aoPerspective.whatMakesMyEyesLightUp || []
   );
 
   // Check if requirements are met
   const meetsRequirements = checkRequirements(
     essayText,
     baseAnalysis,
-    aoPerspective.whatIMustSee
+    aoPerspective.whatIMustSee || []
   );
 
   // Evaluate "So What" test
   const soWhatTest = evaluateSoWhatTest(essayText, baseAnalysis);
 
+  // Get opening hook score with defensive check
+  const openingHookScore = baseAnalysis.dimensions?.specificity?.openingHook?.score ?? 2;
+
   // Generate AO first impression
   const aoFirstImpression = generateAOFirstImpression(
     essayText,
     schoolId,
-    baseAnalysis.dimensions.specificity.openingHook.score
+    openingHookScore
   );
 
   // Generate committee pitch attempt

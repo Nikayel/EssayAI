@@ -24,20 +24,78 @@ import { isIvyLeagueSchool, getIvyTierConfig, type IvyTier } from '@/lib/config'
 // =============================================================================
 
 const EssayInputSchema = z.object({
-  promptId: z.string(),
-  essayText: z.string().min(50).max(10000),
+  promptId: z.string().min(1, 'Prompt ID required'),
+  essayText: z.string().min(50, 'Essay must be at least 50 characters').max(10000),
 });
 
 const SchoolEssaysSchema = z.object({
   schoolId: z.string().refine(isIvyLeagueSchool, { message: 'Invalid Ivy League school' }),
-  essays: z.array(EssayInputSchema).min(1).max(5),
+  essays: z.array(EssayInputSchema).min(1, 'At least one essay required').max(5),
 });
+
+// Intake validation - require essential fields, make others optional
+const IntakeSchema = z.object({
+  // Essay context is required
+  essayContext: z.object({
+    targetSchool: z.string().optional(),
+    essayType: z.string().optional(),
+    essayPrompt: z.string().optional(),
+    wordLimit: z.number().optional(),
+    draftNumber: z.string().optional(),
+    biggestConcern: z.string().optional(),
+  }).optional(),
+
+  // Activities - optional but structured if provided
+  activities: z.object({
+    spike: z.string().optional(),
+    topActivities: z.array(z.any()).optional(),
+    leadershipRoles: z.array(z.string()).optional(),
+    summerExperiences: z.string().optional(),
+  }).optional(),
+
+  // Academic - optional
+  academic: z.object({
+    intendedMajor: z.string().optional(),
+    academicInterests: z.array(z.string()).optional(),
+    intellectualPassion: z.string().optional(),
+    researchExperience: z.object({
+      hasExperience: z.boolean(),
+      description: z.string().optional(),
+    }).optional(),
+    academicChallenges: z.string().optional(),
+  }).optional(),
+
+  // Demographics - optional
+  demographics: z.object({
+    isFirstGen: z.boolean().optional(),
+    familyEducationLevel: z.string().optional(),
+    isInternational: z.boolean().optional(),
+    geographicContext: z.string().optional(),
+    schoolType: z.string().optional(),
+    familyResponsibilities: z.array(z.string()).optional(),
+  }).optional(),
+
+  // Personal - optional
+  personal: z.object({
+    identityFactors: z.array(z.string()).optional(),
+    significantChallenges: z.string().optional(),
+    uniquePerspective: z.string().optional(),
+    whatAOsShouldKnow: z.string().optional(),
+  }).optional(),
+
+  // Voice - optional
+  voice: z.object({
+    toneSample: z.string().optional(),
+    writingStyle: z.string().optional(),
+    usesHumor: z.boolean().optional(),
+  }).optional(),
+}).passthrough(); // Allow additional fields
 
 const IvyAnalysisRequestSchema = z.object({
   tier: z.enum(['ivy_single', 'ivy_bundle_3', 'ivy_bundle_8']),
-  schools: z.array(SchoolEssaysSchema),
-  intake: z.any(), // FullIntake - validated at runtime
-  sessionId: z.string().optional(), // Pre-paid session
+  schools: z.array(SchoolEssaysSchema).min(1, 'At least one school required'),
+  intake: IntakeSchema,
+  sessionId: z.string().optional(),
 });
 
 // =============================================================================
