@@ -120,6 +120,71 @@ function getEssayStatus(essay: any) {
   };
 }
 
+async function getAnalysisSessions(userId: string) {
+  return await prisma.analysisSession.findMany({
+    where: { userId },
+    orderBy: { createdAt: 'desc' },
+    take: 10, // Show last 10 sessions
+  });
+}
+
+function getSessionStatusInfo(status: string, tier: string) {
+  switch (status) {
+    case 'PENDING':
+      return {
+        label: 'Payment Pending',
+        icon: Clock,
+        variant: 'warning' as const,
+      };
+    case 'ANALYZING':
+      return {
+        label: 'Analyzing...',
+        icon: Loader2,
+        variant: 'info' as const,
+        animate: true,
+      };
+    case 'AI_COMPLETE':
+    case 'COMPLETED':
+      return {
+        label: 'Complete',
+        icon: CheckCircle2,
+        variant: 'success' as const,
+      };
+    case 'HUMAN_QUEUED':
+    case 'HUMAN_IN_PROGRESS':
+      return {
+        label: 'Expert Review',
+        icon: Loader2,
+        variant: 'default' as const,
+        animate: true,
+      };
+    case 'FAILED':
+      return {
+        label: 'Failed',
+        icon: Clock,
+        variant: 'destructive' as const,
+      };
+    default:
+      return {
+        label: status,
+        icon: Clock,
+        variant: 'default' as const,
+      };
+  }
+}
+
+function getTierDisplayName(tier: string) {
+  const tierNames: Record<string, string> = {
+    quick: 'Quick Score',
+    standard: 'Full Analysis',
+    premium: 'Premium + Expert',
+    ivy_single: 'Ivy Single',
+    ivy_bundle_3: 'Ivy 3-Pack',
+    ivy_bundle_8: 'Ivy Complete',
+  };
+  return tierNames[tier] || tier;
+}
+
 async function getQASessions(userId: string) {
   const sessions = await prisma.order.findMany({
     where: {
@@ -170,6 +235,7 @@ export default async function DashboardPage() {
 
   const essays = await getEssays(user.id);
   const qaSessions = await getQASessions(user.id);
+  const analysisSessions = await getAnalysisSessions(user.id);
 
   return (
     <div className="min-h-screen bg-background">
@@ -265,6 +331,116 @@ export default async function DashboardPage() {
                           <ArrowRight className="w-4 h-4" />
                         </Button>
                       </Link>
+                    </CardContent>
+                  </Card>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        {/* Analysis Sessions (New Tiered Flow) */}
+        {analysisSessions.length > 0 && (
+          <div className="mb-10">
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-2">
+                <Badge variant="default" size="lg">
+                  <Sparkles className="w-3.5 h-3.5" />
+                  Recent Analyses
+                </Badge>
+              </div>
+              <Link href="/dashboard/new">
+                <Button variant="outline" size="sm">
+                  <Plus className="w-4 h-4" />
+                  New Analysis
+                </Button>
+              </Link>
+            </div>
+            <div className="grid gap-4">
+              {analysisSessions.map((session) => {
+                const statusInfo = getSessionStatusInfo(session.status, session.tier);
+                const StatusIcon = statusInfo.icon;
+                const isIvyTier = session.tier.startsWith('ivy_');
+                const resultsUrl = isIvyTier
+                  ? `/ivy/results/${session.id}`
+                  : `/analysis/${session.id}`;
+
+                return (
+                  <Card key={session.id} variant="interactive">
+                    <CardHeader className="pb-3">
+                      <div className="flex justify-between items-start gap-4">
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-3 mb-1">
+                            <CardTitle className="text-lg truncate">
+                              {getTierDisplayName(session.tier)}
+                            </CardTitle>
+                            {session.targetSchool && (
+                              <Badge variant="secondary" size="sm">
+                                {session.targetSchool}
+                              </Badge>
+                            )}
+                          </div>
+                          <CardDescription className="line-clamp-1">
+                            {session.essayType?.replace(/_/g, ' ') || 'Essay Analysis'}
+                            {' · '}
+                            {new Date(session.createdAt).toLocaleDateString()}
+                          </CardDescription>
+                        </div>
+                        <Badge variant={statusInfo.variant}>
+                          <StatusIcon
+                            className={`w-3 h-3 ${statusInfo.animate ? 'animate-spin' : ''}`}
+                          />
+                          {statusInfo.label}
+                        </Badge>
+                      </div>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                        <div className="flex items-center gap-3 sm:gap-6 text-sm">
+                          {session.aiScore !== null && (
+                            <div className="flex items-center gap-3">
+                              <div className="w-20 sm:w-24">
+                                <Progress value={session.aiScore} size="sm" />
+                              </div>
+                              <span className="text-sm font-semibold text-neutral-900">
+                                {Math.round(session.aiScore)}/100
+                              </span>
+                            </div>
+                          )}
+                          {session.paidAmount && (
+                            <span className="text-neutral-500">
+                              ${(session.paidAmount / 100).toFixed(2)}
+                            </span>
+                          )}
+                        </div>
+
+                        {session.status === 'COMPLETED' || session.status === 'AI_COMPLETE' ? (
+                          <Link href={resultsUrl} className="w-full sm:w-auto">
+                            <Button variant="outline" size="sm" className="w-full sm:w-auto">
+                              View Results
+                              <ArrowRight className="w-4 h-4" />
+                            </Button>
+                          </Link>
+                        ) : session.status === 'ANALYZING' ? (
+                          <Link href={resultsUrl} className="w-full sm:w-auto">
+                            <Button variant="outline" size="sm" className="w-full sm:w-auto">
+                              Check Progress
+                              <ArrowRight className="w-4 h-4" />
+                            </Button>
+                          </Link>
+                        ) : session.status === 'PENDING' ? (
+                          <Button variant="premium" size="sm" disabled className="w-full sm:w-auto">
+                            Awaiting Payment
+                          </Button>
+                        ) : (
+                          <Link href={resultsUrl} className="w-full sm:w-auto">
+                            <Button variant="outline" size="sm" className="w-full sm:w-auto">
+                              View Details
+                              <ArrowRight className="w-4 h-4" />
+                            </Button>
+                          </Link>
+                        )}
+                      </div>
                     </CardContent>
                   </Card>
                 );

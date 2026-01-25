@@ -27,6 +27,7 @@ import {
   Download,
   Share2,
   CheckCircle2,
+  Plus,
 } from 'lucide-react';
 
 type SessionStatus = 'loading' | 'analyzing' | 'complete' | 'error';
@@ -283,9 +284,15 @@ export default function AnalysisResultsPage() {
                 </p>
               </div>
               <div className="flex gap-2">
+                <Link href="/dashboard/new">
+                  <Button size="sm">
+                    <Plus className="w-4 h-4" />
+                    New Essay
+                  </Button>
+                </Link>
                 <Button variant="outline" size="sm">
                   <Download className="w-4 h-4" />
-                  Export PDF
+                  Export
                 </Button>
                 <Button variant="outline" size="sm">
                   <Share2 className="w-4 h-4" />
