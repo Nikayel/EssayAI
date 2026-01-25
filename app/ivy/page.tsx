@@ -85,7 +85,7 @@ export default function IvyAnalysisPage() {
     setError(null);
 
     try {
-      const response = await fetch('/api/ivy/analyze', {
+      const response = await fetch('/api/ivy/preview', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -94,9 +94,10 @@ export default function IvyAnalysisPage() {
             promptId: e.promptId,
             essayText: e.content,
           })),
-          intake,
-          // No payment - this is the free analysis
-          tier: 'preview',
+          intake: {
+            demographics: intake.demographics,
+            academic: intake.academic,
+          },
         }),
       });
 

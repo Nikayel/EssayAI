@@ -73,7 +73,7 @@ export default function IvyResultsPage() {
           return;
         }
 
-        if (data.status === 'COMPLETE' && data.result) {
+        if (data.status === 'COMPLETED' && data.result) {
           setResult(data.result);
           setStatus('complete');
           // Set tier from session data
@@ -88,6 +88,9 @@ export default function IvyResultsPage() {
           setError(data.error || 'Analysis failed');
           setStatus('error');
           if (pollInterval) clearInterval(pollInterval);
+        } else if (data.status === 'PENDING') {
+          // Still waiting for payment confirmation or analysis to start
+          setStatus('loading');
         }
       } catch (err) {
         console.error('Fetch error:', err);
