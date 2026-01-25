@@ -8,14 +8,14 @@ import { z } from 'zod';
 import { createClient } from '@/lib/supabase/server';
 import { prisma } from '@/lib/prisma';
 import { stripe, PRICING } from '@/lib/stripe/config';
-import { getTierConfig, type AnalysisTier } from '@/lib/config';
+import { getTierConfig, getIvyTierConfig, type AnalysisTier, type IvyTier, type AnyTier } from '@/lib/config';
 
 // =============================================================================
 // REQUEST VALIDATION
 // =============================================================================
 
 const CheckoutRequestSchema = z.object({
-  tier: z.enum(['quick', 'standard', 'premium']),
+  tier: z.enum(['quick', 'standard', 'premium', 'ivy_single', 'ivy_bundle_3', 'ivy_bundle_8']),
   // Pass intake and essay in metadata for processing after payment
   essayText: z.string().min(50).max(50000),
   intake: z.any(),
@@ -24,6 +24,13 @@ const CheckoutRequestSchema = z.object({
   // Success/cancel URLs
   successUrl: z.string().url().optional(),
   cancelUrl: z.string().url().optional(),
+  // Ivy-specific: schools to analyze (for bundles)
+  schools: z.array(z.string()).optional(),
+  // Ivy-specific: multiple essays per school
+  essaysBySchool: z.record(z.string(), z.array(z.object({
+    promptId: z.string(),
+    essayText: z.string(),
+  }))).optional(),
 });
 
 // =============================================================================
@@ -45,17 +52,23 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const { tier, essayText, intake, sessionId, successUrl, cancelUrl } = validation.data;
+    const { tier, essayText, intake, sessionId, successUrl, cancelUrl, schools, essaysBySchool } = validation.data;
 
     // Get pricing based on tier
-    const priceMap = {
+    const priceMap: Record<string, number> = {
       quick: PRICING.ANALYSIS_QUICK,
       standard: PRICING.ANALYSIS_STANDARD,
       premium: PRICING.ANALYSIS_PREMIUM,
+      ivy_single: PRICING.IVY_SINGLE,
+      ivy_bundle_3: PRICING.IVY_BUNDLE_3,
+      ivy_bundle_8: PRICING.IVY_BUNDLE_8,
     };
 
     const price = priceMap[tier];
-    const tierConfig = getTierConfig(tier as AnalysisTier);
+    const isIvyTier = tier.startsWith('ivy_');
+    const tierConfig = isIvyTier
+      ? getIvyTierConfig(tier as IvyTier)
+      : getTierConfig(tier as AnalysisTier);
 
     // Create or get analysis session
     let analysisSession: any;
@@ -74,9 +87,15 @@ export async function POST(request: NextRequest) {
           userEmail: user?.email || intake.email || 'pending@payment.com',
           tier,
           paidAmount: price,
-          essayText,
-          intakeData: intake,
-          targetSchool: intake.targetSchool || intake.essayContext?.targetSchool,
+          essayText: isIvyTier ? JSON.stringify(essaysBySchool || {}) : essayText,
+          intakeData: {
+            ...intake,
+            // Ivy-specific metadata
+            ...(isIvyTier && { ivySchools: schools, essaysBySchool }),
+          },
+          targetSchool: isIvyTier
+            ? (schools?.[0] || intake.essayContext?.targetSchool)
+            : (intake.targetSchool || intake.essayContext?.targetSchool),
           essayType: intake.essayType || intake.essayContext?.essayType,
           status: 'PENDING',
         },
@@ -156,6 +175,12 @@ function getTierDescription(tier: string): string {
       return 'Full analysis with line-by-line feedback, school-specific insights, and AO perspective.';
     case 'premium':
       return 'Complete analysis plus human expert review within 48 hours.';
+    case 'ivy_single':
+      return 'Complete Ivy analysis for ONE school. All essays analyzed as portfolio with school-specific AO perspective.';
+    case 'ivy_bundle_3':
+      return 'Complete Ivy analysis for THREE schools. Portfolio analysis per school plus cross-school narrative check.';
+    case 'ivy_bundle_8':
+      return 'Complete Ivy analysis for ALL 8 schools. Full portfolio analysis with master narrative tracking.';
     default:
       return 'Essay analysis';
   }

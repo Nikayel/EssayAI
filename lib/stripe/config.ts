@@ -25,11 +25,16 @@ export const PRICING = {
   AI_PRO_SINGLE: 2900, // $29
   AI_PRO_MONTHLY: 4900, // $49/month (up to 6 essays)
 
-  // Ivy League tiers (premium)
-  IVY_SINGLE: 3900, // $39 - Single Ivy essay analysis
-  IVY_BUNDLE_3: 9900, // $99 - 3 Ivy essays
-  IVY_BUNDLE_8: 19900, // $199 - All 8 Ivies
-  IVY_UNLIMITED: 29900, // $299 - Unlimited Ivy essays for season
+  // ==========================================================================
+  // IVY LEAGUE TIERS (Restructured Jan 2026)
+  // ==========================================================================
+  // $39 Single School = EVERYTHING about that one school (all essays, portfolio analysis)
+  // $79 Three Schools = Same depth for 3 schools
+  // $149 All 8 Ivies = Complete coverage
+  IVY_SINGLE: 3900, // $39 - Single school, ALL essays analyzed as portfolio
+  IVY_BUNDLE_3: 7900, // $79 - 3 schools, ALL essays per school
+  IVY_BUNDLE_8: 14900, // $149 - All 8 Ivies, complete portfolio analysis
+  IVY_UNLIMITED: 24900, // $249 - Unlimited Ivy essays for season (legacy)
 
   // Human review tiers
   HUMAN_LITE: 7900, // $79
@@ -194,54 +199,65 @@ export const PACKAGE_INFO = {
     ],
   },
 
-  // === IVY LEAGUE PACKAGES ===
+  // === IVY LEAGUE PACKAGES (Restructured Jan 2026) ===
+  // $39 = ONE school, COMPLETE coverage (all essays as portfolio)
+  // $79 = THREE schools, same depth
+  // $149 = ALL 8 schools
   IVY_SINGLE: {
-    name: 'Ivy League Single',
-    description: 'Deep analysis for one Ivy League essay',
+    name: 'Ivy Single School',
+    description: 'Complete analysis for ONE Ivy - all essays analyzed as a portfolio',
     price: PRICING.IVY_SINGLE,
     features: [
-      'School-specific analysis',
-      'Fit score with evidence',
-      '2025-26 prompt alignment',
-      'Mission & values match',
-      'Red flag detection',
-      'Actionable improvements',
-      'Voice preservation check',
+      'ALL essays for this school (2-4 depending on school)',
+      'School-specific AO perspective analysis',
+      'Portfolio coherence check (are essays telling different stories?)',
+      'Resume-essay detection (critical feedback if essays list activities)',
+      'Leverage points (how to weave your background without being a resume)',
+      '"So What?" test on each essay',
+      'Former AO reading simulation',
+      'Line-by-line annotations',
+      'Fit score with specific evidence',
+      'Red flag detection for this specific school',
+      'Instant reject signal detection',
+      'Committee pitch readiness assessment',
     ],
   },
   IVY_BUNDLE_3: {
-    name: 'Ivy League 3-Pack',
-    description: 'Analyze essays for 3 Ivy League schools',
+    name: 'Ivy 3-School Bundle',
+    description: 'Complete analysis for THREE Ivies - full portfolio for each',
     price: PRICING.IVY_BUNDLE_3,
     features: [
-      'Everything in Ivy Single',
-      '3 school analyses',
-      'Cross-essay consistency',
-      'Save $18 vs individual',
+      'Everything in Ivy Single for 3 schools',
+      'ALL essays per school analyzed',
+      'Cross-school narrative consistency',
+      'Strategic differentiation tips (how to tailor same story)',
+      'Portfolio comparison across schools',
+      'Save $38 vs buying individually',
     ],
   },
   IVY_BUNDLE_8: {
-    name: 'Full Ivy Coverage',
-    description: 'All 8 Ivy League schools covered',
+    name: 'Complete Ivy Coverage',
+    description: 'All 8 Ivy League schools - every essay, complete analysis',
     price: PRICING.IVY_BUNDLE_8,
     features: [
-      'Everything in Ivy Single',
-      'All 8 Ivy analyses',
-      'School comparison insights',
-      'Portfolio consistency check',
-      'Save $112 vs individual',
+      'Everything in Ivy Single for ALL 8 schools',
+      'Full portfolio analysis per school',
+      'Master narrative tracking across all schools',
+      'School-by-school tailoring recommendations',
+      'Best value for serious Ivy applicants',
+      'Save $163 vs buying individually',
     ],
   },
   IVY_UNLIMITED: {
     name: 'Ivy Season Pass',
-    description: 'Unlimited Ivy essays for entire application season',
+    description: 'Unlimited Ivy analyses for entire application season',
     price: PRICING.IVY_UNLIMITED,
     features: [
-      'Unlimited Ivy analyses',
-      'All 8 schools',
-      'Revision tracking',
+      'Unlimited analyses for all 8 Ivies',
+      'Revision tracking (see improvement over drafts)',
       'Priority support',
       'Valid through April 2026',
+      'Best for students iterating heavily',
     ],
   },
   IVY_HUMAN_COMBO: {

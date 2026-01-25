@@ -7,6 +7,11 @@
  *   - Quick ($9.99): Score + 3-5 actionable items with blunt feedback
  *   - Standard ($79): Full line-by-line + school-specific + AO insights
  *   - Premium ($249): Standard + AI rewrites + human reviewer
+ *
+ * Ivy League Tiers (NEW - Jan 2026):
+ *   - Ivy Single ($39): Complete analysis for ONE school - all essays as portfolio
+ *   - Ivy Bundle 3 ($79): Same depth for 3 schools
+ *   - Ivy Bundle 8 ($149): All 8 Ivies with cross-school analysis
  */
 
 export * from './types';
@@ -14,6 +19,16 @@ export { runPreviewAnalysis } from './preview-analysis';
 export { runQuickAnalysis } from './quick-analysis';
 export { runStandardAnalysis } from './standard-analysis';
 export { AO_INSIGHTS_BY_SCHOOL } from './ao-insights';
+
+// Ivy League Analysis (NEW)
+export {
+  runIvySingleSchoolAnalysis,
+  runIvyThreeSchoolAnalysis,
+  runIvyAllSchoolsAnalysis,
+  type IvySingleEssayAnalysis,
+  type IvySchoolAnalysis,
+  type IvyAnalysisResult,
+} from './ivy-analysis';
 
 import type {
   AnalysisTier,

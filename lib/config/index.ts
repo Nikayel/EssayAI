@@ -16,10 +16,11 @@
  *   3. Cache is refreshed periodically or on-demand
  */
 
-import type { AppConfig, ConfigOverride, AnalysisTier, TierConfig } from './types';
+import type { AppConfig, ConfigOverride, AnalysisTier, TierConfig, IvyTier, IvyTierConfig, AnyTier } from './types';
 import {
   buildDefaultConfig,
   TIER_CONFIGS,
+  IVY_TIER_CONFIGS,
   calculateCurrentCycle,
   calculateGraduationYears,
   IVY_LEAGUE_SCHOOLS,
@@ -179,10 +180,41 @@ export function getTierConfig(tier: AnalysisTier): TierConfig {
 }
 
 /**
+ * Get Ivy tier configuration by ID
+ */
+export function getIvyTierConfig(tier: IvyTier): IvyTierConfig {
+  return IVY_TIER_CONFIGS[tier];
+}
+
+/**
+ * Get any tier config (standard or Ivy)
+ */
+export function getAnyTierConfig(tier: AnyTier): TierConfig | IvyTierConfig {
+  if (tier.startsWith('ivy_')) {
+    return IVY_TIER_CONFIGS[tier as IvyTier];
+  }
+  return TIER_CONFIGS[tier as AnalysisTier];
+}
+
+/**
+ * Check if tier is an Ivy tier
+ */
+export function isIvyTier(tier: string): tier is IvyTier {
+  return tier.startsWith('ivy_');
+}
+
+/**
  * Get all tier configurations
  */
 export function getAllTiers(): TierConfig[] {
   return Object.values(TIER_CONFIGS);
+}
+
+/**
+ * Get all Ivy tier configurations
+ */
+export function getAllIvyTiers(): IvyTierConfig[] {
+  return Object.values(IVY_TIER_CONFIGS);
 }
 
 /**
@@ -348,6 +380,11 @@ export type {
   ConfigOverride,
   AnalysisTier,
   TierConfig,
+  IvyTier,
+  IvyTierConfig,
+  AnyTier,
+  TierFeatures,
+  IvyTierFeatures,
   PricingConfig,
   ScoringConfig,
   AIModelConfig,
@@ -357,6 +394,7 @@ export type {
 
 export {
   TIER_CONFIGS,
+  IVY_TIER_CONFIGS,
   IVY_LEAGUE_SCHOOLS,
   IVY_LEAGUE_DISPLAY_NAMES,
 } from './defaults';
