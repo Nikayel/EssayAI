@@ -76,25 +76,26 @@ interface RetrieveAllParams {
 export async function retrieveSimilarEssays(
   params: RetrieveExamplesParams
 ): Promise<ExampleEssayMatch[]> {
-  const { embedding, schoolId, essayType, spikeCategory, config = {} } = params;
+  try {
+    const { embedding, schoolId, essayType, spikeCategory, config = {} } = params;
 
-  const { topK, similarityThreshold } = {
-    ...DEFAULT_RETRIEVAL_CONFIG.exampleEssays,
-    ...config,
-  };
+    const { topK, similarityThreshold } = {
+      ...DEFAULT_RETRIEVAL_CONFIG.exampleEssays,
+      ...config,
+    };
 
-  // Build filter conditions
-  const where: Record<string, unknown> = { isActive: true };
+    // Build filter conditions
+    const where: Record<string, unknown> = { isActive: true };
 
-  if (schoolId) {
-    where.schoolId = schoolId;
-  }
-  if (essayType) {
-    where.essayType = essayType;
-  }
+    if (schoolId) {
+      where.schoolId = schoolId;
+    }
+    if (essayType) {
+      where.essayType = essayType;
+    }
 
-  // Fetch candidates with embeddings
-  const candidates = await prisma.exampleEssay.findMany({
+    // Fetch candidates with embeddings
+    const candidates = await prisma.exampleEssay.findMany({
     where,
     select: {
       id: true,
@@ -145,9 +146,13 @@ export async function retrieveSimilarEssays(
     }
   }
 
-  // Sort by similarity and take top K
-  matches.sort((a, b) => b.similarity - a.similarity);
-  return matches.slice(0, topK);
+    // Sort by similarity and take top K
+    matches.sort((a, b) => b.similarity - a.similarity);
+    return matches.slice(0, topK);
+  } catch (error) {
+    console.error('[RAG] Failed to retrieve similar essays:', error);
+    return [];
+  }
 }
 
 // =============================================================================

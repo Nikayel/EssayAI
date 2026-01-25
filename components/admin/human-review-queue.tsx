@@ -9,7 +9,7 @@
  * - Monitor status and due dates
  */
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -206,8 +206,14 @@ function AssignmentCard({
   const statusConfig = getReviewAssignmentStatus(assignment.status);
   const StatusIcon = statusConfig.icon;
 
-  const dueDate = new Date(assignment.dueAt);
-  const hoursUntilDue = Math.round((dueDate.getTime() - Date.now()) / (1000 * 60 * 60));
+  // Compute time values once per component mount for pure rendering
+  const [timeInfo] = useState(() => {
+    const due = new Date(assignment.dueAt);
+    const now = new Date();
+    const hours = Math.round((due.getTime() - now.getTime()) / (1000 * 60 * 60));
+    return { dueDate: due, hoursUntilDue: hours };
+  });
+  const { dueDate, hoursUntilDue } = timeInfo;
 
   // Filter reviewers who have capacity
   const availableReviewers = reviewers.filter(r => r.activeCount < r.maxActive);

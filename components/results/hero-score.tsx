@@ -76,7 +76,8 @@ export function HeroScore({
   // Count-up animation
   useEffect(() => {
     if (!animate) {
-      setDisplayScore(score);
+      // Only update if different to avoid cascading renders
+      setDisplayScore(prev => prev !== score ? score : prev);
       return;
     }
 

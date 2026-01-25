@@ -2,18 +2,49 @@ import Anthropic from '@anthropic-ai/sdk';
 import OpenAI from 'openai';
 
 /**
- * Initialize AI clients
+ * Lazy-initialized AI clients
+ * These are initialized on first use to avoid build-time errors when env vars are missing
  */
 
-// Anthropic Claude client
-export const anthropic = new Anthropic({
-  apiKey: process.env.ANTHROPIC_API_KEY!,
-});
+let _anthropic: Anthropic | null = null;
+let _openai: OpenAI | null = null;
 
-// OpenAI client
-export const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY!,
-});
+// Anthropic Claude client (lazy initialization)
+export function getAnthropic(): Anthropic {
+  if (!_anthropic) {
+    if (!process.env.ANTHROPIC_API_KEY) {
+      throw new Error('ANTHROPIC_API_KEY environment variable is required');
+    }
+    _anthropic = new Anthropic({
+      apiKey: process.env.ANTHROPIC_API_KEY,
+    });
+  }
+  return _anthropic;
+}
+
+// OpenAI client (lazy initialization)
+export function getOpenAI(): OpenAI {
+  if (!_openai) {
+    if (!process.env.OPENAI_API_KEY) {
+      throw new Error('OPENAI_API_KEY environment variable is required');
+    }
+    _openai = new OpenAI({
+      apiKey: process.env.OPENAI_API_KEY,
+    });
+  }
+  return _openai;
+}
+
+// Legacy exports for backwards compatibility - use getAnthropic() and getOpenAI() instead
+export const anthropic = {
+  get messages() { return getAnthropic().messages; },
+  get beta() { return getAnthropic().beta; },
+};
+
+export const openai = {
+  get embeddings() { return getOpenAI().embeddings; },
+  get chat() { return getOpenAI().chat; },
+};
 
 /**
  * Model configurations

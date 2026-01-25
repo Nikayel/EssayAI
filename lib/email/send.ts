@@ -1,6 +1,20 @@
 import { Resend } from 'resend';
 
-const resend = new Resend(process.env.RESEND_API_KEY);
+/**
+ * Lazy-initialized Resend client
+ * Initialized on first use to avoid build-time errors when env vars are missing
+ */
+let _resend: Resend | null = null;
+
+function getResend(): Resend {
+  if (!_resend) {
+    if (!process.env.RESEND_API_KEY) {
+      throw new Error('RESEND_API_KEY environment variable is required');
+    }
+    _resend = new Resend(process.env.RESEND_API_KEY);
+  }
+  return _resend;
+}
 
 export interface EmailParams {
   to: string;
@@ -13,7 +27,7 @@ export interface EmailParams {
  */
 export async function sendEmail(params: EmailParams) {
   try {
-    const { data, error } = await resend.emails.send({
+    const { data, error } = await getResend().emails.send({
       from: 'IvyWay <noreply@ivyway.ai>',
       to: params.to,
       subject: params.subject,
