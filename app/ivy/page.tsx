@@ -453,64 +453,75 @@ export default function IvyAnalysisPage() {
 
             {/* Blurred Results Preview */}
             <div className="relative">
-              {/* Blur Overlay */}
-              <div className="absolute inset-0 z-10 bg-white/60 backdrop-blur-md rounded-2xl flex flex-col items-center justify-center">
-                <div className="text-center max-w-md px-6">
-                  <Lock className="w-12 h-12 text-brand-600 mx-auto mb-4" />
+              {/* Blur Overlay - Apple-style focused design */}
+              <div className="absolute inset-0 z-10 bg-white/70 backdrop-blur-md rounded-2xl flex flex-col items-center justify-center">
+                <div className="text-center max-w-lg px-8">
+                  {/* Icon */}
+                  <div className="w-16 h-16 mx-auto mb-5 rounded-2xl bg-gradient-to-br from-brand-500 to-brand-600 flex items-center justify-center shadow-lg shadow-brand-500/25">
+                    <Eye className="w-8 h-8 text-white" />
+                  </div>
+
                   <h3 className="text-2xl font-bold text-neutral-900 mb-2">
                     Unlock Your Full Analysis
                   </h3>
-                  <p className="text-neutral-600 mb-6">
-                    See exactly what AOs will think, line-by-line feedback, and how to fix each issue.
+                  <p className="text-neutral-600 mb-8">
+                    See exactly what AOs think, line-by-line feedback, and how to fix each issue.
                   </p>
 
-                  {/* Pricing Options - Value Ladder */}
+                  {/* Primary CTA - Most common choice */}
                   <div className="space-y-4">
-                    {/* Entry: Quick Feedback */}
-                    <Button
-                      size="lg"
-                      className="w-full"
-                      onClick={() => handleUnlock('quick')}
-                    >
-                      <Eye className="w-4 h-4" />
-                      Unlock Quick Feedback - {formatPrice(quickTier.priceInCents)}
-                    </Button>
-
-                    {/* Upsell: Ivy Single */}
-                    <div className="relative">
-                      <div className="absolute -top-2 left-1/2 -translate-x-1/2 z-10">
-                        <Badge variant="premium" size="sm">
-                          <TrendingUp className="w-3 h-3" />
-                          Most Value
-                        </Badge>
+                    {/* Recommended option - Ivy Single (best value for single school) */}
+                    <div className="bg-white rounded-xl border border-neutral-200 p-4 shadow-sm">
+                      <div className="flex items-center justify-between mb-3">
+                        <div className="flex items-center gap-2">
+                          <span className="font-semibold text-neutral-900">{ivySingleTier.name}</span>
+                          <Badge variant="premium" size="sm">
+                            <Star className="w-3 h-3" />
+                            Best Value
+                          </Badge>
+                        </div>
+                        <span className="text-xl font-bold text-neutral-900">
+                          {formatPrice(ivySingleTier.priceInCents)}
+                        </span>
                       </div>
+                      <p className="text-sm text-neutral-500 mb-3">
+                        Full school-specific AO feedback + portfolio analysis
+                      </p>
                       <Button
-                        variant="outline"
                         size="lg"
-                        className="w-full border-amber-300 bg-amber-50/50 hover:bg-amber-100/50 pt-4"
+                        className="w-full"
                         onClick={() => handleUnlock('ivy_single')}
                       >
-                        <div className="flex flex-col items-center gap-1">
-                          <span className="font-semibold">
-                            {ivySingleTier.name} - {formatPrice(ivySingleTier.priceInCents)}
-                          </span>
-                          <span className="text-xs text-neutral-500">
-                            School-specific AO feedback + portfolio analysis
-                          </span>
-                        </div>
+                        Unlock Full Analysis
+                        <ArrowRight className="w-4 h-4" />
                       </Button>
                     </div>
 
-                    {/* Bundle Option */}
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="w-full text-neutral-600"
-                      onClick={() => handleUnlock('ivy_bundle_3')}
-                    >
-                      <Gift className="w-4 h-4" />
-                      Applying to 3+ schools? Save {formatPrice(ivyBundle3Tier.savingsVsIndividual || 0)} with bundle - {formatPrice(ivyBundle3Tier.priceInCents)}
-                    </Button>
+                    {/* Alternative options - Less prominent */}
+                    <div className="flex items-center justify-center gap-4 text-sm">
+                      <button
+                        onClick={() => handleUnlock('quick')}
+                        className="text-neutral-500 hover:text-neutral-700 underline-offset-2 hover:underline"
+                      >
+                        Quick feedback only ({formatPrice(quickTier.priceInCents)})
+                      </button>
+                      <span className="text-neutral-300">|</span>
+                      <button
+                        onClick={() => handleUnlock('ivy_bundle_3')}
+                        className="text-neutral-500 hover:text-neutral-700 underline-offset-2 hover:underline"
+                      >
+                        3-school bundle ({formatPrice(ivyBundle3Tier.priceInCents)})
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Trust indicators */}
+                  <div className="mt-6 flex items-center justify-center gap-3 text-xs text-neutral-400">
+                    <span>Secure payment</span>
+                    <span>•</span>
+                    <span>Instant access</span>
+                    <span>•</span>
+                    <span>Money-back guarantee</span>
                   </div>
                 </div>
               </div>
@@ -562,45 +573,59 @@ export default function IvyAnalysisPage() {
               </Card>
             </div>
 
-            {/* What you get */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-lg">What You&apos;ll Unlock</CardTitle>
+            {/* What you get - Social proof & benefits */}
+            <Card className="border-neutral-200">
+              <CardHeader className="pb-4">
+                <div className="flex items-center gap-2 mb-2">
+                  <div className="flex -space-x-1">
+                    {[1, 2, 3, 4].map(i => (
+                      <div key={i} className="w-6 h-6 rounded-full bg-gradient-to-br from-neutral-200 to-neutral-300 border-2 border-white" />
+                    ))}
+                  </div>
+                  <span className="text-xs text-neutral-500">10,000+ essays analyzed</span>
+                </div>
+                <CardTitle className="text-lg">What&apos;s Included</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="grid md:grid-cols-2 gap-4 text-sm">
+                <div className="grid md:grid-cols-2 gap-3 text-sm">
                   {[
-                    'AO first impression & honest assessment',
-                    '"So What?" test - does your essay reveal something?',
-                    'Resume-essay detection (common killer)',
+                    'AO first impression & verdict',
+                    '"So What?" test analysis',
+                    'Resume-essay detection',
                     'School-specific fit signals',
-                    'Top 5 issues ranked by impact',
+                    'Top issues ranked by impact',
                     'Line-by-line suggestions',
-                    'Strength highlights to keep',
-                    'Committee pitch readiness check',
                   ].map((item, i) => (
-                    <div key={i} className="flex items-center gap-2">
-                      <Check className="w-4 h-4 text-green-600" />
-                      <span>{item}</span>
+                    <div key={i} className="flex items-start gap-2">
+                      <div className="mt-0.5 w-4 h-4 rounded-full bg-green-100 flex items-center justify-center shrink-0">
+                        <Check className="w-2.5 h-2.5 text-green-600" />
+                      </div>
+                      <span className="text-neutral-700">{item}</span>
                     </div>
                   ))}
                 </div>
               </CardContent>
-              <CardFooter className="flex-col gap-4 border-t pt-6">
-                <div className="w-full space-y-3">
-                  <Button size="lg" className="w-full" onClick={() => handleUnlock('quick')}>
-                    <Eye className="w-4 h-4" />
-                    Quick Feedback - {formatPrice(quickTier.priceInCents)}
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="lg"
-                    className="w-full border-amber-300 bg-amber-50/30"
-                    onClick={() => handleUnlock('ivy_single')}
+              <CardFooter className="flex-col gap-3 border-t pt-6 bg-neutral-50/50">
+                {/* Single focused CTA */}
+                <Button size="lg" className="w-full" onClick={() => handleUnlock('ivy_single')}>
+                  Get Full Analysis - {formatPrice(ivySingleTier.priceInCents)}
+                  <ArrowRight className="w-4 h-4" />
+                </Button>
+                {/* Subtle alternatives */}
+                <div className="flex items-center justify-center gap-3 text-xs text-neutral-500">
+                  <button
+                    onClick={() => handleUnlock('quick')}
+                    className="hover:text-neutral-700 hover:underline"
                   >
-                    <TrendingUp className="w-4 h-4 text-amber-600" />
-                    Full Ivy Analysis - {formatPrice(ivySingleTier.priceInCents)}
-                  </Button>
+                    Quick feedback ({formatPrice(quickTier.priceInCents)})
+                  </button>
+                  <span className="text-neutral-300">•</span>
+                  <button
+                    onClick={() => handleUnlock('ivy_bundle_3')}
+                    className="hover:text-neutral-700 hover:underline"
+                  >
+                    3-school bundle ({formatPrice(ivyBundle3Tier.priceInCents)})
+                  </button>
                 </div>
                 <p className="text-xs text-neutral-500 text-center">
                   Secure payment via Stripe. 100% money-back guarantee if not satisfied.

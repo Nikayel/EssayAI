@@ -2,53 +2,69 @@
 
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import {
   TIER_CONFIG,
   formatPrice,
   getUpgradePrice,
-  getUpsellMessage,
   type AllTiers,
-  type IvyTier,
 } from '@/lib/pricing';
 import {
   X,
   Sparkles,
   Check,
+  ChevronDown,
+  ChevronUp,
   ArrowRight,
-  Gift,
-  TrendingUp,
-  School,
+  Users,
+  Star,
+  Zap,
 } from 'lucide-react';
+import { cn } from '@/lib/utils/cn';
 
 interface PostPurchaseUpsellProps {
   currentTier: AllTiers;
   sessionId: string;
+  schoolName?: string;
   onDismiss: () => void;
   onUpgrade: (tier: AllTiers) => void;
   className?: string;
 }
 
+/**
+ * Apple-inspired Post-Purchase Upsell
+ *
+ * Design Principles:
+ * - Single focused recommendation (not overwhelming)
+ * - Celebrate the purchase first (positive reinforcement)
+ * - Show clear value proposition
+ * - Optional expansion for more options
+ * - Clean whitespace-driven layout
+ *
+ * Psychology:
+ * - Loss aversion: "What you're missing"
+ * - Social proof: "Most students choose..."
+ * - Anchoring: Show savings vs individual
+ * - Reciprocity: Offer upgrade discount
+ */
 export function PostPurchaseUpsell({
   currentTier,
   sessionId,
+  schoolName,
   onDismiss,
   onUpgrade,
   className,
 }: PostPurchaseUpsellProps) {
   const [isLoading, setIsLoading] = useState<AllTiers | null>(null);
+  const [showAllOptions, setShowAllOptions] = useState(false);
 
-  const currentTierInfo = TIER_CONFIG[currentTier];
-  const upsellMessage = getUpsellMessage(currentTier);
-
-  // If no upsell available, don't render
-  if (!upsellMessage) return null;
+  // Get upgrade path based on current tier
+  const upgradeConfig = getUpgradeConfig(currentTier);
+  if (!upgradeConfig) return null;
 
   const handleUpgrade = async (targetTier: AllTiers) => {
     setIsLoading(targetTier);
     try {
-      const upgradePrice = getUpgradePrice(currentTier, targetTier);
       const response = await fetch('/api/tiered-analysis/upgrade', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -56,7 +72,6 @@ export function PostPurchaseUpsell({
           sessionId,
           fromTier: currentTier,
           toTier: targetTier,
-          upgradePrice,
         }),
       });
 
@@ -72,285 +87,285 @@ export function PostPurchaseUpsell({
     }
   };
 
-  // Different upsell flows based on current tier
-  if (currentTier === 'quick') {
-    // Just bought $9.99 Quick - upsell to Ivy Single ($39)
-    const ivySingle = TIER_CONFIG.ivy_single;
-    const ivyBundle3 = TIER_CONFIG.ivy_bundle_3;
-    const upgradeToSingle = getUpgradePrice('quick', 'ivy_single');
-    const upgradeToBundle = getUpgradePrice('quick', 'ivy_bundle_3');
+  const { primary, secondary, headline, subtext, socialProof } = upgradeConfig;
+  const upgradePrice = getUpgradePrice(currentTier, primary.id);
 
-    return (
-      <Card className={`border-amber-200 bg-gradient-to-br from-amber-50 to-white ${className}`}>
-        <CardHeader className="relative pb-2">
-          <button
-            onClick={onDismiss}
-            className="absolute top-4 right-4 p-1 rounded hover:bg-neutral-100"
-          >
-            <X className="w-5 h-5 text-neutral-400" />
-          </button>
-          <Badge variant="premium" size="lg" className="w-fit">
-            <Sparkles className="w-3.5 h-3.5" />
-            Limited Time Upgrade
-          </Badge>
-          <CardTitle className="text-xl text-neutral-900">
-            Want School-Specific AO Feedback?
-          </CardTitle>
-          <p className="text-sm text-neutral-600">
-            You got the quick feedback. Now see exactly what {currentTierInfo.features[0]?.includes('Ivy') ? 'your target school\'s' : 'Ivy League'} admissions officers will think.
-          </p>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          {/* Primary: Ivy Single */}
-          <div className="border rounded-lg p-4 bg-white hover:border-amber-300 transition-colors">
-            <div className="flex justify-between items-start mb-3">
-              <div>
-                <h4 className="font-semibold text-neutral-900">{ivySingle.name}</h4>
-                <p className="text-sm text-neutral-500">{ivySingle.description}</p>
-              </div>
-              <div className="text-right">
-                <div className="text-lg font-bold text-neutral-900">
-                  +{formatPrice(upgradeToSingle)}
-                </div>
-                <div className="text-xs text-neutral-500">to upgrade</div>
-              </div>
-            </div>
-            <ul className="text-sm space-y-1 mb-3">
-              {ivySingle.features.slice(0, 4).map((feature, i) => (
-                <li key={i} className="flex items-center gap-2 text-neutral-600">
-                  <Check className="w-3.5 h-3.5 text-green-600 shrink-0" />
-                  {feature}
-                </li>
-              ))}
-            </ul>
-            <Button
-              className="w-full"
-              onClick={() => handleUpgrade('ivy_single')}
-              disabled={isLoading !== null}
-            >
-              {isLoading === 'ivy_single' ? (
-                <span className="animate-pulse">Processing...</span>
-              ) : (
-                <>
-                  <TrendingUp className="w-4 h-4" />
-                  Upgrade for {formatPrice(upgradeToSingle)}
-                </>
-              )}
-            </Button>
-          </div>
-
-          {/* Secondary: Bundle upsell */}
-          <div className="border border-dashed rounded-lg p-3 bg-neutral-50">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <School className="w-4 h-4 text-neutral-500" />
-                <span className="text-sm text-neutral-600">
-                  Applying to 3+ Ivies? Save {formatPrice(ivyBundle3.savingsVsIndividual || 0)}
-                </span>
-              </div>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => handleUpgrade('ivy_bundle_3')}
-                disabled={isLoading !== null}
-              >
-                {formatPrice(upgradeToBundle)} total
-                <ArrowRight className="w-4 h-4" />
-              </Button>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-    );
-  }
-
-  if (currentTier === 'ivy_single') {
-    // Bought $39 Ivy Single - upsell to 3-school bundle ($79)
-    const ivyBundle3 = TIER_CONFIG.ivy_bundle_3;
-    const ivyBundle8 = TIER_CONFIG.ivy_bundle_8;
-    const upgradeToBundle3 = getUpgradePrice('ivy_single', 'ivy_bundle_3');
-    const upgradeToBundle8 = getUpgradePrice('ivy_single', 'ivy_bundle_8');
-
-    return (
-      <Card className={`border-green-200 bg-gradient-to-br from-green-50 to-white ${className}`}>
-        <CardHeader className="relative pb-2">
-          <button
-            onClick={onDismiss}
-            className="absolute top-4 right-4 p-1 rounded hover:bg-neutral-100"
-          >
-            <X className="w-5 h-5 text-neutral-400" />
-          </button>
-          <Badge variant="success" size="lg" className="w-fit">
-            <Gift className="w-3.5 h-3.5" />
-            Bundle & Save
-          </Badge>
-          <CardTitle className="text-xl text-neutral-900">
-            Applying to More Schools?
-          </CardTitle>
-          <p className="text-sm text-neutral-600">
-            Add more Ivies to your analysis and get cross-school narrative checking included.
-          </p>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          {/* 3-School Bundle */}
-          <div className="border rounded-lg p-4 bg-white hover:border-green-300 transition-colors">
-            <div className="flex justify-between items-start mb-3">
-              <div>
-                <h4 className="font-semibold text-neutral-900">{ivyBundle3.name}</h4>
-                <p className="text-sm text-neutral-500">Add 2 more schools</p>
-              </div>
-              <div className="text-right">
-                <div className="text-lg font-bold text-neutral-900">
-                  +{formatPrice(upgradeToBundle3)}
-                </div>
-                <div className="text-xs text-green-600">
-                  Save {formatPrice(ivyBundle3.savingsVsIndividual || 0)} vs individual
-                </div>
-              </div>
-            </div>
-            <ul className="text-sm space-y-1 mb-3">
-              {ivyBundle3.features.slice(1).map((feature, i) => (
-                <li key={i} className="flex items-center gap-2 text-neutral-600">
-                  <Check className="w-3.5 h-3.5 text-green-600 shrink-0" />
-                  {feature}
-                </li>
-              ))}
-            </ul>
-            <Button
-              className="w-full bg-green-600 hover:bg-green-700"
-              onClick={() => handleUpgrade('ivy_bundle_3')}
-              disabled={isLoading !== null}
-            >
-              {isLoading === 'ivy_bundle_3' ? (
-                <span className="animate-pulse">Processing...</span>
-              ) : (
-                <>
-                  <Gift className="w-4 h-4" />
-                  Add 2 Schools for {formatPrice(upgradeToBundle3)}
-                </>
-              )}
-            </Button>
-          </div>
-
-          {/* All 8 Ivies */}
-          <div className="border border-dashed rounded-lg p-3 bg-neutral-50">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <Sparkles className="w-4 h-4 text-amber-500" />
-                <span className="text-sm text-neutral-600">
-                  All 8 Ivies? Save {formatPrice(ivyBundle8.savingsVsIndividual || 0)}
-                </span>
-              </div>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => handleUpgrade('ivy_bundle_8')}
-                disabled={isLoading !== null}
-              >
-                +{formatPrice(upgradeToBundle8)}
-                <ArrowRight className="w-4 h-4" />
-              </Button>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-    );
-  }
-
-  if (currentTier === 'ivy_bundle_3') {
-    // Bought $79 bundle - upsell to all 8 ($149)
-    const ivyBundle8 = TIER_CONFIG.ivy_bundle_8;
-    const upgradePrice = getUpgradePrice('ivy_bundle_3', 'ivy_bundle_8');
-
-    return (
-      <Card className={`border-purple-200 bg-gradient-to-br from-purple-50 to-white ${className}`}>
-        <CardHeader className="relative pb-2">
-          <button
-            onClick={onDismiss}
-            className="absolute top-4 right-4 p-1 rounded hover:bg-neutral-100"
-          >
-            <X className="w-5 h-5 text-neutral-400" />
-          </button>
-          <Badge variant="new" size="lg" className="w-fit">
-            <Sparkles className="w-3.5 h-3.5" />
-            Complete Coverage
-          </Badge>
-          <CardTitle className="text-xl text-neutral-900">
-            Go for All 8 Ivies?
-          </CardTitle>
-          <p className="text-sm text-neutral-600">
-            Get complete coverage for all Ivy League schools with master narrative tracking.
-          </p>
-        </CardHeader>
-        <CardContent>
-          <div className="border rounded-lg p-4 bg-white">
-            <div className="flex justify-between items-start mb-3">
-              <div>
-                <h4 className="font-semibold text-neutral-900">{ivyBundle8.name}</h4>
-                <p className="text-sm text-neutral-500">Add 5 more schools</p>
-              </div>
-              <div className="text-right">
-                <div className="text-lg font-bold text-neutral-900">
-                  +{formatPrice(upgradePrice)}
-                </div>
-                <div className="text-xs text-purple-600">
-                  Save {formatPrice(ivyBundle8.savingsVsIndividual || 0)} total
-                </div>
-              </div>
-            </div>
-            <ul className="text-sm space-y-1 mb-3">
-              {ivyBundle8.features.map((feature, i) => (
-                <li key={i} className="flex items-center gap-2 text-neutral-600">
-                  <Check className="w-3.5 h-3.5 text-purple-600 shrink-0" />
-                  {feature}
-                </li>
-              ))}
-            </ul>
-            <Button
-              className="w-full bg-purple-600 hover:bg-purple-700"
-              onClick={() => handleUpgrade('ivy_bundle_8')}
-              disabled={isLoading !== null}
-            >
-              {isLoading === 'ivy_bundle_8' ? (
-                <span className="animate-pulse">Processing...</span>
-              ) : (
-                <>
-                  <Sparkles className="w-4 h-4" />
-                  Complete Your Ivy Coverage
-                </>
-              )}
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
-    );
-  }
-
-  // Default: use generic upsell message
   return (
-    <Card className={`border-brand-200 bg-gradient-to-br from-brand-50 to-white ${className}`}>
-      <CardHeader className="relative pb-2">
-        <button
-          onClick={onDismiss}
-          className="absolute top-4 right-4 p-1 rounded hover:bg-neutral-100"
-        >
-          <X className="w-5 h-5 text-neutral-400" />
-        </button>
-        <CardTitle className="text-xl text-neutral-900">
-          {upsellMessage.headline}
-        </CardTitle>
-        <p className="text-sm text-neutral-600">{upsellMessage.subtext}</p>
-      </CardHeader>
-      <CardContent>
-        <Button
-          className="w-full"
-          onClick={() => handleUpgrade(upsellMessage.tier.id)}
-          disabled={isLoading !== null}
-        >
-          {upsellMessage.ctaText}
-          <ArrowRight className="w-4 h-4" />
-        </Button>
-      </CardContent>
-    </Card>
+    <div className={cn(
+      'relative overflow-hidden rounded-2xl',
+      'bg-gradient-to-b from-white to-neutral-50',
+      'border border-neutral-200/80',
+      'shadow-lg shadow-neutral-200/50',
+      className
+    )}>
+      {/* Subtle gradient accent */}
+      <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-brand-400 via-brand-500 to-brand-600" />
+
+      {/* Close button */}
+      <button
+        onClick={onDismiss}
+        className="absolute top-4 right-4 p-2 rounded-full hover:bg-neutral-100 transition-colors z-10"
+        aria-label="Dismiss"
+      >
+        <X className="w-4 h-4 text-neutral-400" />
+      </button>
+
+      {/* Main content - Focused single recommendation */}
+      <div className="p-8 pb-6">
+        {/* Social proof badge */}
+        <div className="flex items-center gap-2 mb-4">
+          <div className="flex -space-x-1">
+            {[1, 2, 3].map(i => (
+              <div
+                key={i}
+                className="w-6 h-6 rounded-full bg-gradient-to-br from-neutral-200 to-neutral-300 border-2 border-white"
+              />
+            ))}
+          </div>
+          <span className="text-xs text-neutral-500">{socialProof}</span>
+        </div>
+
+        {/* Headline */}
+        <h3 className="text-2xl font-semibold text-neutral-900 tracking-tight mb-2">
+          {headline}
+        </h3>
+        <p className="text-neutral-600 mb-6">
+          {subtext}
+        </p>
+
+        {/* Primary recommendation - Clean card */}
+        <div className="bg-white rounded-xl border border-neutral-200 p-5 mb-4">
+          <div className="flex items-start justify-between mb-4">
+            <div>
+              <div className="flex items-center gap-2 mb-1">
+                <h4 className="font-semibold text-neutral-900">{primary.name}</h4>
+                <Badge variant="premium" size="sm">
+                  <Star className="w-3 h-3" />
+                  Recommended
+                </Badge>
+              </div>
+              <p className="text-sm text-neutral-500">{primary.description}</p>
+            </div>
+          </div>
+
+          {/* Key benefits - Max 3 for clarity */}
+          <div className="space-y-2 mb-5">
+            {primary.keyBenefits.slice(0, 3).map((benefit, i) => (
+              <div key={i} className="flex items-start gap-2.5">
+                <div className="mt-0.5 w-4 h-4 rounded-full bg-green-100 flex items-center justify-center shrink-0">
+                  <Check className="w-2.5 h-2.5 text-green-600" />
+                </div>
+                <span className="text-sm text-neutral-700">{benefit}</span>
+              </div>
+            ))}
+          </div>
+
+          {/* Price and CTA */}
+          <div className="flex items-end justify-between">
+            <div>
+              <div className="flex items-baseline gap-1">
+                <span className="text-2xl font-bold text-neutral-900">
+                  +{formatPrice(upgradePrice)}
+                </span>
+                <span className="text-sm text-neutral-500">to upgrade</span>
+              </div>
+              {primary.savings > 0 && (
+                <p className="text-xs text-green-600 mt-0.5">
+                  Save {formatPrice(primary.savings)} vs buying separately
+                </p>
+              )}
+            </div>
+            <Button
+              onClick={() => handleUpgrade(primary.id)}
+              disabled={isLoading !== null}
+              className="px-6"
+            >
+              {isLoading === primary.id ? (
+                <span className="animate-pulse">Processing...</span>
+              ) : (
+                <>
+                  Upgrade
+                  <ArrowRight className="w-4 h-4" />
+                </>
+              )}
+            </Button>
+          </div>
+        </div>
+
+        {/* Expandable other options */}
+        {secondary && (
+          <div className="border-t border-neutral-100 pt-4">
+            <button
+              onClick={() => setShowAllOptions(!showAllOptions)}
+              className="flex items-center justify-between w-full text-sm text-neutral-500 hover:text-neutral-700 transition-colors"
+            >
+              <span>See other options</span>
+              {showAllOptions ? (
+                <ChevronUp className="w-4 h-4" />
+              ) : (
+                <ChevronDown className="w-4 h-4" />
+              )}
+            </button>
+
+            {showAllOptions && (
+              <div className="mt-4 space-y-3 animate-in slide-in-from-top-2 duration-200">
+                {secondary.map((option) => {
+                  const optionUpgradePrice = getUpgradePrice(currentTier, option.id);
+                  return (
+                    <div
+                      key={option.id}
+                      className="flex items-center justify-between p-3 rounded-lg bg-neutral-50 hover:bg-neutral-100 transition-colors"
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 rounded-lg bg-white border border-neutral-200 flex items-center justify-center">
+                          {option.icon === 'users' ? (
+                            <Users className="w-4 h-4 text-neutral-600" />
+                          ) : (
+                            <Sparkles className="w-4 h-4 text-amber-500" />
+                          )}
+                        </div>
+                        <div>
+                          <p className="text-sm font-medium text-neutral-900">{option.name}</p>
+                          <p className="text-xs text-neutral-500">{option.shortDesc}</p>
+                        </div>
+                      </div>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleUpgrade(option.id)}
+                        disabled={isLoading !== null}
+                      >
+                        +{formatPrice(optionUpgradePrice)}
+                      </Button>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+
+      {/* Trust footer */}
+      <div className="px-8 py-4 bg-neutral-50 border-t border-neutral-100">
+        <div className="flex items-center justify-center gap-4 text-xs text-neutral-500">
+          <div className="flex items-center gap-1">
+            <Zap className="w-3 h-3" />
+            <span>Instant access</span>
+          </div>
+          <span className="text-neutral-300">•</span>
+          <span>Secure payment</span>
+          <span className="text-neutral-300">•</span>
+          <span>Money-back guarantee</span>
+        </div>
+      </div>
+    </div>
   );
+}
+
+// =============================================================================
+// UPGRADE CONFIGURATION
+// =============================================================================
+
+interface UpgradeOption {
+  id: AllTiers;
+  name: string;
+  description?: string;
+  shortDesc?: string;
+  keyBenefits: string[];
+  savings: number;
+  icon?: 'users' | 'sparkles';
+}
+
+interface UpgradeConfig {
+  headline: string;
+  subtext: string;
+  socialProof: string;
+  primary: UpgradeOption;
+  secondary?: UpgradeOption[];
+}
+
+function getUpgradeConfig(currentTier: AllTiers): UpgradeConfig | null {
+  const ivySingle = TIER_CONFIG.ivy_single;
+  const ivyBundle3 = TIER_CONFIG.ivy_bundle_3;
+  const ivyBundle8 = TIER_CONFIG.ivy_bundle_8;
+
+  switch (currentTier) {
+    case 'quick':
+      return {
+        headline: 'Get the Full Picture',
+        subtext: 'See exactly what admissions officers will think about your essay.',
+        socialProof: 'Most students upgrade for school-specific feedback',
+        primary: {
+          id: 'ivy_single',
+          name: ivySingle.name,
+          description: 'Complete analysis for your target school',
+          keyBenefits: [
+            'School-specific AO perspective & feedback',
+            'Portfolio analysis across all your essays',
+            'Red flag detection & "instant reject" checks',
+          ],
+          savings: 0,
+        },
+        secondary: [
+          {
+            id: 'ivy_bundle_3',
+            name: ivyBundle3.name,
+            shortDesc: 'Analyze 3 schools at once',
+            keyBenefits: [],
+            savings: ivyBundle3.savingsVsIndividual || 0,
+            icon: 'users',
+          },
+        ],
+      };
+
+    case 'ivy_single':
+      return {
+        headline: 'Applying to More Schools?',
+        subtext: 'Add cross-school narrative checking to ensure consistency.',
+        socialProof: '67% of Ivy applicants apply to 3+ schools',
+        primary: {
+          id: 'ivy_bundle_3',
+          name: ivyBundle3.name,
+          description: 'Add 2 more schools to your analysis',
+          keyBenefits: [
+            'Cross-school narrative consistency check',
+            'Strategic differentiation tips per school',
+            'Portfolio comparison across applications',
+          ],
+          savings: ivyBundle3.savingsVsIndividual || 0,
+        },
+        secondary: [
+          {
+            id: 'ivy_bundle_8',
+            name: 'Complete Ivy Coverage',
+            shortDesc: 'All 8 Ivy League schools',
+            keyBenefits: [],
+            savings: ivyBundle8.savingsVsIndividual || 0,
+            icon: 'sparkles',
+          },
+        ],
+      };
+
+    case 'ivy_bundle_3':
+      return {
+        headline: 'Complete Your Coverage',
+        subtext: 'Get analysis for all 8 Ivy League schools.',
+        socialProof: 'Serious applicants cover all their options',
+        primary: {
+          id: 'ivy_bundle_8',
+          name: ivyBundle8.name,
+          description: 'Add 5 more schools for complete coverage',
+          keyBenefits: [
+            'Master narrative tracking across all schools',
+            'School-by-school tailoring recommendations',
+            'Complete portfolio optimization',
+          ],
+          savings: ivyBundle8.savingsVsIndividual || 0,
+        },
+      };
+
+    default:
+      return null;
+  }
 }
