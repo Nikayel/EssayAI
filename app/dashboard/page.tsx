@@ -20,7 +20,8 @@ import {
   LogOut,
   Plus,
   Sparkles,
-  Gift
+  Gift,
+  GraduationCap,
 } from 'lucide-react';
 import { ReferralCard } from '@/components/referral/referral-card';
 
@@ -285,6 +286,32 @@ export default async function DashboardPage() {
             </Button>
           </Link>
         </div>
+
+        {/* Ivy League Promo Card */}
+        <Card className="mb-6 bg-gradient-to-r from-brand-50 to-violet-50 border-brand-200">
+          <CardContent className="py-5">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+              <div className="flex items-center gap-4">
+                <div className="p-3 rounded-xl bg-gradient-to-br from-brand-500 to-brand-600 flex-shrink-0">
+                  <GraduationCap className="w-6 h-6 text-white" />
+                </div>
+                <div>
+                  <h3 className="font-semibold text-neutral-900">Applying to Ivy League?</h3>
+                  <p className="text-sm text-neutral-600">
+                    Get school-specific analysis from the AO perspective. All essays analyzed as a portfolio.
+                  </p>
+                </div>
+              </div>
+              <Link href="/ivy">
+                <Button size="sm">
+                  <Sparkles className="w-4 h-4" />
+                  Ivy Analysis
+                  <ArrowRight className="w-4 h-4" />
+                </Button>
+              </Link>
+            </div>
+          </CardContent>
+        </Card>
 
         {/* Essays List */}
         {essays.length === 0 ? (

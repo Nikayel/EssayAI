@@ -66,7 +66,7 @@ export const AnalysisResponseSchema = z.object({
     uniqueness: ScoreDimensionSchema,
     ethics: ScoreDimensionSchema,
   }),
-  score_anchors: z.record(z.object({
+  score_anchors: z.record(z.string(), z.object({
     label: z.string(),
     userFriendly: z.string(),
   })).optional(),

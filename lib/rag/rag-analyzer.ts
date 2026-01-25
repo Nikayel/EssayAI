@@ -325,13 +325,13 @@ function parseAndValidate(text: string): AnalysisResponse {
 
   try {
     const parsed = JSON.parse(cleaned);
-    return AnalysisResponseSchema.parse(parsed);
+    return AnalysisResponseSchema.parse(parsed) as AnalysisResponse;
   } catch (error) {
     // Try to find JSON object in the text
     const objectMatch = text.match(/\{[\s\S]*\}/);
     if (objectMatch) {
       const parsed = JSON.parse(objectMatch[0]);
-      return AnalysisResponseSchema.parse(parsed);
+      return AnalysisResponseSchema.parse(parsed) as AnalysisResponse;
     }
     throw new Error(`Failed to parse AI response: ${(error as Error).message}`);
   }

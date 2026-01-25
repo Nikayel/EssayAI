@@ -129,7 +129,10 @@ export async function POST(request: NextRequest) {
         analysisSessionId: analysisSession.id,
         userId: user?.id || 'guest',
       },
-      success_url: successUrl || `${process.env.NEXT_PUBLIC_APP_URL}/analysis/${analysisSession.id}?payment=success`,
+      // Route to appropriate results page based on tier type
+      success_url: successUrl || (isIvyTier
+        ? `${process.env.NEXT_PUBLIC_APP_URL}/ivy/results/${analysisSession.id}?payment=success&tier=${tier}`
+        : `${process.env.NEXT_PUBLIC_APP_URL}/analysis/${analysisSession.id}?payment=success`),
       cancel_url: cancelUrl || `${process.env.NEXT_PUBLIC_APP_URL}/pricing?payment=cancelled`,
     });
 

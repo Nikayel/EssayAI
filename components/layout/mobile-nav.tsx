@@ -48,6 +48,13 @@ export function MobileNav() {
               Pricing
             </Link>
             <Link
+              href="/ivy"
+              onClick={() => setIsOpen(false)}
+              className="block px-4 py-3 text-lg font-medium text-brand-600 hover:bg-brand-50 rounded-lg transition-colors"
+            >
+              Ivy League Analysis
+            </Link>
+            <Link
               href="/for-parents"
               onClick={() => setIsOpen(false)}
               className="block px-4 py-3 text-lg font-medium text-neutral-700 hover:bg-neutral-50 rounded-lg transition-colors"

@@ -364,6 +364,7 @@ async function handleTieredAnalysisPayment(
 ) {
   const tier = session.metadata?.tier;
   const userId = session.metadata?.userId;
+  const isUpgrade = session.metadata?.type === 'upgrade';
 
   // Check if already processed
   const existingSession = await prisma.analysisSession.findUnique({
@@ -375,17 +376,22 @@ async function handleTieredAnalysisPayment(
     return;
   }
 
-  if (existingSession.stripePaymentId) {
-    console.log(`Analysis session ${analysisSessionId} already processed, skipping`);
+  // For initial purchases, check if already processed
+  if (!isUpgrade && existingSession.status !== 'PENDING') {
+    console.log(`Analysis session ${analysisSessionId} already processed (status: ${existingSession.status}), skipping`);
     return;
   }
 
-  // Update analysis session with payment info
+  // Update analysis session with payment info and start analysis
   await prisma.analysisSession.update({
     where: { id: analysisSessionId },
     data: {
       stripePaymentId: session.id,
       paidAmount: session.amount_total || 0,
+      // Update tier if this is an upgrade
+      ...(isUpgrade && session.metadata?.toTier ? { tier: session.metadata.toTier } : {}),
+      // Set status to ANALYZING to trigger analysis
+      status: 'ANALYZING',
     },
   });
 
@@ -393,22 +399,43 @@ async function handleTieredAnalysisPayment(
   await prisma.auditLog.create({
     data: {
       userId: userId || undefined,
-      action: 'TIERED_ANALYSIS_PAYMENT',
+      action: isUpgrade ? 'TIERED_ANALYSIS_UPGRADE' : 'TIERED_ANALYSIS_PAYMENT',
       resource: 'ANALYSIS_SESSION',
       details: {
         sessionId: analysisSessionId,
         tier,
+        ...(isUpgrade ? { fromTier: session.metadata?.fromTier, toTier: session.metadata?.toTier } : {}),
         amount: session.amount_total,
       },
     },
   });
 
-  // For premium tier, queue human review if AI is complete
-  if (tier === 'premium' && existingSession.status === 'HUMAN_QUEUED') {
-    await queueHumanReview(existingSession);
+  // Trigger async analysis
+  // This calls our own API to start the analysis in the background
+  const analysisUrl = `${process.env.NEXT_PUBLIC_APP_URL}/api/tiered-analysis/${analysisSessionId}/run`;
+  try {
+    // Fire and forget - don't await, let it run async
+    fetch(analysisUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Webhook-Secret': process.env.WEBHOOK_SECRET || '',
+      },
+      body: JSON.stringify({
+        sessionId: analysisSessionId,
+        tier: isUpgrade ? session.metadata?.toTier : tier,
+      }),
+    }).catch(err => {
+      console.error('Failed to trigger analysis:', err);
+    });
+  } catch (err) {
+    console.error('Error triggering analysis:', err);
   }
 
-  console.log(`✅ Tiered analysis payment processed: ${analysisSessionId} (${tier})`);
+  // For premium tier, queue human review after AI analysis completes
+  // (This will be handled by the analysis completion handler)
+
+  console.log(`✅ Tiered analysis payment processed: ${analysisSessionId} (${tier})${isUpgrade ? ' [UPGRADE]' : ''}`);
 }
 
 // =============================================================================

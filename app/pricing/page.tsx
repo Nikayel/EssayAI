@@ -2,14 +2,23 @@ import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { PACKAGE_INFO } from '@/lib/stripe/config';
-import { Check, Sparkles, Users, Zap, PenTool, ArrowRight } from 'lucide-react';
+import { PACKAGE_INFO, PRICING } from '@/lib/stripe/config';
+import { Check, Sparkles, Users, Zap, PenTool, ArrowRight, School } from 'lucide-react';
 import { MobileNav } from '@/components/layout/mobile-nav';
+import {
+  formatPrice,
+  TIER_CONFIG,
+  getBundleSavings,
+} from '@/lib/pricing';
 
 export default function PricingPage() {
-  const formatPrice = (cents: number) => {
-    return `$${(cents / 100).toFixed(0)}`;
-  };
+  // Get tier info from centralized config
+  const quickTier = TIER_CONFIG.quick;
+  const standardTier = TIER_CONFIG.standard;
+  const premiumTier = TIER_CONFIG.premium;
+  const ivySingleTier = TIER_CONFIG.ivy_single;
+  const ivyBundle3Tier = TIER_CONFIG.ivy_bundle_3;
+  const ivyBundle8Tier = TIER_CONFIG.ivy_bundle_8;
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-neutral-50 to-white">
@@ -48,40 +57,76 @@ export default function PricingPage() {
         </p>
       </section>
 
+      {/* How It Works - Value-first funnel */}
+      <section className="container mx-auto px-4 py-12 border-t border-neutral-200 bg-brand-50/30">
+        <div className="max-w-4xl mx-auto text-center">
+          <h3 className="text-2xl font-bold text-neutral-900 mb-8">
+            How It Works: Try Before You Buy
+          </h3>
+          <div className="grid md:grid-cols-4 gap-6">
+            <div className="text-center">
+              <div className="w-12 h-12 mx-auto mb-3 rounded-full bg-brand-100 flex items-center justify-center text-brand-600 font-bold">1</div>
+              <h4 className="font-medium mb-1">Choose School</h4>
+              <p className="text-sm text-neutral-500">Pick your target school</p>
+            </div>
+            <div className="text-center">
+              <div className="w-12 h-12 mx-auto mb-3 rounded-full bg-brand-100 flex items-center justify-center text-brand-600 font-bold">2</div>
+              <h4 className="font-medium mb-1">Answer Questions</h4>
+              <p className="text-sm text-neutral-500">Tell us your background</p>
+            </div>
+            <div className="text-center">
+              <div className="w-12 h-12 mx-auto mb-3 rounded-full bg-brand-100 flex items-center justify-center text-brand-600 font-bold">3</div>
+              <h4 className="font-medium mb-1">Upload Essays</h4>
+              <p className="text-sm text-neutral-500">Paste your essay(s)</p>
+            </div>
+            <div className="text-center">
+              <div className="w-12 h-12 mx-auto mb-3 rounded-full bg-green-100 flex items-center justify-center text-green-600 font-bold">4</div>
+              <h4 className="font-medium mb-1">See Results</h4>
+              <p className="text-sm text-neutral-500">Unlock for {formatPrice(quickTier.priceInCents)}</p>
+            </div>
+          </div>
+          <Link href="/ivy" className="inline-block mt-8">
+            <Button size="lg">
+              <Sparkles className="w-4 h-4" />
+              Start Free Analysis
+              <ArrowRight className="w-4 h-4" />
+            </Button>
+          </Link>
+        </div>
+      </section>
+
       {/* Main 3 Tiers - Clear Choice */}
-      <section className="container mx-auto px-4 pb-16">
+      <section className="container mx-auto px-4 py-16">
+        <div className="text-center mb-10">
+          <h3 className="text-2xl font-bold text-neutral-900 mb-2">Pricing Tiers</h3>
+          <p className="text-neutral-600">Choose the depth of analysis you need</p>
+        </div>
         <div className="grid md:grid-cols-3 gap-8 max-w-5xl mx-auto">
-          {/* Tier 1: Free */}
+          {/* Tier 1: Quick Unlock */}
           <Card className="border-2 border-neutral-200 relative">
             <CardHeader className="text-center pb-2">
               <div className="w-12 h-12 mx-auto mb-4 rounded-2xl bg-neutral-100 flex items-center justify-center">
                 <Zap className="w-6 h-6 text-neutral-600" />
               </div>
-              <CardTitle className="text-2xl">Free Check</CardTitle>
-              <CardDescription className="text-base">See if your essay has red flags</CardDescription>
-              <div className="text-4xl font-bold mt-4">$0</div>
-              <p className="text-sm text-neutral-500">No credit card</p>
+              <CardTitle className="text-2xl">{quickTier.name}</CardTitle>
+              <CardDescription className="text-base">{quickTier.description}</CardDescription>
+              <div className="text-4xl font-bold mt-4">{formatPrice(quickTier.priceInCents, { showCents: true })}</div>
+              <p className="text-sm text-neutral-500">per essay</p>
             </CardHeader>
             <CardContent className="pt-6">
               <ul className="space-y-3">
-                <li className="flex gap-3">
-                  <Check className="w-5 h-5 text-green-600 flex-shrink-0" />
-                  <span>Commons Check (650 words)</span>
-                </li>
-                <li className="flex gap-3">
-                  <Check className="w-5 h-5 text-green-600 flex-shrink-0" />
-                  <span>Pass/fail red flag detection</span>
-                </li>
-                <li className="flex gap-3">
-                  <Check className="w-5 h-5 text-green-600 flex-shrink-0" />
-                  <span>3 quick improvement tips</span>
-                </li>
+                {quickTier.features.map((feature, i) => (
+                  <li key={i} className="flex gap-3">
+                    <Check className="w-5 h-5 text-green-600 flex-shrink-0" />
+                    <span>{feature}</span>
+                  </li>
+                ))}
               </ul>
             </CardContent>
             <CardFooter>
-              <Link href="/signup" className="w-full">
+              <Link href="/ivy" className="w-full">
                 <Button className="w-full" variant="outline" size="lg">
-                  Start Free
+                  Start Free, Unlock for {formatPrice(quickTier.priceInCents, { showCents: true })}
                 </Button>
               </Link>
             </CardFooter>
@@ -177,6 +222,124 @@ export default function PricingPage() {
               <Link href="/signup" className="w-full">
                 <Button className="w-full" variant="premium" size="lg">
                   Get Expert Review
+                  <ArrowRight className="w-4 h-4" />
+                </Button>
+              </Link>
+            </CardFooter>
+          </Card>
+        </div>
+      </section>
+
+      {/* Ivy League Section */}
+      <section className="container mx-auto px-4 py-16 border-t border-neutral-200">
+        <div className="text-center max-w-2xl mx-auto mb-10">
+          <Badge variant="premium" size="lg" className="mb-4">
+            <School className="w-3.5 h-3.5" />
+            Ivy League Specialists
+          </Badge>
+          <h3 className="text-3xl font-bold text-neutral-900 mb-4">
+            Applying to Ivy League Schools?
+          </h3>
+          <p className="text-neutral-600">
+            School-specific analysis from the perspective of actual admissions officers.
+            Every essay analyzed as part of your complete portfolio.
+          </p>
+        </div>
+
+        <div className="grid md:grid-cols-3 gap-6 max-w-5xl mx-auto">
+          {/* Ivy Single */}
+          <Card className="border-2 border-neutral-200 relative">
+            <CardHeader className="text-center pb-2">
+              <div className="w-12 h-12 mx-auto mb-4 rounded-2xl bg-neutral-100 flex items-center justify-center">
+                <School className="w-6 h-6 text-neutral-600" />
+              </div>
+              <CardTitle className="text-xl">{ivySingleTier.name}</CardTitle>
+              <CardDescription className="text-sm">{ivySingleTier.description}</CardDescription>
+              <div className="text-3xl font-bold mt-4">{formatPrice(ivySingleTier.priceInCents)}</div>
+              <p className="text-sm text-neutral-500">All essays for {ivySingleTier.schoolsIncluded} school</p>
+            </CardHeader>
+            <CardContent className="pt-4">
+              <ul className="space-y-2 text-sm">
+                {ivySingleTier.features.slice(0, 4).map((feature, i) => (
+                  <li key={i} className="flex gap-2">
+                    <Check className="w-4 h-4 text-green-600 flex-shrink-0 mt-0.5" />
+                    <span>{feature}</span>
+                  </li>
+                ))}
+              </ul>
+            </CardContent>
+            <CardFooter>
+              <Link href="/ivy" className="w-full">
+                <Button variant="outline" className="w-full">
+                  Get Started
+                  <ArrowRight className="w-4 h-4" />
+                </Button>
+              </Link>
+            </CardFooter>
+          </Card>
+
+          {/* Ivy 3-Pack - Popular */}
+          <Card className="border-2 border-brand-500 relative shadow-xl shadow-brand-500/10 ring-2 ring-brand-500/20 md:-my-2">
+            <div className="absolute -top-4 left-1/2 -translate-x-1/2 bg-gradient-to-r from-brand-500 to-brand-600 text-white px-4 py-1 rounded-full text-sm font-semibold">
+              Most Popular
+            </div>
+            <CardHeader className="text-center pb-2">
+              <div className="w-12 h-12 mx-auto mb-4 rounded-2xl bg-gradient-to-br from-brand-500 to-brand-600 flex items-center justify-center">
+                <Users className="w-6 h-6 text-white" />
+              </div>
+              <CardTitle className="text-xl">{ivyBundle3Tier.name}</CardTitle>
+              <CardDescription className="text-sm">{ivyBundle3Tier.description}</CardDescription>
+              <div className="text-3xl font-bold mt-4">{formatPrice(ivyBundle3Tier.priceInCents)}</div>
+              <p className="text-sm text-neutral-500">Save {getBundleSavings('ivy_bundle_3')?.formatted} vs individual</p>
+            </CardHeader>
+            <CardContent className="pt-4">
+              <ul className="space-y-2 text-sm">
+                {ivyBundle3Tier.features.map((feature, i) => (
+                  <li key={i} className="flex gap-2">
+                    <Check className="w-4 h-4 text-green-600 flex-shrink-0 mt-0.5" />
+                    <span>{feature}</span>
+                  </li>
+                ))}
+              </ul>
+            </CardContent>
+            <CardFooter>
+              <Link href="/ivy" className="w-full">
+                <Button className="w-full">
+                  Get 3-School Bundle
+                  <ArrowRight className="w-4 h-4" />
+                </Button>
+              </Link>
+            </CardFooter>
+          </Card>
+
+          {/* Ivy All 8 - Best Value */}
+          <Card className="border-2 border-amber-400 relative bg-gradient-to-b from-amber-50/50 to-white">
+            <div className="absolute -top-4 left-1/2 -translate-x-1/2 bg-gradient-to-r from-amber-500 to-orange-500 text-white px-4 py-1 rounded-full text-sm font-semibold">
+              Best Value
+            </div>
+            <CardHeader className="text-center pb-2">
+              <div className="w-12 h-12 mx-auto mb-4 rounded-2xl bg-gradient-to-br from-amber-500 to-orange-500 flex items-center justify-center">
+                <Sparkles className="w-6 h-6 text-white" />
+              </div>
+              <CardTitle className="text-xl">{ivyBundle8Tier.name}</CardTitle>
+              <CardDescription className="text-sm">{ivyBundle8Tier.description}</CardDescription>
+              <div className="text-3xl font-bold mt-4">{formatPrice(ivyBundle8Tier.priceInCents)}</div>
+              <p className="text-sm text-neutral-500">Save {getBundleSavings('ivy_bundle_8')?.formatted} vs individual</p>
+            </CardHeader>
+            <CardContent className="pt-4">
+              <ul className="space-y-2 text-sm">
+                {ivyBundle8Tier.features.map((feature, i) => (
+                  <li key={i} className="flex gap-2">
+                    <Check className="w-4 h-4 text-green-600 flex-shrink-0 mt-0.5" />
+                    <span>{feature}</span>
+                  </li>
+                ))}
+              </ul>
+            </CardContent>
+            <CardFooter>
+              <Link href="/ivy" className="w-full">
+                <Button variant="premium" className="w-full">
+                  Get Complete Coverage
                   <ArrowRight className="w-4 h-4" />
                 </Button>
               </Link>
