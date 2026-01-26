@@ -8,9 +8,11 @@ import { Label } from '@/components/ui/label';
 import { ArrowLeft, Send, Save, FileText, AlertCircle } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import { useToastActions } from '@/components/ui/toast';
 
 export function AdminReviewEditor({ review, adminId }: { review: any; adminId: string }) {
   const router = useRouter();
+  const toast = useToastActions();
   const [feedback, setFeedback] = useState(review.reviewerNotes || '');
   const [summary, setSummary] = useState(review.summary || '');
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -37,10 +39,10 @@ export function AdminReviewEditor({ review, adminId }: { review: any; adminId: s
 
       if (!res.ok) throw new Error('Failed to save draft');
 
-      alert('Draft saved successfully!');
+      toast.success('Draft saved successfully!');
     } catch (error) {
       console.error('Save error:', error);
-      alert('Failed to save draft. Please try again.');
+      toast.error('Failed to save draft. Please try again.');
     } finally {
       setIsSaving(false);
     }
@@ -48,11 +50,12 @@ export function AdminReviewEditor({ review, adminId }: { review: any; adminId: s
 
   const handleDeliver = async () => {
     if (!feedback.trim() || !summary.trim()) {
-      alert('Please provide both feedback and summary before delivering.');
+      toast.warning('Please provide both feedback and summary before delivering.');
       return;
     }
 
-    if (!confirm('Are you sure you want to deliver this review? The student will be notified via email.')) {
+    // Using window.confirm for delivery confirmation is intentional for critical action
+    if (!window.confirm('Are you sure you want to deliver this review? The student will be notified via email.')) {
       return;
     }
 
@@ -70,11 +73,11 @@ export function AdminReviewEditor({ review, adminId }: { review: any; adminId: s
 
       if (!res.ok) throw new Error('Failed to deliver review');
 
-      alert('Review delivered successfully! Student has been notified.');
+      toast.success('Review delivered! Student has been notified.');
       router.push('/admin');
     } catch (error) {
       console.error('Delivery error:', error);
-      alert('Failed to deliver review. Please try again.');
+      toast.error('Failed to deliver review. Please try again.');
     } finally {
       setIsSubmitting(false);
     }
@@ -311,16 +314,6 @@ NEXT STEPS:
               </CardContent>
             </Card>
 
-            {/* File Attachments (Future Enhancement) */}
-            <Card className="border-dashed">
-              <CardContent className="pt-6">
-                <div className="text-center text-gray-500">
-                  <FileText className="w-8 h-8 mx-auto mb-2 text-gray-400" />
-                  <p className="text-sm">File attachments coming soon</p>
-                  <p className="text-xs mt-1">For now, include all feedback in the text above</p>
-                </div>
-              </CardContent>
-            </Card>
           </div>
         </div>
       </main>

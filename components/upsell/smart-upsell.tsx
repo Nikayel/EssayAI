@@ -7,6 +7,7 @@ import { Check, Sparkles, MessageCircle, TrendingUp } from 'lucide-react';
 import { PACKAGE_INFO } from '@/lib/stripe/config';
 import { useRouter } from 'next/navigation';
 import { trackUpsellView, trackUpsellClick } from '@/lib/analytics/track';
+import { useToastActions } from '@/components/ui/toast';
 
 interface SmartUpsellProps {
   currentPackage: string;
@@ -16,6 +17,7 @@ interface SmartUpsellProps {
 
 export function SmartUpsell({ currentPackage, essayId, hasHumanReview }: SmartUpsellProps) {
   const router = useRouter();
+  const toast = useToastActions();
   const [isProcessing, setIsProcessing] = useState(false);
 
   // Determine which upsells to show based on current package
@@ -113,7 +115,7 @@ export function SmartUpsell({ currentPackage, essayId, hasHumanReview }: SmartUp
       window.location.href = url;
     } catch (error) {
       console.error('Checkout error:', error);
-      alert('Failed to start checkout. Please try again.');
+      toast.error('Failed to start checkout. Please try again.');
       setIsProcessing(false);
     }
   };

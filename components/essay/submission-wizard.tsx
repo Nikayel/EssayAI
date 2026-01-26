@@ -22,6 +22,7 @@ import { Badge } from '@/components/ui/badge';
 import { QuickIntakeForm } from '@/components/intake/quick-intake-form';
 import type { QuickIntake } from '@/lib/scoring/tiers/types';
 import { Check, Sparkles, Star, Crown, Zap } from 'lucide-react';
+import { useToastActions } from '@/components/ui/toast';
 
 // =============================================================================
 // TYPES
@@ -108,6 +109,7 @@ const TIER_OPTIONS: TierOption[] = [
 
 export function EssaySubmissionWizard() {
   const searchParams = useSearchParams();
+  const toast = useToastActions();
   const [step, setStep] = useState(1);
   const totalSteps = 4;
 
@@ -195,7 +197,7 @@ export function EssaySubmissionWizard() {
 
   const handleSubmit = async () => {
     if (!formData.intake) {
-      alert('Please complete the personalization step first.');
+      toast.warning('Please complete the personalization step first.');
       return;
     }
 
@@ -226,7 +228,7 @@ export function EssaySubmissionWizard() {
       window.location.href = checkoutUrl; // Redirect to Stripe
     } catch (error) {
       console.error('Submission error:', error);
-      alert('Failed to submit essay. Please try again.');
+      toast.error('Failed to submit essay. Please try again.');
     } finally {
       setIsSubmitting(false);
     }

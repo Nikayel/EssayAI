@@ -7,7 +7,8 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { ArrowLeft, Plus, GraduationCap } from 'lucide-react';
+import { ArrowLeft, GraduationCap } from 'lucide-react';
+import { useToastActions } from '@/components/ui/toast';
 
 const IVY_SCHOOLS = [
   { name: 'Harvard', edDeadline: '2024-11-01', rdDeadline: '2025-01-01' },
@@ -30,6 +31,7 @@ const DEADLINE_TYPES = [
 
 export default function AddSchoolPage() {
   const router = useRouter();
+  const toast = useToastActions();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [formData, setFormData] = useState({
     schoolName: '',
@@ -61,10 +63,11 @@ export default function AddSchoolPage() {
 
       if (!response.ok) throw new Error('Failed to add school');
 
+      toast.success('School added to portfolio!');
       router.push('/dashboard/portfolio');
     } catch (error) {
       console.error('Error adding school:', error);
-      alert('Failed to add school. Please try again.');
+      toast.error('Failed to add school. Please try again.');
     } finally {
       setIsSubmitting(false);
     }

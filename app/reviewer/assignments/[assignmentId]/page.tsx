@@ -14,6 +14,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Textarea } from '@/components/ui/textarea';
+import { useToastActions } from '@/components/ui/toast';
 import {
   getReviewAssignmentStatus,
 } from '@/lib/utils/status';
@@ -86,6 +87,7 @@ export default function ReviewerAssignmentPage({
 }) {
   const { assignmentId } = use(params);
   const router = useRouter();
+  const toast = useToastActions();
   const [assignment, setAssignment] = useState<Assignment | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -160,7 +162,8 @@ export default function ReviewerAssignmentPage({
   }
 
   async function handleCompleteReview() {
-    if (!confirm('Mark this review as complete? The student will be notified.')) {
+    // Using window.confirm for critical action confirmation
+    if (!window.confirm('Mark this review as complete? The student will be notified.')) {
       return;
     }
 
@@ -176,14 +179,15 @@ export default function ReviewerAssignmentPage({
       });
 
       if (res.ok) {
+        toast.success('Review completed! Student has been notified.');
         router.push('/reviewer');
       } else {
         const data = await res.json();
-        alert(data.error || 'Failed to complete review');
+        toast.error(data.error || 'Failed to complete review');
       }
     } catch (err) {
       console.error('Failed to complete review:', err);
-      alert('Failed to complete review');
+      toast.error('Failed to complete review');
     } finally {
       setIsCompleting(false);
     }
