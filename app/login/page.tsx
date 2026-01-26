@@ -61,8 +61,21 @@ export default function LoginPage() {
                 },
               },
             }}
-            providers={[]}
+            providers={['google']}
+            providerScopes={{
+              google: 'email profile',
+            }}
             redirectTo={`${process.env.NEXT_PUBLIC_APP_URL}/dashboard`}
+            localization={{
+              variables: {
+                sign_in: {
+                  social_provider_text: 'Continue with {{provider}}',
+                },
+                sign_up: {
+                  social_provider_text: 'Continue with {{provider}}',
+                },
+              },
+            }}
           />
         </div>
 

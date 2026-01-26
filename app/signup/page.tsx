@@ -69,9 +69,19 @@ function SignupContent() {
                 },
               },
             }}
-            providers={[]}
+            providers={['google']}
+            providerScopes={{
+              google: 'email profile',
+            }}
             view="sign_up"
             redirectTo={`${process.env.NEXT_PUBLIC_APP_URL}/dashboard`}
+            localization={{
+              variables: {
+                sign_up: {
+                  social_provider_text: 'Continue with {{provider}}',
+                },
+              },
+            }}
           />
         </div>
 
