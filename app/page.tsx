@@ -8,6 +8,8 @@ import { ReviewerShowcase } from '@/components/marketing/reviewer-showcase';
 import { TrustBadges } from '@/components/marketing/trust-badges';
 import { LiveActivityIndicator } from '@/components/marketing/live-activity';
 import { TestimonialCard } from '@/components/marketing/testimonial-card';
+import { StickyMobileCTA } from '@/components/marketing/sticky-mobile-cta';
+import { SocialProofToast } from '@/components/marketing/social-proof-toast';
 import { MobileNav } from '@/components/layout/mobile-nav';
 import {
   CheckCircle,
@@ -71,63 +73,65 @@ export default function Home() {
         </div>
       </header>
 
-      {/* Hero Section - Apple-style glass design */}
-      <section className="relative overflow-hidden min-h-[90vh] flex items-center">
-        {/* Background with floating orbs (Apple style) */}
+      {/* Hero Section - Apple-style glass design, mobile-optimized */}
+      <section className="relative overflow-hidden min-h-[85vh] md:min-h-[90vh] flex items-center">
+        {/* Background with floating orbs (Apple style) - lighter on mobile for performance */}
         <div className="absolute inset-0 bg-gradient-to-b from-neutral-50 via-white to-white" />
 
-        {/* Floating glass orbs for depth */}
-        <div className="absolute top-20 left-[10%] w-72 h-72 glass-orb glass-orb-brand" />
-        <div className="absolute top-40 right-[15%] w-96 h-96 glass-orb glass-orb-accent" style={{ animationDelay: '-2s' }} />
-        <div className="absolute bottom-20 left-[20%] w-64 h-64 glass-orb glass-orb-success" style={{ animationDelay: '-4s' }} />
+        {/* Floating glass orbs - hidden on small mobile, reduced on medium */}
+        <div className="hidden sm:block absolute top-20 left-[10%] w-48 md:w-72 h-48 md:h-72 glass-orb glass-orb-brand opacity-50 md:opacity-60" />
+        <div className="hidden md:block absolute top-40 right-[15%] w-64 lg:w-96 h-64 lg:h-96 glass-orb glass-orb-accent" style={{ animationDelay: '-2s' }} />
+        <div className="hidden lg:block absolute bottom-20 left-[20%] w-64 h-64 glass-orb glass-orb-success" style={{ animationDelay: '-4s' }} />
 
-        <div className="relative container mx-auto px-4 py-20 md:py-32">
+        <div className="relative container mx-auto px-4 py-8 sm:py-12 md:py-20 lg:py-32">
           <div className="max-w-4xl mx-auto">
-            {/* Glass panel for hero content */}
-            <div className="glass-panel p-8 md:p-12 lg:p-16 text-center">
-              {/* Live activity - social proof */}
-              <LiveActivityIndicator className="mb-8" />
+            {/* Glass panel - tighter padding on mobile for above-fold CTA */}
+            <div className="glass-panel p-5 sm:p-8 md:p-12 lg:p-16 text-center">
+              {/* Live activity - smaller on mobile */}
+              <LiveActivityIndicator className="mb-4 sm:mb-6 md:mb-8" />
 
-              {/* Main Headline - Loss Aversion + Clarity */}
-              <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold text-neutral-900 mb-6 leading-[1.1] tracking-tight">
+              {/* Main Headline - Mobile-first sizing for impact */}
+              <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold text-neutral-900 mb-4 sm:mb-6 leading-[1.1] tracking-tight">
                 Don't Let a Weak Essay
-                <br />
+                <br className="hidden sm:block" />
+                <span className="sm:hidden"> </span>
                 <span className="text-gradient">Cost You Your Dream School</span>
               </h1>
 
-              {/* Subheadline - Clear value prop */}
-              <p className="text-lg md:text-xl text-neutral-600 mb-8 max-w-2xl mx-auto leading-relaxed">
-                Get instant, personalized feedback on your college essay from AI trained on what top schools actually look for.
-                <span className="font-medium text-neutral-800"> Your voice stays yours.</span>
+              {/* Subheadline - Concise on mobile */}
+              <p className="text-base sm:text-lg md:text-xl text-neutral-600 mb-5 sm:mb-8 max-w-2xl mx-auto leading-relaxed">
+                Get instant, personalized feedback from AI trained on what top schools actually look for.
+                <span className="hidden sm:inline font-medium text-neutral-800"> Your voice stays yours.</span>
               </p>
 
-              {/* Trust indicators in glass badges */}
-              <div className="flex flex-wrap justify-center gap-3 mb-10">
-                <span className="glass flex items-center gap-2 px-4 py-2 rounded-full text-sm text-neutral-600">
-                  <Shield className="w-4 h-4 text-success-500" />
-                  100% private
-                </span>
-                <span className="glass flex items-center gap-2 px-4 py-2 rounded-full text-sm text-neutral-600">
-                  <Clock className="w-4 h-4 text-brand-500" />
-                  Results in 60 seconds
-                </span>
-                <span className="glass flex items-center gap-2 px-4 py-2 rounded-full text-sm text-neutral-600">
-                  <Star className="w-4 h-4 text-amber-500 fill-amber-500" />
-                  4.9/5 from students
-                </span>
-              </div>
-
-              {/* Single Primary CTA */}
-              <div className="flex flex-col items-center gap-4">
-                <Link href="/signup">
-                  <Button size="xl" className="text-lg px-12 shadow-lg shadow-brand-500/25">
+              {/* MOBILE: Primary CTA first (thumb zone), trust badges after */}
+              <div className="flex flex-col items-center gap-4 sm:gap-5 mb-5 sm:mb-0">
+                {/* Primary CTA - Full width on mobile for easy thumb tap */}
+                <Link href="/signup" className="w-full sm:w-auto">
+                  <Button size="xl" className="w-full sm:w-auto text-base sm:text-lg px-8 sm:px-12 shadow-lg shadow-brand-500/25">
                     Analyze My Essay Free
                     <ArrowRight className="w-5 h-5" />
                   </Button>
                 </Link>
-                <p className="text-sm text-neutral-500">
-                  Free for essays up to 650 words. No credit card required.
+                <p className="text-xs sm:text-sm text-neutral-500">
+                  Free for essays up to 650 words. No credit card.
                 </p>
+              </div>
+
+              {/* Trust indicators - Horizontal scroll on mobile, wrap on desktop */}
+              <div className="flex sm:flex-wrap justify-start sm:justify-center gap-2 sm:gap-3 mt-5 sm:mt-8 overflow-x-auto pb-2 sm:pb-0 -mx-2 px-2 sm:mx-0 sm:px-0 scrollbar-hide">
+                <span className="glass flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-1.5 sm:py-2 rounded-full text-xs sm:text-sm text-neutral-600 whitespace-nowrap flex-shrink-0">
+                  <Shield className="w-3.5 sm:w-4 h-3.5 sm:h-4 text-success-500" />
+                  100% private
+                </span>
+                <span className="glass flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-1.5 sm:py-2 rounded-full text-xs sm:text-sm text-neutral-600 whitespace-nowrap flex-shrink-0">
+                  <Clock className="w-3.5 sm:w-4 h-3.5 sm:h-4 text-brand-500" />
+                  60 seconds
+                </span>
+                <span className="glass flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-1.5 sm:py-2 rounded-full text-xs sm:text-sm text-neutral-600 whitespace-nowrap flex-shrink-0">
+                  <Star className="w-3.5 sm:w-4 h-3.5 sm:h-4 text-amber-500 fill-amber-500" />
+                  4.9/5 rating
+                </span>
               </div>
             </div>
           </div>
@@ -163,43 +167,44 @@ export default function Home() {
       </section>
 
       {/* The Problem - Loss Aversion */}
-      <section className="py-16 md:py-24 bg-gradient-to-b from-neutral-50 to-white">
+      <section className="py-10 sm:py-16 md:py-24 bg-gradient-to-b from-neutral-50 to-white">
         <div className="container mx-auto px-4">
           <div className="max-w-4xl mx-auto">
-            <div className="text-center mb-12">
-              <Badge variant="warning" size="lg" className="mb-4">
+            <div className="text-center mb-8 sm:mb-12">
+              <Badge variant="warning" size="lg" className="mb-3 sm:mb-4">
                 <AlertCircle className="w-3.5 h-3.5" />
                 The Hard Truth
               </Badge>
-              <h2 className="text-3xl md:text-4xl font-bold text-neutral-900 mb-4">
+              <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-neutral-900 mb-3 sm:mb-4 px-2">
                 Your Essay Can Make or Break Your Application
               </h2>
-              <p className="text-neutral-600 text-lg max-w-2xl mx-auto">
+              <p className="text-neutral-600 text-base sm:text-lg max-w-2xl mx-auto px-2">
                 For students with strong grades and test scores, the essay is often the deciding factor.
               </p>
             </div>
 
-            <div className="grid md:grid-cols-3 gap-6">
+            {/* Mobile: horizontal scroll for stats, Desktop: grid */}
+            <div className="flex sm:grid sm:grid-cols-3 gap-4 sm:gap-6 overflow-x-auto pb-4 sm:pb-0 -mx-4 px-4 sm:mx-0 sm:px-0 scrollbar-hide">
               {[
                 {
                   stat: '75%',
-                  desc: 'of admissions officers say the essay is important or very important',
+                  desc: 'of AOs say essays are important or very important',
                   source: 'NACAC Survey',
                 },
                 {
                   stat: '10 min',
-                  desc: 'average time an officer spends on your entire application',
+                  desc: 'average time an officer spends on your application',
                   source: 'Inside Higher Ed',
                 },
                 {
                   stat: '1 in 3',
-                  desc: 'students get rejected despite having the grades, due to weak essays',
+                  desc: 'rejected despite good grades, due to weak essays',
                   source: 'College Board Data',
                 },
               ].map((item, i) => (
-                <div key={i} className="p-6 rounded-2xl bg-white border border-neutral-200 shadow-sm text-center">
-                  <p className="text-4xl font-bold text-brand-600 mb-2">{item.stat}</p>
-                  <p className="text-neutral-600 text-sm mb-3">{item.desc}</p>
+                <div key={i} className="flex-shrink-0 w-[260px] sm:w-auto p-5 sm:p-6 rounded-2xl bg-white border border-neutral-200 shadow-sm text-center">
+                  <p className="text-3xl sm:text-4xl font-bold text-brand-600 mb-1.5 sm:mb-2">{item.stat}</p>
+                  <p className="text-neutral-600 text-sm mb-2 sm:mb-3 leading-snug">{item.desc}</p>
                   <p className="text-xs text-neutral-400">{item.source}</p>
                 </div>
               ))}
@@ -209,23 +214,23 @@ export default function Home() {
       </section>
 
       {/* Solution - Features Bento Grid */}
-      <section className="py-16 md:py-24 bg-white">
+      <section className="py-10 sm:py-16 md:py-24 bg-white">
         <div className="container mx-auto px-4">
-          <div className="text-center mb-14">
-            <Badge variant="default" size="lg" className="mb-4">
+          <div className="text-center mb-8 sm:mb-14">
+            <Badge variant="default" size="lg" className="mb-3 sm:mb-4">
               <Sparkles className="w-3.5 h-3.5" />
               The IvyWay Difference
             </Badge>
-            <h2 className="text-3xl md:text-4xl font-bold text-neutral-900 mb-4">
+            <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-neutral-900 mb-3 sm:mb-4 px-2">
               Feedback That Actually Helps You Stand Out
             </h2>
-            <p className="text-neutral-600 max-w-2xl mx-auto text-lg">
+            <p className="text-neutral-600 max-w-2xl mx-auto text-base sm:text-lg px-2">
               Not generic grammar fixes. Personalized analysis based on YOUR story and YOUR target school.
             </p>
           </div>
 
-          {/* Bento Grid - Cleaner, more Apple-like */}
-          <div className="grid md:grid-cols-3 gap-5 max-w-5xl mx-auto">
+          {/* Bento Grid - Cleaner, more Apple-like, mobile-optimized */}
+          <div className="grid sm:grid-cols-2 md:grid-cols-3 gap-4 sm:gap-5 max-w-5xl mx-auto">
             {/* Feature 1 - Large */}
             <Card variant="brand" className="md:col-span-2">
               <CardHeader className="pb-3">
@@ -478,8 +483,8 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Footer - Minimal */}
-      <footer className="border-t border-neutral-200 py-10 bg-neutral-50">
+      {/* Footer - Minimal, with extra padding for mobile sticky CTA */}
+      <footer className="border-t border-neutral-200 py-10 pb-24 md:pb-10 bg-neutral-50">
         <div className="container mx-auto px-4">
           <div className="flex flex-col md:flex-row justify-between items-center gap-6">
             <div className="flex items-center gap-2">
@@ -496,6 +501,12 @@ export default function Home() {
           </div>
         </div>
       </footer>
+
+      {/* Mobile Sticky CTA - appears when scrolling */}
+      <StickyMobileCTA />
+
+      {/* Social Proof Toast - shows activity notifications */}
+      <SocialProofToast position="bottom-left" />
     </div>
   );
 }

@@ -47,7 +47,7 @@ export function AnalysisResults({ result, onUpgrade }: AnalysisResultsProps) {
   const tier = result.tier;
 
   return (
-    <div className="max-w-4xl mx-auto space-y-4 sm:space-y-6 px-1 sm:px-0">
+    <div className="max-w-4xl mx-auto space-y-3 sm:space-y-4 md:space-y-6 px-3 sm:px-4 md:px-0">
       {/* Score Header */}
       <ScoreHeader result={result} />
 
@@ -90,33 +90,33 @@ function ScoreHeader({ result }: { result: AnalysisResult }) {
 
   return (
     <Card className={`border-2 ${scoreColors[result.scoreLabel]}`}>
-      <CardContent className="py-6 sm:py-8">
+      <CardContent className="p-4 sm:p-6 md:py-8">
         <div className="flex flex-col md:flex-row items-center justify-between gap-4 sm:gap-6">
-          {/* Score Circle - Responsive sizing */}
-          <div className="text-center">
+          {/* Score Circle - More compact on mobile */}
+          <div className="text-center flex-shrink-0">
             <div
-              className={`w-24 h-24 sm:w-28 sm:h-28 md:w-32 md:h-32 rounded-full border-4 ${scoreColors[result.scoreLabel]} flex items-center justify-center`}
+              className={`w-20 h-20 sm:w-24 sm:h-24 md:w-28 md:h-28 lg:w-32 lg:h-32 rounded-full border-4 ${scoreColors[result.scoreLabel]} flex items-center justify-center mx-auto`}
             >
               <div>
-                <span className="text-3xl sm:text-4xl font-bold">{result.overallScore}</span>
-                <span className="text-base sm:text-lg text-gray-500">/100</span>
+                <span className="text-2xl sm:text-3xl md:text-4xl font-bold">{result.overallScore}</span>
+                <span className="text-sm sm:text-base md:text-lg text-gray-500">/100</span>
               </div>
             </div>
             <div className="mt-2 sm:mt-3">
-              <Badge className={scoreColors[result.scoreLabel]}>
+              <Badge className={`${scoreColors[result.scoreLabel]} text-xs sm:text-sm`}>
                 {scoreLabels[result.scoreLabel]}
               </Badge>
             </div>
           </div>
 
-          {/* Summary */}
-          <div className="flex-1 text-center md:text-left">
-            <h2 className="text-xl sm:text-2xl font-bold mb-2">Your Essay Score</h2>
-            <p className="text-sm sm:text-base text-gray-600">{result.scoreSummary}</p>
+          {/* Summary - Better line height for mobile reading */}
+          <div className="flex-1 text-center md:text-left min-w-0">
+            <h2 className="text-lg sm:text-xl md:text-2xl font-bold mb-1.5 sm:mb-2">Your Essay Score</h2>
+            <p className="text-sm sm:text-base text-gray-600 leading-relaxed">{result.scoreSummary}</p>
 
             {/* Quick stats for non-quick tiers */}
             {result.tier !== 'quick' && 'metadata' in result && (
-              <div className="flex flex-wrap gap-3 sm:gap-4 mt-3 sm:mt-4 justify-center md:justify-start">
+              <div className="flex flex-wrap gap-2 sm:gap-3 md:gap-4 mt-3 sm:mt-4 justify-center md:justify-start">
                 <StatBadge icon={FileText} label="Words" value={result.metadata.wordCount} />
                 {'sentenceCount' in result.metadata && (
                   <StatBadge icon={MessageSquare} label="Sentences" value={result.metadata.sentenceCount} />
@@ -381,27 +381,34 @@ function CollapsibleSection({
   badge?: string;
 }) {
   return (
-    <Card>
+    <Card className="overflow-hidden">
+      {/* Mobile-optimized touch target - min 48px height for accessibility */}
       <button
         onClick={onToggle}
-        className="w-full px-6 py-4 flex items-center justify-between hover:bg-gray-50 transition-colors"
+        className="w-full px-4 sm:px-6 py-4 sm:py-5 flex items-center justify-between hover:bg-gray-50 active:bg-gray-100 transition-colors min-h-[56px]"
       >
-        <div className="flex items-center gap-3">
-          <Icon className="w-5 h-5 text-blue-600" />
-          <span className="font-semibold">{title}</span>
+        <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+          <Icon className="w-5 h-5 text-blue-600 flex-shrink-0" />
+          <span className="font-semibold text-sm sm:text-base truncate">{title}</span>
           {badge && (
-            <Badge variant="secondary" className="ml-2">
+            <Badge variant="secondary" className="ml-1 sm:ml-2 flex-shrink-0 text-xs">
               {badge}
             </Badge>
           )}
         </div>
-        {isOpen ? (
-          <ChevronDown className="w-5 h-5 text-gray-400" />
-        ) : (
-          <ChevronRight className="w-5 h-5 text-gray-400" />
-        )}
+        <div className="flex-shrink-0 ml-2 p-1">
+          {isOpen ? (
+            <ChevronDown className="w-5 h-5 text-gray-400" />
+          ) : (
+            <ChevronRight className="w-5 h-5 text-gray-400" />
+          )}
+        </div>
       </button>
-      {isOpen && <CardContent className="pt-0">{children}</CardContent>}
+      {isOpen && (
+        <CardContent className="pt-0 px-4 sm:px-6 pb-4 sm:pb-6">
+          {children}
+        </CardContent>
+      )}
     </Card>
   );
 }
