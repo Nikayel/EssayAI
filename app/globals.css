@@ -290,7 +290,7 @@
 }
 
 /* ========================================
-   BASE STYLES
+   BASE STYLES - Apple-inspired
    ======================================== */
 
 * {
@@ -299,16 +299,37 @@
 
 html {
   scroll-behavior: smooth;
+  /* Prevent layout shift on scroll */
+  overflow-x: hidden;
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  /* Apple uses SF Pro, we use Inter as closest web alternative */
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', Roboto, sans-serif;
   font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   line-height: var(--leading-relaxed);
+  /* Apple-style letter spacing for body text */
+  letter-spacing: -0.01em;
+}
+
+/* Apple-style headline typography */
+h1, h2, h3, h4, h5, h6 {
+  letter-spacing: -0.02em;
+  font-weight: 700;
+}
+
+/* Tighter tracking for large headlines (Apple style) */
+.text-4xl, .text-5xl, .text-6xl {
+  letter-spacing: -0.03em;
+}
+
+/* Smooth transitions for interactive elements */
+button, a, input, textarea, select {
+  transition: all 0.2s cubic-bezier(0.25, 0.1, 0.25, 1);
 }
 
 /* ========================================
@@ -334,22 +355,89 @@ body {
 }
 
 /* ========================================
-   GLASSMORPHISM UTILITIES
+   GLASSMORPHISM UTILITIES (Apple-style)
    ======================================== */
 
 .glass {
-  background: var(--glass-bg);
-  backdrop-filter: blur(var(--glass-blur));
-  -webkit-backdrop-filter: blur(var(--glass-blur));
-  border: 1px solid var(--glass-border);
+  background: rgba(255, 255, 255, 0.7);
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  border: 1px solid rgba(255, 255, 255, 0.3);
 }
 
 .glass-card {
-  background: var(--glass-bg);
-  backdrop-filter: blur(var(--glass-blur));
-  -webkit-backdrop-filter: blur(var(--glass-blur));
-  border: 1px solid var(--glass-border);
-  box-shadow: var(--shadow-glass);
+  background: rgba(255, 255, 255, 0.65);
+  backdrop-filter: blur(24px) saturate(180%);
+  -webkit-backdrop-filter: blur(24px) saturate(180%);
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  box-shadow:
+    0 8px 32px rgba(0, 0, 0, 0.06),
+    0 0 0 1px rgba(255, 255, 255, 0.1) inset;
+}
+
+/* Apple-style glass with subtle tint */
+.glass-brand {
+  background: rgba(139, 92, 246, 0.08);
+  backdrop-filter: blur(24px) saturate(180%);
+  -webkit-backdrop-filter: blur(24px) saturate(180%);
+  border: 1px solid rgba(139, 92, 246, 0.15);
+  box-shadow:
+    0 8px 32px rgba(139, 92, 246, 0.08),
+    0 0 0 1px rgba(255, 255, 255, 0.1) inset;
+}
+
+/* Glass panel for hero sections */
+.glass-panel {
+  background: rgba(255, 255, 255, 0.6);
+  backdrop-filter: blur(40px) saturate(200%);
+  -webkit-backdrop-filter: blur(40px) saturate(200%);
+  border: 1px solid rgba(255, 255, 255, 0.5);
+  border-radius: 24px;
+  box-shadow:
+    0 25px 50px -12px rgba(0, 0, 0, 0.08),
+    0 0 0 1px rgba(255, 255, 255, 0.2) inset;
+}
+
+/* Floating orb background elements (Apple style) */
+.glass-orb {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(60px);
+  opacity: 0.6;
+  animation: float 8s ease-in-out infinite;
+}
+
+.glass-orb-brand {
+  background: linear-gradient(135deg, var(--brand-300), var(--brand-500));
+}
+
+.glass-orb-accent {
+  background: linear-gradient(135deg, var(--accent-200), var(--accent-400));
+}
+
+.glass-orb-success {
+  background: linear-gradient(135deg, var(--success-200), var(--success-500));
+}
+
+/* Dark mode glass */
+@media (prefers-color-scheme: dark) {
+  .glass {
+    background: rgba(28, 25, 23, 0.7);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+  }
+
+  .glass-card {
+    background: rgba(28, 25, 23, 0.65);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    box-shadow:
+      0 8px 32px rgba(0, 0, 0, 0.3),
+      0 0 0 1px rgba(255, 255, 255, 0.05) inset;
+  }
+
+  .glass-panel {
+    background: rgba(28, 25, 23, 0.6);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+  }
 }
 
 /* ========================================
@@ -556,4 +644,111 @@ body {
 .prose-brand {
   --tw-prose-links: var(--brand-600);
   --tw-prose-bold: var(--neutral-900);
+}
+
+/* ========================================
+   APPLE-STYLE UTILITIES
+   ======================================== */
+
+/* Apple-style section spacing */
+.section-spacing {
+  padding-top: clamp(4rem, 8vw, 7rem);
+  padding-bottom: clamp(4rem, 8vw, 7rem);
+}
+
+/* Apple-style card hover */
+.card-hover {
+  transition: transform 0.3s cubic-bezier(0.25, 0.1, 0.25, 1), box-shadow 0.3s cubic-bezier(0.25, 0.1, 0.25, 1);
+}
+
+.card-hover:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 20px 40px -10px rgba(0, 0, 0, 0.08);
+}
+
+/* Apple-style subtle text */
+.text-subtle {
+  color: var(--neutral-500);
+  font-size: 0.9375rem;
+  line-height: 1.6;
+}
+
+/* Apple-style large display text */
+.text-display {
+  font-size: clamp(2.5rem, 5vw, 4rem);
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  line-height: 1.1;
+}
+
+/* Apple-style subheadline */
+.text-subheadline {
+  font-size: clamp(1.125rem, 2vw, 1.375rem);
+  color: var(--neutral-600);
+  line-height: 1.5;
+  max-width: 38ch;
+}
+
+/* Apple-style link */
+.link-arrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  font-weight: 500;
+  color: var(--brand-600);
+}
+
+.link-arrow:hover {
+  gap: 0.5rem;
+}
+
+/* Focus visible ring (accessibility) */
+.focus-visible-ring:focus-visible {
+  outline: 2px solid var(--brand-500);
+  outline-offset: 2px;
+  border-radius: var(--radius-lg);
+}
+
+/* Hide scrollbar but keep functionality */
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+
+/* ========================================
+   RESPONSIVE TOUCH TARGETS (Mobile UX)
+   ======================================== */
+
+@media (pointer: coarse) {
+  /* Larger touch targets on mobile */
+  button, a, input, select, textarea {
+    min-height: 44px;
+  }
+
+  /* Prevent accidental taps */
+  .touch-none {
+    touch-action: none;
+  }
+}
+
+/* ========================================
+   REDUCED MOTION (Accessibility)
+   ======================================== */
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+
+  html {
+    scroll-behavior: auto;
+  }
 }

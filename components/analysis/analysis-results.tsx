@@ -47,7 +47,7 @@ export function AnalysisResults({ result, onUpgrade }: AnalysisResultsProps) {
   const tier = result.tier;
 
   return (
-    <div className="max-w-4xl mx-auto space-y-6">
+    <div className="max-w-4xl mx-auto space-y-4 sm:space-y-6 px-1 sm:px-0">
       {/* Score Header */}
       <ScoreHeader result={result} />
 
@@ -90,19 +90,19 @@ function ScoreHeader({ result }: { result: AnalysisResult }) {
 
   return (
     <Card className={`border-2 ${scoreColors[result.scoreLabel]}`}>
-      <CardContent className="py-8">
-        <div className="flex flex-col md:flex-row items-center justify-between gap-6">
-          {/* Score Circle */}
+      <CardContent className="py-6 sm:py-8">
+        <div className="flex flex-col md:flex-row items-center justify-between gap-4 sm:gap-6">
+          {/* Score Circle - Responsive sizing */}
           <div className="text-center">
             <div
-              className={`w-32 h-32 rounded-full border-4 ${scoreColors[result.scoreLabel]} flex items-center justify-center`}
+              className={`w-24 h-24 sm:w-28 sm:h-28 md:w-32 md:h-32 rounded-full border-4 ${scoreColors[result.scoreLabel]} flex items-center justify-center`}
             >
               <div>
-                <span className="text-4xl font-bold">{result.overallScore}</span>
-                <span className="text-lg text-gray-500">/100</span>
+                <span className="text-3xl sm:text-4xl font-bold">{result.overallScore}</span>
+                <span className="text-base sm:text-lg text-gray-500">/100</span>
               </div>
             </div>
-            <div className="mt-3">
+            <div className="mt-2 sm:mt-3">
               <Badge className={scoreColors[result.scoreLabel]}>
                 {scoreLabels[result.scoreLabel]}
               </Badge>
@@ -111,12 +111,12 @@ function ScoreHeader({ result }: { result: AnalysisResult }) {
 
           {/* Summary */}
           <div className="flex-1 text-center md:text-left">
-            <h2 className="text-2xl font-bold mb-2">Your Essay Score</h2>
-            <p className="text-gray-600">{result.scoreSummary}</p>
+            <h2 className="text-xl sm:text-2xl font-bold mb-2">Your Essay Score</h2>
+            <p className="text-sm sm:text-base text-gray-600">{result.scoreSummary}</p>
 
             {/* Quick stats for non-quick tiers */}
             {result.tier !== 'quick' && 'metadata' in result && (
-              <div className="flex flex-wrap gap-4 mt-4 justify-center md:justify-start">
+              <div className="flex flex-wrap gap-3 sm:gap-4 mt-3 sm:mt-4 justify-center md:justify-start">
                 <StatBadge icon={FileText} label="Words" value={result.metadata.wordCount} />
                 {'sentenceCount' in result.metadata && (
                   <StatBadge icon={MessageSquare} label="Sentences" value={result.metadata.sentenceCount} />
@@ -210,18 +210,18 @@ function ActionableItem({
   };
 
   return (
-    <div className={`border rounded-lg p-4 ${severityColors[item.severity]}`}>
-      <div className="flex items-start gap-3">
-        <div className="flex-shrink-0 w-6 h-6 rounded-full bg-gray-900 text-white flex items-center justify-center text-sm font-bold">
+    <div className={`border rounded-xl p-3 sm:p-4 ${severityColors[item.severity]}`}>
+      <div className="flex items-start gap-2 sm:gap-3">
+        <div className="flex-shrink-0 w-5 h-5 sm:w-6 sm:h-6 rounded-full bg-gray-900 text-white flex items-center justify-center text-xs sm:text-sm font-bold">
           {index}
         </div>
-        <div className="flex-1">
-          <div className="flex items-center gap-2 mb-1">
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-1.5 sm:gap-2 mb-1 flex-wrap">
             {severityIcons[item.severity]}
-            <span className="text-xs text-gray-500">{item.location}</span>
+            <span className="text-xs text-gray-500 truncate">{item.location}</span>
           </div>
-          <p className="font-semibold text-gray-900">{item.issue}</p>
-          <p className="text-sm text-gray-700 mt-1">{item.bluntFeedback}</p>
+          <p className="font-semibold text-sm sm:text-base text-gray-900">{item.issue}</p>
+          <p className="text-xs sm:text-sm text-gray-700 mt-1 leading-relaxed">{item.bluntFeedback}</p>
         </div>
       </div>
     </div>
@@ -461,18 +461,18 @@ function DimensionBreakdown({ dimensions }: { dimensions: StandardAnalysisResult
   };
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-3 sm:space-y-4">
       {Object.entries(dimensions).map(([key, dim]) => {
         const meta = dimensionMeta[key] || { name: key, maxScore: 25 };
         return (
-          <div key={key} className="p-4 border rounded-lg">
-            <div className="flex items-center justify-between mb-2">
-              <span className="font-medium">{meta.name}</span>
-              <span className="font-bold text-lg">
+          <div key={key} className="p-3 sm:p-4 border rounded-xl bg-white">
+            <div className="flex items-center justify-between mb-2 gap-2">
+              <span className="font-medium text-sm sm:text-base">{meta.name}</span>
+              <span className="font-bold text-base sm:text-lg whitespace-nowrap">
                 {dim.totalScore}/{meta.maxScore}
               </span>
             </div>
-            <Progress value={(dim.totalScore / meta.maxScore) * 100} className="h-2 mb-2" />
+            <Progress value={(dim.totalScore / meta.maxScore) * 100} className="h-2" />
           </div>
         );
       })}
@@ -516,15 +516,18 @@ function SchoolFeedback({ feedback }: { feedback: StandardAnalysisResult['school
 
       {feedback.missingElements.length > 0 && (
         <div>
-          <h4 className="font-semibold mb-2 text-amber-700">What&apos;s Missing</h4>
+          <h4 className="font-semibold mb-2 text-amber-700 text-sm sm:text-base">What&apos;s Missing</h4>
           <div className="space-y-3">
             {feedback.missingElements.map((el, i) => (
-              <div key={i} className="p-3 bg-amber-50 rounded border border-amber-100">
-                <p className="font-medium text-sm">{el.element}</p>
-                <p className="text-sm text-gray-600">{el.why}</p>
-                <p className="text-sm text-amber-700 mt-1">
-                  <strong>How to add:</strong> {el.howToAdd}
-                </p>
+              <div key={i} className="p-3 sm:p-4 bg-amber-50 rounded-xl border border-amber-100">
+                <p className="font-medium text-sm sm:text-base text-amber-900">{el.element}</p>
+                <p className="text-xs sm:text-sm text-gray-600 mt-1 leading-relaxed">{el.why}</p>
+                <div className="mt-2 pt-2 border-t border-amber-200">
+                  <p className="text-xs sm:text-sm text-amber-700">
+                    <strong>How to add:</strong>
+                  </p>
+                  <p className="text-xs sm:text-sm text-amber-800 mt-0.5 leading-relaxed">{el.howToAdd}</p>
+                </div>
               </div>
             ))}
           </div>
@@ -557,28 +560,28 @@ function SchoolFeedback({ feedback }: { feedback: StandardAnalysisResult['school
 
 function AOInsightsDisplay({ insights }: { insights: StandardAnalysisResult['aoInsights'] }) {
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       {/* First Impression */}
-      <div className="p-4 bg-blue-50 rounded-lg">
-        <h4 className="font-semibold mb-2">First Impression</h4>
-        <p className="text-sm text-gray-700">{insights.firstImpression.hookVerdict}</p>
+      <div className="p-3 sm:p-4 bg-blue-50 rounded-xl">
+        <h4 className="font-semibold mb-2 text-sm sm:text-base">First Impression</h4>
+        <p className="text-xs sm:text-sm text-gray-700 leading-relaxed">{insights.firstImpression.hookVerdict}</p>
         <p className="text-xs text-gray-500 mt-1">{insights.firstImpression.timeToDecision}</p>
       </div>
 
       {/* What They Value */}
       <div>
-        <h4 className="font-semibold mb-3">What {insights.school} Values</h4>
-        <div className="grid gap-3">
+        <h4 className="font-semibold mb-3 text-sm sm:text-base">What {insights.school} Values</h4>
+        <div className="grid gap-2 sm:gap-3">
           {insights.whatTheyValue.map((item, i) => (
-            <div key={i} className="flex items-start gap-3 p-3 bg-gray-50 rounded">
+            <div key={i} className="flex items-start gap-2 sm:gap-3 p-2.5 sm:p-3 bg-gray-50 rounded-lg">
               {item.yourEssayHas ? (
-                <CheckCircle2 className="w-5 h-5 text-green-500 mt-0.5" />
+                <CheckCircle2 className="w-4 h-4 sm:w-5 sm:h-5 text-green-500 mt-0.5 flex-shrink-0" />
               ) : (
-                <XCircle className="w-5 h-5 text-red-400 mt-0.5" />
+                <XCircle className="w-4 h-4 sm:w-5 sm:h-5 text-red-400 mt-0.5 flex-shrink-0" />
               )}
-              <div>
-                <p className="font-medium">{item.trait}</p>
-                <p className="text-sm text-gray-600">{item.description}</p>
+              <div className="min-w-0">
+                <p className="font-medium text-sm sm:text-base">{item.trait}</p>
+                <p className="text-xs sm:text-sm text-gray-600 leading-relaxed">{item.description}</p>
               </div>
             </div>
           ))}
