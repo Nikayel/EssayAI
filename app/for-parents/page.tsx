@@ -1,7 +1,10 @@
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
 import { DeadlineUrgency } from '@/components/marketing/deadline-urgency';
+import { TrustBadges } from '@/components/marketing/trust-badges';
+import { MobileNav } from '@/components/layout/mobile-nav';
 import {
   Shield,
   Eye,
@@ -13,227 +16,266 @@ import {
   DollarSign,
   AlertTriangle,
   Users,
-  BookOpen
+  BookOpen,
+  PenTool,
+  Quote,
+  Lock,
+  Zap,
+  Star
 } from 'lucide-react';
+
+// =============================================================================
+// PAGE CONFIGURATION
+// =============================================================================
+
+const PARENT_CONCERNS = [
+  {
+    question: '"Will AI write the essay for them?"',
+    answer: 'No. We provide feedback and suggestions, never finished text. Your child remains the author. Our tone preservation technology ensures their voice stays authentic.',
+    icon: AlertTriangle,
+    iconBg: 'bg-red-100',
+    iconColor: 'text-red-600',
+  },
+  {
+    question: '"Is their essay private and secure?"',
+    answer: 'Absolutely. Essays are encrypted, never shared, and never used to train AI models. We\'re COPPA compliant. Data can be deleted anytime upon request.',
+    icon: Shield,
+    iconBg: 'bg-blue-100',
+    iconColor: 'text-blue-600',
+  },
+  {
+    question: '"Does this actually help?"',
+    answer: 'Our AI is trained on what works at top schools. We flag the exact issues that cause rejection: generic language, lack of reflection, weak openings.',
+    icon: TrendingUp,
+    iconBg: 'bg-green-100',
+    iconColor: 'text-green-600',
+  },
+  {
+    question: '"Is this a worthwhile investment?"',
+    answer: 'Private counselors charge $5,000-$15,000+. IvyWay starts at $9.99. For the cost of one test prep session, get expert-level essay feedback.',
+    icon: DollarSign,
+    iconBg: 'bg-purple-100',
+    iconColor: 'text-purple-600',
+  },
+];
+
+const BENEFITS = [
+  {
+    title: 'Detailed Analysis',
+    desc: 'Score across 7 dimensions with specific examples showing what works and what doesn\'t.',
+    icon: BookOpen,
+    color: 'text-blue-600',
+  },
+  {
+    title: 'Expert Human Review',
+    desc: 'Optional review by former admissions readers and professional writing coaches.',
+    icon: Users,
+    color: 'text-purple-600',
+  },
+  {
+    title: 'School-Specific Insights',
+    desc: 'Analysis tailored to specific schools—what Harvard looks for differs from Yale.',
+    icon: Eye,
+    color: 'text-green-600',
+  },
+];
+
+const VISIBILITY_FEATURES = [
+  'Optional parent email notifications when analysis is complete',
+  'Clear receipts for your records (529 eligible in many states)',
+  'Progress tracking—see that they\'re actively improving',
+  'Deadline reminders so nothing falls through the cracks',
+];
+
+// =============================================================================
+// PAGE COMPONENT
+// =============================================================================
 
 export default function ForParentsPage() {
   return (
-    <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white">
+    <div className="min-h-screen bg-gradient-to-b from-neutral-50 to-white">
       <DeadlineUrgency />
 
       {/* Header */}
-      <header className="border-b bg-white">
+      <header className="sticky top-0 z-50 border-b border-neutral-200/60 bg-white/80 backdrop-blur-xl">
         <div className="container mx-auto px-4 py-4 flex justify-between items-center">
-          <h1 className="text-2xl font-bold text-gray-900">IvyWay</h1>
-          <nav className="flex gap-4">
+          <Link href="/" className="flex items-center gap-2.5">
+            <div className="p-2 rounded-xl bg-gradient-to-br from-brand-500 to-brand-600 shadow-sm">
+              <PenTool className="w-5 h-5 text-white" />
+            </div>
+            <span className="text-xl font-bold text-neutral-900 tracking-tight">IvyWay</span>
+          </Link>
+          <nav className="hidden md:flex items-center gap-2">
             <Link href="/">
-              <Button variant="ghost">For Students</Button>
+              <Button variant="ghost" size="sm">For Students</Button>
             </Link>
             <Link href="/pricing">
-              <Button variant="ghost">Pricing</Button>
+              <Button variant="ghost" size="sm">Pricing</Button>
             </Link>
+            <div className="w-px h-6 bg-neutral-200 mx-2" />
             <Link href="/login">
-              <Button variant="outline">Log In</Button>
+              <Button variant="ghost" size="sm">Log In</Button>
             </Link>
             <Link href="/signup">
-              <Button>Get Started</Button>
+              <Button size="sm">
+                Get Started
+                <ArrowRight className="w-4 h-4" />
+              </Button>
             </Link>
           </nav>
+          <MobileNav />
         </div>
       </header>
 
       {/* Hero - Parent Focused */}
-      <section className="container mx-auto px-4 py-16 text-center">
-        <div className="inline-flex items-center gap-2 bg-purple-100 text-purple-800 px-4 py-2 rounded-full mb-6">
-          <Heart className="w-4 h-4" />
-          <span className="text-sm font-medium">For Parents Who Want the Best for Their Child</span>
-        </div>
+      <section className="relative overflow-hidden">
+        <div className="absolute inset-0 bg-gradient-to-b from-blue-50/50 via-white to-white" />
 
-        <h2 className="text-5xl font-bold text-gray-900 mb-6">
-          Give Your Child an Edge
-          <br />
-          <span className="text-blue-600">Without Doing the Work for Them</span>
-        </h2>
+        <div className="relative container mx-auto px-4 pt-16 pb-20 md:pt-24 md:pb-32">
+          <div className="max-w-4xl mx-auto text-center">
+            <Badge variant="info" size="lg" className="mb-6">
+              <Heart className="w-3.5 h-3.5" />
+              For Parents Who Want the Best
+            </Badge>
 
-        <p className="text-xl text-gray-600 mb-8 max-w-3xl mx-auto">
-          College essays make or break Ivy League applications. Our expert feedback helps
-          your child write authentically while fixing the mistakes that get essays rejected.
-          <strong> They do the work. We guide the way.</strong>
-        </p>
+            <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold text-neutral-900 mb-6 leading-[1.1] tracking-tight">
+              Give Your Child an Edge
+              <br />
+              <span className="text-blue-600">Without Doing the Work for Them</span>
+            </h1>
 
-        <div className="flex gap-4 justify-center mb-8">
-          <Link href="/signup">
-            <Button size="lg" className="text-lg px-8 py-6">
-              Start Free Analysis
-              <ArrowRight className="w-5 h-5 ml-2" />
-            </Button>
-          </Link>
-          <Link href="/pricing">
-            <Button size="lg" variant="outline" className="text-lg px-8 py-6">
-              View Packages
-            </Button>
-          </Link>
-        </div>
+            <p className="text-lg md:text-xl text-neutral-600 mb-8 max-w-2xl mx-auto leading-relaxed">
+              College essays make or break Ivy League applications. Expert feedback helps
+              your child write authentically while fixing the mistakes that get essays rejected.
+              <span className="font-medium text-neutral-800"> They do the work. We guide the way.</span>
+            </p>
 
-        <p className="text-sm text-gray-500">
-          Free initial check included. Can be used as an education expense.
-        </p>
-      </section>
+            <div className="flex flex-wrap justify-center gap-6 mb-10 text-sm text-neutral-500">
+              <span className="flex items-center gap-1.5">
+                <Lock className="w-4 h-4 text-success-500" />
+                100% private & secure
+              </span>
+              <span className="flex items-center gap-1.5">
+                <Zap className="w-4 h-4 text-amber-500" />
+                Results in 60 seconds
+              </span>
+              <span className="flex items-center gap-1.5">
+                <Star className="w-4 h-4 text-brand-500 fill-brand-500" />
+                4.9/5 parent satisfaction
+              </span>
+            </div>
 
-      {/* Parent Concerns Section */}
-      <section className="py-16 bg-white">
-        <div className="container mx-auto px-4">
-          <h3 className="text-3xl font-bold text-center mb-12">
-            We Understand Your Concerns
-          </h3>
+            <div className="flex flex-col sm:flex-row gap-4 justify-center">
+              <Link href="/signup">
+                <Button size="xl" className="w-full sm:w-auto text-lg px-10">
+                  Start Free Analysis
+                  <ArrowRight className="w-5 h-5" />
+                </Button>
+              </Link>
+              <Link href="/pricing">
+                <Button size="xl" variant="outline" className="w-full sm:w-auto">
+                  View Packages
+                </Button>
+              </Link>
+            </div>
 
-          <div className="grid md:grid-cols-2 gap-8 max-w-4xl mx-auto">
-            <Card>
-              <CardHeader>
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 bg-red-100 rounded-full flex items-center justify-center">
-                    <AlertTriangle className="w-5 h-5 text-red-600" />
-                  </div>
-                  <CardTitle className="text-lg">"Will AI write the essay for them?"</CardTitle>
-                </div>
-              </CardHeader>
-              <CardContent>
-                <p className="text-gray-600">
-                  <strong>No.</strong> We provide feedback and suggestions, never finished text.
-                  Your child remains the author. Our tone preservation technology ensures their
-                  voice stays authentic. Admissions officers can spot ghostwritten essays—we help
-                  students sound like <em>themselves</em>, just better.
-                </p>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
-                    <Shield className="w-5 h-5 text-blue-600" />
-                  </div>
-                  <CardTitle className="text-lg">"Is their essay private and secure?"</CardTitle>
-                </div>
-              </CardHeader>
-              <CardContent>
-                <p className="text-gray-600">
-                  <strong>Absolutely.</strong> Essays are encrypted, never shared, and never used
-                  to train AI models. We're COPPA compliant for students under 16, requiring
-                  parental consent. Data can be deleted anytime upon request.
-                </p>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center">
-                    <TrendingUp className="w-5 h-5 text-green-600" />
-                  </div>
-                  <CardTitle className="text-lg">"Does this actually help?"</CardTitle>
-                </div>
-              </CardHeader>
-              <CardContent>
-                <p className="text-gray-600">
-                  Our AI is trained on what works at top schools. We flag the exact issues
-                  that cause rejection: generic language, lack of reflection, weak openings.
-                  Students who revise based on our feedback see measurable score improvements.
-                </p>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 bg-purple-100 rounded-full flex items-center justify-center">
-                    <DollarSign className="w-5 h-5 text-purple-600" />
-                  </div>
-                  <CardTitle className="text-lg">"Is this a worthwhile investment?"</CardTitle>
-                </div>
-              </CardHeader>
-              <CardContent>
-                <p className="text-gray-600">
-                  Private college counselors charge $5,000-$15,000+. Our comprehensive Ivy package
-                  is under $500, covering all 8 schools with AI + human review. For a single essay
-                  check, it's less than the cost of one test prep session.
-                </p>
-              </CardContent>
-            </Card>
+            <p className="text-sm text-neutral-500 mt-6">
+              Free initial check included. Can be used as an education expense.
+            </p>
           </div>
         </div>
       </section>
 
-      {/* What You Get */}
-      <section className="py-16 bg-gray-50">
+      {/* Parent Concerns Section */}
+      <section className="py-16 md:py-24 bg-white">
         <div className="container mx-auto px-4">
-          <h3 className="text-3xl font-bold text-center mb-4">What Your Child Gets</h3>
-          <p className="text-gray-600 text-center mb-12 max-w-2xl mx-auto">
-            Professional-level feedback that helps them improve—not shortcuts that undermine their work
-          </p>
+          <div className="text-center mb-12">
+            <Badge variant="secondary" size="lg" className="mb-4">
+              <Shield className="w-3.5 h-3.5" />
+              Your Questions Answered
+            </Badge>
+            <h2 className="text-3xl md:text-4xl font-bold text-neutral-900 mb-4">
+              We Understand Your Concerns
+            </h2>
+          </div>
 
-          <div className="grid md:grid-cols-3 gap-6 max-w-5xl mx-auto">
-            <div className="bg-white p-6 rounded-xl shadow-sm">
-              <BookOpen className="w-8 h-8 text-blue-600 mb-4" />
-              <h4 className="font-semibold text-lg mb-2">Detailed Analysis</h4>
-              <p className="text-gray-600 text-sm">
-                Score across 7 dimensions (authenticity, reflection, structure...) with
-                specific examples from their essay showing what works and what doesn't.
-              </p>
-            </div>
+          <div className="grid md:grid-cols-2 gap-6 max-w-4xl mx-auto">
+            {PARENT_CONCERNS.map((concern, i) => {
+              const Icon = concern.icon;
+              return (
+                <Card key={i} variant="interactive">
+                  <CardHeader className="pb-3">
+                    <div className="flex items-center gap-3">
+                      <div className={`w-10 h-10 ${concern.iconBg} rounded-xl flex items-center justify-center`}>
+                        <Icon className={`w-5 h-5 ${concern.iconColor}`} />
+                      </div>
+                      <CardTitle className="text-lg">{concern.question}</CardTitle>
+                    </div>
+                  </CardHeader>
+                  <CardContent>
+                    <p className="text-neutral-600 leading-relaxed">{concern.answer}</p>
+                  </CardContent>
+                </Card>
+              );
+            })}
+          </div>
+        </div>
+      </section>
 
-            <div className="bg-white p-6 rounded-xl shadow-sm">
-              <Users className="w-8 h-8 text-purple-600 mb-4" />
-              <h4 className="font-semibold text-lg mb-2">Expert Human Review</h4>
-              <p className="text-gray-600 text-sm">
-                Optional review by experienced editors—former admissions readers, English PhDs,
-                and professional writing coaches who've helped thousands of students.
-              </p>
-            </div>
+      {/* What Your Child Gets */}
+      <section className="py-16 md:py-24 bg-gradient-to-b from-neutral-50 to-white">
+        <div className="container mx-auto px-4">
+          <div className="text-center mb-12">
+            <Badge variant="default" size="lg" className="mb-4">
+              <BookOpen className="w-3.5 h-3.5" />
+              What They Get
+            </Badge>
+            <h2 className="text-3xl md:text-4xl font-bold text-neutral-900 mb-4">
+              Professional-Level Feedback
+            </h2>
+            <p className="text-neutral-600 max-w-xl mx-auto text-lg">
+              Not shortcuts that undermine their work—real guidance that helps them improve.
+            </p>
+          </div>
 
-            <div className="bg-white p-6 rounded-xl shadow-sm">
-              <Eye className="w-8 h-8 text-green-600 mb-4" />
-              <h4 className="font-semibold text-lg mb-2">School-Specific Insights</h4>
-              <p className="text-gray-600 text-sm">
-                Analysis tailored to specific Ivy League schools—what Harvard looks for is
-                different from Yale. We show them exactly how to demonstrate fit.
-              </p>
-            </div>
+          <div className="grid md:grid-cols-3 gap-6 max-w-4xl mx-auto">
+            {BENEFITS.map((benefit, i) => {
+              const Icon = benefit.icon;
+              return (
+                <div key={i} className="bg-white p-6 rounded-2xl border border-neutral-200 shadow-sm">
+                  <Icon className={`w-8 h-8 ${benefit.color} mb-4`} />
+                  <h3 className="font-semibold text-lg text-neutral-900 mb-2">{benefit.title}</h3>
+                  <p className="text-neutral-600 text-sm leading-relaxed">{benefit.desc}</p>
+                </div>
+              );
+            })}
           </div>
         </div>
       </section>
 
       {/* Parent Visibility */}
-      <section className="py-16">
+      <section className="py-16 md:py-24 bg-white">
         <div className="container mx-auto px-4">
-          <div className="max-w-4xl mx-auto bg-blue-50 rounded-2xl p-8 md:p-12">
-            <div className="flex items-start gap-6">
-              <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center flex-shrink-0">
+          <div className="max-w-4xl mx-auto bg-blue-50 rounded-2xl p-8 md:p-12 border border-blue-100">
+            <div className="flex flex-col md:flex-row items-start gap-6">
+              <div className="w-16 h-16 bg-blue-100 rounded-2xl flex items-center justify-center flex-shrink-0">
                 <Eye className="w-8 h-8 text-blue-600" />
               </div>
               <div>
-                <h3 className="text-2xl font-bold mb-4">Stay Informed Without Hovering</h3>
-                <p className="text-gray-700 mb-4">
+                <h3 className="text-2xl font-bold text-neutral-900 mb-4">
+                  Stay Informed Without Hovering
+                </h3>
+                <p className="text-neutral-700 mb-6 leading-relaxed">
                   We understand the delicate balance: you want to support your child's
                   application without taking over. That's why we offer:
                 </p>
-                <ul className="space-y-2 text-gray-700">
-                  <li className="flex items-center gap-2">
-                    <CheckCircle className="w-5 h-5 text-green-600" />
-                    <span>Optional parent email notifications when analysis is complete</span>
-                  </li>
-                  <li className="flex items-center gap-2">
-                    <CheckCircle className="w-5 h-5 text-green-600" />
-                    <span>Clear receipts for your records (529 eligible in many states)</span>
-                  </li>
-                  <li className="flex items-center gap-2">
-                    <CheckCircle className="w-5 h-5 text-green-600" />
-                    <span>Progress tracking—see that they're actively improving</span>
-                  </li>
-                  <li className="flex items-center gap-2">
-                    <CheckCircle className="w-5 h-5 text-green-600" />
-                    <span>Deadline reminders so nothing falls through the cracks</span>
-                  </li>
+                <ul className="space-y-3">
+                  {VISIBILITY_FEATURES.map((feature, i) => (
+                    <li key={i} className="flex items-start gap-3">
+                      <CheckCircle className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" />
+                      <span className="text-neutral-700">{feature}</span>
+                    </li>
+                  ))}
                 </ul>
               </div>
             </div>
@@ -241,90 +283,127 @@ export default function ForParentsPage() {
         </div>
       </section>
 
+      {/* Authority Quote */}
+      <section className="py-16 md:py-20 bg-gradient-to-b from-neutral-50 to-white">
+        <div className="container mx-auto px-4">
+          <div className="max-w-3xl mx-auto text-center">
+            <Quote className="w-10 h-10 text-brand-200 mx-auto mb-6" />
+            <blockquote className="text-xl md:text-2xl text-neutral-700 font-medium leading-relaxed mb-6">
+              "As a parent, I was worried about over-helping. IvyWay gave my daughter the feedback she needed without me having to read every draft. She got into Brown ED."
+            </blockquote>
+            <div className="flex items-center justify-center gap-3">
+              <div className="w-12 h-12 rounded-full bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center text-white font-semibold">
+                JT
+              </div>
+              <div className="text-left">
+                <p className="font-semibold text-neutral-900">Jennifer T.</p>
+                <p className="text-sm text-neutral-500">Parent of Brown '29 Admit</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* Pricing Overview */}
-      <section className="py-16 bg-white">
+      <section className="py-16 md:py-24 bg-white">
         <div className="container mx-auto px-4 text-center">
-          <h3 className="text-3xl font-bold mb-4">Transparent, Simple Pricing</h3>
-          <p className="text-gray-600 mb-12 max-w-2xl mx-auto">
-            No hidden fees. No subscriptions required. Pay for what you need.
+          <Badge variant="premium" size="lg" className="mb-4">
+            <DollarSign className="w-3.5 h-3.5" />
+            Transparent Pricing
+          </Badge>
+          <h2 className="text-3xl md:text-4xl font-bold text-neutral-900 mb-4">
+            Simple, Honest Pricing
+          </h2>
+          <p className="text-neutral-600 mb-12 max-w-xl mx-auto text-lg">
+            No hidden fees. No subscriptions. Pay only for what you need.
           </p>
 
           <div className="grid md:grid-cols-3 gap-6 max-w-4xl mx-auto">
             <Card>
-              <CardHeader>
+              <CardHeader className="text-center">
                 <CardTitle>AI Analysis</CardTitle>
-                <CardDescription>Quick, detailed feedback</CardDescription>
+                <p className="text-sm text-neutral-500">Quick, detailed feedback</p>
               </CardHeader>
-              <CardContent>
-                <div className="text-4xl font-bold mb-2">$9-$29</div>
-                <p className="text-sm text-gray-600">per essay</p>
-                <p className="text-sm text-gray-500 mt-4">Results in under 60 seconds</p>
+              <CardContent className="text-center">
+                <div className="text-4xl font-bold mb-2">$9.99</div>
+                <p className="text-sm text-neutral-600">per essay</p>
+                <p className="text-xs text-neutral-400 mt-4">Results in under 60 seconds</p>
               </CardContent>
             </Card>
 
-            <Card className="border-2 border-blue-500 relative">
-              <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-blue-500 text-white px-3 py-1 rounded-full text-xs font-semibold">
-                MOST POPULAR
+            <Card className="border-2 border-brand-500 relative shadow-lg">
+              <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-gradient-to-r from-brand-500 to-brand-600 text-white px-4 py-1 rounded-full text-xs font-semibold">
+                Most Popular
               </div>
-              <CardHeader>
+              <CardHeader className="text-center">
                 <CardTitle>AI + Human Review</CardTitle>
-                <CardDescription>Expert editor feedback</CardDescription>
+                <p className="text-sm text-neutral-500">Expert editor feedback</p>
               </CardHeader>
-              <CardContent>
-                <div className="text-4xl font-bold mb-2">$79-$149</div>
-                <p className="text-sm text-gray-600">per essay</p>
-                <p className="text-sm text-gray-500 mt-4">48-hour delivery</p>
+              <CardContent className="text-center">
+                <div className="text-4xl font-bold mb-2">$79</div>
+                <p className="text-sm text-neutral-600">per essay</p>
+                <p className="text-xs text-neutral-400 mt-4">48-hour turnaround</p>
               </CardContent>
             </Card>
 
             <Card>
-              <CardHeader>
-                <CardTitle>Ivy Premium Bundle</CardTitle>
-                <CardDescription>All 8 Ivies covered</CardDescription>
+              <CardHeader className="text-center">
+                <CardTitle>Ivy Bundle</CardTitle>
+                <p className="text-sm text-neutral-500">3 schools covered</p>
               </CardHeader>
-              <CardContent>
-                <div className="text-4xl font-bold mb-2">$499</div>
-                <p className="text-sm text-gray-600">complete package</p>
-                <p className="text-sm text-gray-500 mt-4">AI + 3 human reviews</p>
+              <CardContent className="text-center">
+                <div className="text-4xl font-bold mb-2">$79</div>
+                <p className="text-sm text-neutral-600">all essays for 3 schools</p>
+                <p className="text-xs text-neutral-400 mt-4">Best value for Ivy applicants</p>
               </CardContent>
             </Card>
           </div>
 
-          <Link href="/pricing">
-            <Button size="lg" className="mt-8">
+          <Link href="/pricing" className="inline-block mt-10">
+            <Button size="lg" variant="outline">
               See All Packages
-              <ArrowRight className="w-4 h-4 ml-2" />
+              <ArrowRight className="w-4 h-4" />
             </Button>
           </Link>
         </div>
       </section>
 
-      {/* CTA */}
-      <section className="py-16 bg-gradient-to-r from-blue-600 to-blue-700 text-white">
+      {/* Final CTA */}
+      <section className="py-20 md:py-28 bg-gradient-to-r from-blue-600 to-blue-700 text-white">
         <div className="container mx-auto px-4 text-center">
-          <h3 className="text-3xl font-bold mb-4">
+          <h2 className="text-3xl md:text-4xl font-bold mb-4">
             Help Your Child Put Their Best Essay Forward
-          </h3>
-          <p className="text-blue-100 mb-8 max-w-2xl mx-auto">
+          </h2>
+          <p className="text-blue-100 mb-8 max-w-xl mx-auto text-lg">
             The essay is often the deciding factor for borderline admits.
             Give your child the feedback they need to stand out.
           </p>
           <Link href="/signup">
-            <Button size="lg" variant="secondary" className="text-lg px-8 py-6">
+            <Button size="xl" variant="secondary" className="text-lg px-10">
               Start Free Analysis
-              <ArrowRight className="w-5 h-5 ml-2" />
+              <ArrowRight className="w-5 h-5" />
             </Button>
           </Link>
         </div>
       </section>
 
       {/* Footer */}
-      <footer className="border-t py-8 bg-white">
-        <div className="container mx-auto px-4 text-center text-gray-600">
-          <p>&copy; 2025 IvyWay. Privacy-first. Voice-preserving.</p>
-          <p className="text-sm mt-2">
-            Questions? Email us at <a href="mailto:support@ivyway.ai" className="text-brand-600">support@ivyway.ai</a>
-          </p>
+      <footer className="border-t border-neutral-200 py-10 bg-neutral-50">
+        <div className="container mx-auto px-4">
+          <div className="flex flex-col md:flex-row justify-between items-center gap-6">
+            <div className="flex items-center gap-2">
+              <div className="p-2 rounded-xl bg-gradient-to-br from-brand-500 to-brand-600">
+                <PenTool className="w-4 h-4 text-white" />
+              </div>
+              <span className="font-semibold text-neutral-700">IvyWay</span>
+            </div>
+            <div className="flex flex-col md:flex-row items-center gap-4 text-sm text-neutral-500">
+              <span>&copy; 2025 IvyWay. Privacy-first.</span>
+              <a href="mailto:support@ivyway.ai" className="text-brand-600 hover:underline">
+                support@ivyway.ai
+              </a>
+            </div>
+          </div>
         </div>
       </footer>
     </div>
