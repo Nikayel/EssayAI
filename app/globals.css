@@ -355,22 +355,89 @@ button, a, input, textarea, select {
 }
 
 /* ========================================
-   GLASSMORPHISM UTILITIES
+   GLASSMORPHISM UTILITIES (Apple-style)
    ======================================== */
 
 .glass {
-  background: var(--glass-bg);
-  backdrop-filter: blur(var(--glass-blur));
-  -webkit-backdrop-filter: blur(var(--glass-blur));
-  border: 1px solid var(--glass-border);
+  background: rgba(255, 255, 255, 0.7);
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  border: 1px solid rgba(255, 255, 255, 0.3);
 }
 
 .glass-card {
-  background: var(--glass-bg);
-  backdrop-filter: blur(var(--glass-blur));
-  -webkit-backdrop-filter: blur(var(--glass-blur));
-  border: 1px solid var(--glass-border);
-  box-shadow: var(--shadow-glass);
+  background: rgba(255, 255, 255, 0.65);
+  backdrop-filter: blur(24px) saturate(180%);
+  -webkit-backdrop-filter: blur(24px) saturate(180%);
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  box-shadow:
+    0 8px 32px rgba(0, 0, 0, 0.06),
+    0 0 0 1px rgba(255, 255, 255, 0.1) inset;
+}
+
+/* Apple-style glass with subtle tint */
+.glass-brand {
+  background: rgba(139, 92, 246, 0.08);
+  backdrop-filter: blur(24px) saturate(180%);
+  -webkit-backdrop-filter: blur(24px) saturate(180%);
+  border: 1px solid rgba(139, 92, 246, 0.15);
+  box-shadow:
+    0 8px 32px rgba(139, 92, 246, 0.08),
+    0 0 0 1px rgba(255, 255, 255, 0.1) inset;
+}
+
+/* Glass panel for hero sections */
+.glass-panel {
+  background: rgba(255, 255, 255, 0.6);
+  backdrop-filter: blur(40px) saturate(200%);
+  -webkit-backdrop-filter: blur(40px) saturate(200%);
+  border: 1px solid rgba(255, 255, 255, 0.5);
+  border-radius: 24px;
+  box-shadow:
+    0 25px 50px -12px rgba(0, 0, 0, 0.08),
+    0 0 0 1px rgba(255, 255, 255, 0.2) inset;
+}
+
+/* Floating orb background elements (Apple style) */
+.glass-orb {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(60px);
+  opacity: 0.6;
+  animation: float 8s ease-in-out infinite;
+}
+
+.glass-orb-brand {
+  background: linear-gradient(135deg, var(--brand-300), var(--brand-500));
+}
+
+.glass-orb-accent {
+  background: linear-gradient(135deg, var(--accent-200), var(--accent-400));
+}
+
+.glass-orb-success {
+  background: linear-gradient(135deg, var(--success-200), var(--success-500));
+}
+
+/* Dark mode glass */
+@media (prefers-color-scheme: dark) {
+  .glass {
+    background: rgba(28, 25, 23, 0.7);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+  }
+
+  .glass-card {
+    background: rgba(28, 25, 23, 0.65);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    box-shadow:
+      0 8px 32px rgba(0, 0, 0, 0.3),
+      0 0 0 1px rgba(255, 255, 255, 0.05) inset;
+  }
+
+  .glass-panel {
+    background: rgba(28, 25, 23, 0.6);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+  }
 }
 
 /* ========================================

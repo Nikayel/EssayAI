@@ -71,57 +71,64 @@ export default function Home() {
         </div>
       </header>
 
-      {/* Hero Section - Apple-style with psychological triggers */}
-      <section className="relative overflow-hidden">
-        {/* Background gradient - subtle, clean */}
-        <div className="absolute inset-0 bg-gradient-to-b from-brand-50/40 via-white to-white" />
+      {/* Hero Section - Apple-style glass design */}
+      <section className="relative overflow-hidden min-h-[90vh] flex items-center">
+        {/* Background with floating orbs (Apple style) */}
+        <div className="absolute inset-0 bg-gradient-to-b from-neutral-50 via-white to-white" />
 
-        <div className="relative container mx-auto px-4 pt-16 pb-20 md:pt-28 md:pb-36">
-          <div className="max-w-4xl mx-auto text-center">
+        {/* Floating glass orbs for depth */}
+        <div className="absolute top-20 left-[10%] w-72 h-72 glass-orb glass-orb-brand" />
+        <div className="absolute top-40 right-[15%] w-96 h-96 glass-orb glass-orb-accent" style={{ animationDelay: '-2s' }} />
+        <div className="absolute bottom-20 left-[20%] w-64 h-64 glass-orb glass-orb-success" style={{ animationDelay: '-4s' }} />
 
-            {/* Live activity - social proof that others are using it now */}
-            <LiveActivityIndicator className="mb-8" />
+        <div className="relative container mx-auto px-4 py-20 md:py-32">
+          <div className="max-w-4xl mx-auto">
+            {/* Glass panel for hero content */}
+            <div className="glass-panel p-8 md:p-12 lg:p-16 text-center">
+              {/* Live activity - social proof */}
+              <LiveActivityIndicator className="mb-8" />
 
-            {/* Main Headline - Loss Aversion + Clarity */}
-            <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold text-neutral-900 mb-6 leading-[1.1] tracking-tight">
-              Don't Let a Weak Essay
-              <br />
-              <span className="text-gradient">Cost You Your Dream School</span>
-            </h1>
+              {/* Main Headline - Loss Aversion + Clarity */}
+              <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold text-neutral-900 mb-6 leading-[1.1] tracking-tight">
+                Don't Let a Weak Essay
+                <br />
+                <span className="text-gradient">Cost You Your Dream School</span>
+              </h1>
 
-            {/* Subheadline - Clear value prop */}
-            <p className="text-lg md:text-xl text-neutral-600 mb-8 max-w-2xl mx-auto leading-relaxed">
-              Get instant, personalized feedback on your college essay from AI trained on what top schools actually look for.
-              <span className="font-medium text-neutral-800"> Your voice stays yours.</span>
-            </p>
-
-            {/* Trust indicators - compact */}
-            <div className="flex flex-wrap justify-center gap-6 mb-10 text-sm text-neutral-500">
-              <span className="flex items-center gap-1.5">
-                <Shield className="w-4 h-4 text-success-500" />
-                100% private
-              </span>
-              <span className="flex items-center gap-1.5">
-                <Clock className="w-4 h-4 text-brand-500" />
-                Results in 60 seconds
-              </span>
-              <span className="flex items-center gap-1.5">
-                <Star className="w-4 h-4 text-amber-500 fill-amber-500" />
-                4.9/5 from students
-              </span>
-            </div>
-
-            {/* Single Primary CTA - Reduced cognitive load */}
-            <div className="flex flex-col items-center gap-4">
-              <Link href="/signup">
-                <Button size="xl" className="text-lg px-12">
-                  Analyze My Essay Free
-                  <ArrowRight className="w-5 h-5" />
-                </Button>
-              </Link>
-              <p className="text-sm text-neutral-500">
-                Free for essays up to 650 words. No credit card required.
+              {/* Subheadline - Clear value prop */}
+              <p className="text-lg md:text-xl text-neutral-600 mb-8 max-w-2xl mx-auto leading-relaxed">
+                Get instant, personalized feedback on your college essay from AI trained on what top schools actually look for.
+                <span className="font-medium text-neutral-800"> Your voice stays yours.</span>
               </p>
+
+              {/* Trust indicators in glass badges */}
+              <div className="flex flex-wrap justify-center gap-3 mb-10">
+                <span className="glass flex items-center gap-2 px-4 py-2 rounded-full text-sm text-neutral-600">
+                  <Shield className="w-4 h-4 text-success-500" />
+                  100% private
+                </span>
+                <span className="glass flex items-center gap-2 px-4 py-2 rounded-full text-sm text-neutral-600">
+                  <Clock className="w-4 h-4 text-brand-500" />
+                  Results in 60 seconds
+                </span>
+                <span className="glass flex items-center gap-2 px-4 py-2 rounded-full text-sm text-neutral-600">
+                  <Star className="w-4 h-4 text-amber-500 fill-amber-500" />
+                  4.9/5 from students
+                </span>
+              </div>
+
+              {/* Single Primary CTA */}
+              <div className="flex flex-col items-center gap-4">
+                <Link href="/signup">
+                  <Button size="xl" className="text-lg px-12 shadow-lg shadow-brand-500/25">
+                    Analyze My Essay Free
+                    <ArrowRight className="w-5 h-5" />
+                  </Button>
+                </Link>
+                <p className="text-sm text-neutral-500">
+                  Free for essays up to 650 words. No credit card required.
+                </p>
+              </div>
             </div>
           </div>
         </div>
