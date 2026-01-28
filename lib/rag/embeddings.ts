@@ -70,14 +70,21 @@ export async function generateEmbedding(
   }
 
   // Prepare text - trim and limit length
-  const preparedText = prepareTextForEmbedding(text);
+  const prepareResult = prepareTextForEmbedding(text);
+
+  // Log warning if text was truncated (useful for debugging)
+  if (prepareResult.wasTruncated) {
+    console.warn(
+      `[RAG] Text truncated for embedding: ${prepareResult.originalLength} -> ${prepareResult.truncatedLength} chars`
+    );
+  }
 
   // Generate embedding via OpenAI with retry and timeout
   const response = await withRetry(
     () => withTimeout(
       openai.embeddings.create({
         model: EMBEDDING_MODEL,
-        input: preparedText,
+        input: prepareResult.text,
       }),
       CONFIG.apiTimeoutMs,
       'OpenAI embedding generation'
@@ -95,7 +102,7 @@ export async function generateEmbedding(
   }
 
   const embedding = response.data[0].embedding;
-  const tokenCount = response.usage?.total_tokens || estimateTokenCount(text);
+  const tokenCount = response.usage?.total_tokens || prepareResult.estimatedTokens;
 
   // Validate embedding dimensions
   if (!validateEmbedding(embedding, EMBEDDING_DIMENSIONS)) {
@@ -109,6 +116,7 @@ export async function generateEmbedding(
     embedding,
     tokenCount,
     cached: false,
+    truncated: prepareResult.wasTruncated,
   };
 }
 
@@ -137,6 +145,9 @@ export async function batchGenerateEmbeddings(
   let cachedCount = 0;
   let totalTokens = 0;
 
+  // Track truncation for logging
+  let truncatedCount = 0;
+
   // Check cache for each text
   for (let i = 0; i < texts.length; i++) {
     if (!texts[i]) {
@@ -151,9 +162,18 @@ export async function batchGenerateEmbeddings(
       totalTokens += cached.tokenCount;
       cachedCount++;
     } else {
+      const prepareResult = prepareTextForEmbedding(texts[i]);
+      if (prepareResult.wasTruncated) {
+        truncatedCount++;
+      }
       uncachedIndices.push(i);
-      uncachedTexts.push(prepareTextForEmbedding(texts[i]));
+      uncachedTexts.push(prepareResult.text);
     }
+  }
+
+  // Warn about truncations
+  if (truncatedCount > 0) {
+    console.warn(`[RAG] ${truncatedCount} texts were truncated in batch`);
   }
 
   // Generate embeddings for uncached texts
@@ -286,12 +306,24 @@ export function averageSimilarity(
 // =============================================================================
 
 /**
+ * Result of text preparation for embedding
+ */
+export interface TextPrepareResult {
+  text: string;
+  wasTruncated: boolean;
+  originalLength: number;
+  truncatedLength: number;
+  estimatedTokens: number;
+}
+
+/**
  * Prepare text for embedding generation
  * - Trims whitespace
  * - Limits length to avoid token limits
  * - Normalizes newlines
+ * - Returns truncation metadata for warnings
  */
-function prepareTextForEmbedding(text: string): string {
+function prepareTextForEmbedding(text: string): TextPrepareResult {
   // OpenAI's text-embedding-3-small has 8191 token limit
   // Approximate: 1 token ~= 4 characters for English
   const MAX_CHARS = 30000;
@@ -301,7 +333,11 @@ function prepareTextForEmbedding(text: string): string {
     .replace(/\r\n/g, '\n')
     .replace(/\n{3,}/g, '\n\n');
 
+  const originalLength = prepared.length;
+  let wasTruncated = false;
+
   if (prepared.length > MAX_CHARS) {
+    wasTruncated = true;
     // Truncate intelligently at sentence boundary
     prepared = prepared.slice(0, MAX_CHARS);
     const lastPeriod = prepared.lastIndexOf('.');
@@ -310,7 +346,35 @@ function prepareTextForEmbedding(text: string): string {
     }
   }
 
-  return prepared;
+  return {
+    text: prepared,
+    wasTruncated,
+    originalLength,
+    truncatedLength: prepared.length,
+    estimatedTokens: Math.ceil(prepared.length / 4),
+  };
+}
+
+/**
+ * Check if text will be truncated for embedding
+ * Use this to warn users before processing
+ */
+export function willTextBeTruncated(text: string): {
+  willTruncate: boolean;
+  characterCount: number;
+  maxCharacters: number;
+  percentageUsed: number;
+} {
+  const MAX_CHARS = 30000;
+  const normalized = text.trim().replace(/\r\n/g, '\n').replace(/\n{3,}/g, '\n\n');
+  const characterCount = normalized.length;
+
+  return {
+    willTruncate: characterCount > MAX_CHARS,
+    characterCount,
+    maxCharacters: MAX_CHARS,
+    percentageUsed: Math.round((characterCount / MAX_CHARS) * 100),
+  };
 }
 
 /**

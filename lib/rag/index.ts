@@ -15,8 +15,10 @@ export {
   averageSimilarity,
   validateEmbedding,
   chunkText,
+  willTextBeTruncated,
   getCacheStats,
   cleanExpiredCache,
+  type TextPrepareResult,
 } from './embeddings';
 
 // Guardrails (Input & Output)

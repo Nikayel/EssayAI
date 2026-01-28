@@ -4,9 +4,10 @@
  */
 
 import { prisma } from '../prisma';
-import { generateEmbedding, cosineSimilarity } from './embeddings';
+import { generateEmbedding, cosineSimilarity, validateEmbedding } from './embeddings';
 import {
   DEFAULT_RETRIEVAL_CONFIG,
+  EMBEDDING_DIMENSIONS,
   type Embedding,
   type ExampleEssayMatch,
   type FeedbackPatternMatch,
@@ -14,7 +15,7 @@ import {
   type RetrievedContext,
   type RetrievalConfig,
 } from './types';
-import { withTimeout, getErrorMessage } from './utils';
+import { withTimeout, getErrorMessage, calculateEmbeddingStats } from './utils';
 
 // =============================================================================
 // CONFIGURATION
@@ -112,11 +113,22 @@ export async function retrieveSimilarEssays(
     },
   });
 
+  // Log embedding quality stats for monitoring
+  const embeddingStats = calculateEmbeddingStats(
+    candidates,
+    c => c.embedding
+  );
+  if (embeddingStats.invalid > 0) {
+    console.warn(
+      `[RAG Examples] ${embeddingStats.invalid}/${embeddingStats.total} candidates missing valid embeddings`
+    );
+  }
+
   // Filter candidates with valid embeddings and calculate similarity
   const matches: ExampleEssayMatch[] = [];
 
   for (const candidate of candidates) {
-    if (!candidate.embedding || !Array.isArray(candidate.embedding)) {
+    if (!validateEmbedding(candidate.embedding, EMBEDDING_DIMENSIONS)) {
       continue;
     }
 
@@ -210,10 +222,21 @@ export async function retrieveFeedbackPatterns(
     },
   });
 
+  // Log embedding quality stats for monitoring
+  const embeddingStats = calculateEmbeddingStats(
+    candidates,
+    c => c.embedding
+  );
+  if (embeddingStats.invalid > 0) {
+    console.warn(
+      `[RAG Patterns] ${embeddingStats.invalid}/${embeddingStats.total} patterns missing valid embeddings`
+    );
+  }
+
   const matches: FeedbackPatternMatch[] = [];
 
   for (const candidate of candidates) {
-    if (!candidate.embedding || !Array.isArray(candidate.embedding)) {
+    if (!validateEmbedding(candidate.embedding, EMBEDDING_DIMENSIONS)) {
       continue;
     }
 

@@ -28,6 +28,8 @@ export interface EmbeddingResult {
   embedding: Embedding;
   tokenCount: number;
   cached: boolean;
+  /** True if the input text was truncated to fit token limits */
+  truncated?: boolean;
 }
 
 export interface BatchEmbeddingResult {
