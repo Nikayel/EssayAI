@@ -15,10 +15,36 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 
-// Verify cron secret to prevent unauthorized access
+// =============================================================================
+// AUTHENTICATION
+// =============================================================================
+
 const CRON_SECRET = process.env.CRON_SECRET;
 
-// TTL configuration (in milliseconds)
+/**
+ * Verify cron authorization - DRY helper
+ * Returns error response if unauthorized, null if authorized
+ */
+function verifyCronAuth(request: NextRequest): NextResponse | null {
+  const authHeader = request.headers.get('authorization');
+  const token = authHeader?.replace('Bearer ', '');
+
+  if (!CRON_SECRET) {
+    console.error('[SECURITY] CRON_SECRET environment variable is not set');
+    return NextResponse.json({ error: 'Server configuration error' }, { status: 500 });
+  }
+
+  if (token !== CRON_SECRET) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
+  return null; // Authorized
+}
+
+// =============================================================================
+// CONFIGURATION
+// =============================================================================
+
 const TTL = {
   UNPAID_GUEST_SESSION: 24 * 60 * 60 * 1000,      // 24 hours
   FAILED_SESSION: 7 * 24 * 60 * 60 * 1000,        // 7 days
@@ -27,19 +53,8 @@ const TTL = {
 };
 
 export async function POST(request: NextRequest) {
-  // SECURITY: Always verify cron authorization - no bypass allowed
-  const authHeader = request.headers.get('authorization');
-  const cronSecret = authHeader?.replace('Bearer ', '');
-
-  // Require CRON_SECRET to be set in production
-  if (!CRON_SECRET) {
-    console.error('[SECURITY] CRON_SECRET environment variable is not set');
-    return NextResponse.json({ error: 'Server configuration error' }, { status: 500 });
-  }
-
-  if (cronSecret !== CRON_SECRET) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  }
+  const authError = verifyCronAuth(request);
+  if (authError) return authError;
 
   const now = new Date();
   const stats = {
@@ -156,20 +171,10 @@ export async function POST(request: NextRequest) {
   }
 }
 
-// Also allow GET for manual testing (requires auth in all environments)
+// GET for manual testing (requires auth)
 export async function GET(request: NextRequest) {
-  // SECURITY: Always require auth even in development
-  const authHeader = request.headers.get('authorization');
-  const cronSecret = authHeader?.replace('Bearer ', '');
-
-  if (!CRON_SECRET) {
-    console.error('[SECURITY] CRON_SECRET environment variable is not set');
-    return NextResponse.json({ error: 'Server configuration error' }, { status: 500 });
-  }
-
-  if (cronSecret !== CRON_SECRET) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  }
+  const authError = verifyCronAuth(request);
+  if (authError) return authError;
 
   return NextResponse.json({
     endpoint: '/api/cron/cleanup-sessions',
