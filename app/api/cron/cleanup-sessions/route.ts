@@ -27,11 +27,17 @@ const TTL = {
 };
 
 export async function POST(request: NextRequest) {
-  // Verify authorization
+  // SECURITY: Always verify cron authorization - no bypass allowed
   const authHeader = request.headers.get('authorization');
   const cronSecret = authHeader?.replace('Bearer ', '');
 
-  if (CRON_SECRET && cronSecret !== CRON_SECRET) {
+  // Require CRON_SECRET to be set in production
+  if (!CRON_SECRET) {
+    console.error('[SECURITY] CRON_SECRET environment variable is not set');
+    return NextResponse.json({ error: 'Server configuration error' }, { status: 500 });
+  }
+
+  if (cronSecret !== CRON_SECRET) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
@@ -150,16 +156,19 @@ export async function POST(request: NextRequest) {
   }
 }
 
-// Also allow GET for manual testing (requires auth)
+// Also allow GET for manual testing (requires auth in all environments)
 export async function GET(request: NextRequest) {
-  // Only in development or with proper auth
-  if (process.env.NODE_ENV !== 'development') {
-    const authHeader = request.headers.get('authorization');
-    const cronSecret = authHeader?.replace('Bearer ', '');
+  // SECURITY: Always require auth even in development
+  const authHeader = request.headers.get('authorization');
+  const cronSecret = authHeader?.replace('Bearer ', '');
 
-    if (CRON_SECRET && cronSecret !== CRON_SECRET) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
+  if (!CRON_SECRET) {
+    console.error('[SECURITY] CRON_SECRET environment variable is not set');
+    return NextResponse.json({ error: 'Server configuration error' }, { status: 500 });
+  }
+
+  if (cronSecret !== CRON_SECRET) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
   return NextResponse.json({
