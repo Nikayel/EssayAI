@@ -23,15 +23,17 @@ export async function POST(
   const { sessionId } = await params;
 
   try {
-    // Verify webhook secret for security
+    // SECURITY: Verify webhook secret - no bypass allowed
     const webhookSecret = request.headers.get('X-Webhook-Secret');
-    if (webhookSecret !== process.env.WEBHOOK_SECRET) {
-      // Also allow internal calls without secret for testing
-      const origin = request.headers.get('origin') || '';
-      const isInternal = origin.includes('localhost') || origin.includes(process.env.NEXT_PUBLIC_APP_URL || '');
-      if (!isInternal && process.env.NODE_ENV === 'production') {
-        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-      }
+    const expectedSecret = process.env.WEBHOOK_SECRET;
+
+    if (!expectedSecret) {
+      console.error('[SECURITY] WEBHOOK_SECRET environment variable is not set');
+      return NextResponse.json({ error: 'Server configuration error' }, { status: 500 });
+    }
+
+    if (webhookSecret !== expectedSecret) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     // Get session

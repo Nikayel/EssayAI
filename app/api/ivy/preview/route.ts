@@ -11,6 +11,7 @@ import { analyzeIvyEssay } from '@/lib/ai/ivy-analyzer';
 import { validateSchoolId } from '@/lib/ai/ivy-prompts';
 import { getIvySchool } from '@/lib/data/ivy-league';
 import { checkRateLimit } from '@/lib/rag/rate-limiter';
+import { getClientIP } from '@/lib/security';
 
 // =============================================================================
 // REQUEST SCHEMA
@@ -39,8 +40,8 @@ const PreviewRequestSchema = z.object({
 
 export async function POST(request: NextRequest) {
   try {
-    // Rate limit by IP (generous for preview)
-    const ip = request.headers.get('x-forwarded-for') || 'unknown';
+    // Rate limit by IP
+    const ip = getClientIP(request);
     const rateLimitResult = checkRateLimit(ip, 'ivy_preview');
 
     if (!rateLimitResult.allowed) {

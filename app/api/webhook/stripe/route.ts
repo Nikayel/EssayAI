@@ -411,26 +411,26 @@ async function handleTieredAnalysisPayment(
   });
 
   // Trigger async analysis
-  // This calls our own API to start the analysis in the background
-  const analysisUrl = `${process.env.NEXT_PUBLIC_APP_URL}/api/tiered-analysis/${analysisSessionId}/run`;
-  try {
-    // Fire and forget - don't await, let it run async
-    fetch(analysisUrl, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'X-Webhook-Secret': process.env.WEBHOOK_SECRET || '',
-      },
-      body: JSON.stringify({
-        sessionId: analysisSessionId,
-        tier: isUpgrade ? session.metadata?.toTier : tier,
-      }),
-    }).catch(err => {
-      console.error('Failed to trigger analysis:', err);
-    });
-  } catch (err) {
-    console.error('Error triggering analysis:', err);
+  const internalWebhookSecret = process.env.WEBHOOK_SECRET;
+  if (!internalWebhookSecret) {
+    console.error('[SECURITY] WEBHOOK_SECRET not configured - cannot trigger analysis');
+    return;
   }
+
+  const analysisUrl = `${process.env.NEXT_PUBLIC_APP_URL}/api/tiered-analysis/${analysisSessionId}/run`;
+  fetch(analysisUrl, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'X-Webhook-Secret': internalWebhookSecret,
+    },
+    body: JSON.stringify({
+      sessionId: analysisSessionId,
+      tier: isUpgrade ? session.metadata?.toTier : tier,
+    }),
+  }).catch(err => {
+    console.error('Failed to trigger analysis:', err);
+  });
 
   // For premium tier, queue human review after AI analysis completes
   // (This will be handled by the analysis completion handler)
