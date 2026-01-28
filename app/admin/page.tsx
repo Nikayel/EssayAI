@@ -5,14 +5,11 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
-import { Clock, CheckCircle2, AlertCircle, Loader2, Users, Sparkles, ArrowRight, UserCheck, FileText } from 'lucide-react';
-import {
-  getAnalysisSessionStatus,
-  getReviewAssignmentStatus,
-  getTierDisplayName,
-  getResultsUrl,
-} from '@/lib/utils/status';
+import { Clock, CheckCircle2, AlertCircle, Users, Sparkles, ArrowRight, UserCheck, PenTool } from 'lucide-react';
+import { getAnalysisSessionStatus, getTierDisplayName, getResultsUrl } from '@/lib/utils/status';
 import { HumanReviewQueue } from '@/components/admin/human-review-queue';
+import { AdminMobileNav, AdminDesktopNav } from '@/components/admin/admin-nav';
+import { StatCardGroup } from '@/components/admin/stat-card';
 
 async function getReviews() {
   return await prisma.review.findMany({
@@ -192,97 +189,51 @@ export default async function AdminDashboard() {
 
   return (
     <div className="min-h-screen bg-neutral-50 dark:bg-neutral-900">
-      <header className="bg-white dark:bg-neutral-800 border-b border-neutral-200 dark:border-neutral-700">
-        <div className="container mx-auto px-4 py-4 flex justify-between items-center">
-          <h1 className="text-2xl font-bold text-neutral-900 dark:text-neutral-100">Admin Panel</h1>
-          <div className="flex gap-4 flex-wrap">
-            <Link href="/admin/users">
-              <Button variant="ghost">Users</Button>
-            </Link>
-            <Link href="/admin/reviewers">
-              <Button variant="ghost">Reviewers</Button>
-            </Link>
-            <Link href="/admin/config">
-              <Button variant="ghost">Config</Button>
-            </Link>
-            <Link href="/admin/analytics">
-              <Button variant="ghost">Analytics</Button>
-            </Link>
-            <Link href="/admin/conversions">
-              <Button variant="ghost">Conversions</Button>
-            </Link>
-            <Link href="/admin/qa">
-              <Button variant="ghost">Q&A Sessions</Button>
-            </Link>
-            <Link href="/dashboard">
-              <Button variant="outline">My Dashboard</Button>
-            </Link>
-          </div>
+      <header className="sticky top-0 z-50 bg-white dark:bg-neutral-800 border-b border-neutral-200 dark:border-neutral-700">
+        <div className="container mx-auto px-4 py-3 sm:py-4 flex justify-between items-center">
+          <Link href="/admin" className="flex items-center gap-2">
+            <div className="p-1.5 sm:p-2 rounded-lg bg-gradient-to-br from-brand-500 to-brand-600">
+              <PenTool className="w-4 h-4 text-white" />
+            </div>
+            <div>
+              <h1 className="text-lg sm:text-2xl font-bold text-neutral-900 dark:text-neutral-100">Admin</h1>
+            </div>
+          </Link>
+
+          {/* Desktop Navigation */}
+          <AdminDesktopNav />
+
+          {/* Mobile Navigation */}
+          <AdminMobileNav />
         </div>
       </header>
 
-      <main className="container mx-auto px-4 py-8">
+      <main className="container mx-auto px-4 py-4 sm:py-8">
         {/* Analysis Sessions Stats (New Tiered Flow) */}
-        <div className="mb-10">
-          <div className="flex items-center gap-2 mb-4">
+        <div className="mb-6 sm:mb-10">
+          <div className="flex items-center gap-2 mb-3 sm:mb-4">
             <Sparkles className="w-5 h-5 text-brand-600" />
-            <h2 className="text-2xl font-bold text-neutral-900 dark:text-neutral-100">Analysis Sessions</h2>
+            <h2 className="text-lg sm:text-2xl font-bold text-neutral-900 dark:text-neutral-100">Analysis Sessions</h2>
           </div>
-          <div className="grid grid-cols-2 md:grid-cols-6 gap-4 mb-6">
-            <Card>
-              <CardHeader className="pb-2">
-                <CardDescription>Pending Payment</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold text-neutral-600">{analysisStats.pending}</div>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardHeader className="pb-2">
-                <CardDescription>AI Analyzing</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold text-blue-600">{analysisStats.analyzing}</div>
-              </CardContent>
-            </Card>
-            <Card className={analysisStats.humanQueued > 0 ? 'border-2 border-warning-500' : ''}>
-              <CardHeader className="pb-2">
-                <CardDescription>Expert Queue</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold text-warning-600">{analysisStats.humanQueued}</div>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardHeader className="pb-2">
-                <CardDescription>Expert Review</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold text-purple-600">{analysisStats.humanInProgress}</div>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardHeader className="pb-2">
-                <CardDescription>Completed</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold text-success-600">{analysisStats.completed}</div>
-              </CardContent>
-            </Card>
-            <Card className={analysisStats.failed > 0 ? 'border-2 border-error-500' : ''}>
-              <CardHeader className="pb-2">
-                <CardDescription>Failed</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold text-error-600">{analysisStats.failed}</div>
-              </CardContent>
-            </Card>
+          {/* Stats Grid - DRY: Using StatCardGroup */}
+          <div className="mb-4 sm:mb-6">
+            <StatCardGroup
+              cols={6}
+              stats={[
+                { label: 'Pending', value: analysisStats.pending, color: 'default' },
+                { label: 'Analyzing', value: analysisStats.analyzing, color: 'blue' },
+                { label: 'Queue', value: analysisStats.humanQueued, color: 'warning', highlight: true },
+                { label: 'Expert', value: analysisStats.humanInProgress, color: 'purple' },
+                { label: 'Done', value: analysisStats.completed, color: 'success' },
+                { label: 'Failed', value: analysisStats.failed, color: 'error', highlight: true, highlightColor: 'error' },
+              ]}
+            />
           </div>
 
           {/* Analysis Sessions Needing Attention */}
           {analysisSessions.length > 0 && (
-            <div className="space-y-3">
-              <h3 className="text-lg font-semibold text-neutral-800 dark:text-neutral-200">
+            <div className="space-y-2 sm:space-y-3">
+              <h3 className="text-base sm:text-lg font-semibold text-neutral-800 dark:text-neutral-200">
                 Needs Attention ({analysisSessions.length})
               </h3>
               {analysisSessions.slice(0, 10).map((session) => {
@@ -292,32 +243,36 @@ export default async function AdminDashboard() {
 
                 return (
                   <Card key={session.id} className="border-l-4 border-l-brand-500">
-                    <CardContent className="py-4">
-                      <div className="flex justify-between items-center">
-                        <div className="flex items-center gap-4">
-                          <Badge variant={statusInfo.badgeVariant}>
+                    <CardContent className="p-3 sm:py-4 sm:px-6">
+                      {/* Mobile: Stack vertically, Desktop: Horizontal */}
+                      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2 sm:gap-4">
+                        {/* Top row on mobile / Left side on desktop */}
+                        <div className="flex flex-wrap items-center gap-2 sm:gap-4">
+                          <Badge variant={statusInfo.badgeVariant} className="text-xs">
                             <StatusIcon className={`w-3 h-3 ${statusInfo.animate ? 'animate-spin' : ''}`} />
-                            {statusInfo.label}
+                            <span className="hidden xs:inline ml-1">{statusInfo.label}</span>
                           </Badge>
-                          <div>
-                            <span className="font-medium">{getTierDisplayName(session.tier)}</span>
-                            {session.targetSchool && (
-                              <span className="text-neutral-500 ml-2">· {session.targetSchool}</span>
-                            )}
-                          </div>
-                          <span className="text-sm text-neutral-500">{userName}</span>
-                          {session.aiScore !== null && (
-                            <span className="text-sm font-medium text-brand-600">
-                              {Math.round(session.aiScore)}/100
-                            </span>
+                          <span className="font-medium text-sm">{getTierDisplayName(session.tier)}</span>
+                          {session.targetSchool && (
+                            <span className="text-xs sm:text-sm text-neutral-500">· {session.targetSchool}</span>
                           )}
                         </div>
-                        <div className="flex items-center gap-3">
-                          <span className="text-xs text-neutral-400">
-                            {new Date(session.createdAt).toLocaleDateString()}
-                          </span>
+
+                        {/* Bottom row on mobile / Right side on desktop */}
+                        <div className="flex items-center justify-between sm:justify-end gap-2 sm:gap-3">
+                          <div className="flex items-center gap-2 text-xs text-neutral-500">
+                            <span>{userName}</span>
+                            {session.aiScore !== null && (
+                              <span className="font-medium text-brand-600">
+                                {Math.round(session.aiScore)}/100
+                              </span>
+                            )}
+                            <span className="hidden sm:inline">
+                              {new Date(session.createdAt).toLocaleDateString()}
+                            </span>
+                          </div>
                           <Link href={getResultsUrl(session.id, session.tier)}>
-                            <Button variant="outline" size="sm">
+                            <Button variant="outline" size="sm" className="h-8 px-2 sm:px-3">
                               View
                               <ArrowRight className="w-3 h-3" />
                             </Button>
@@ -333,61 +288,31 @@ export default async function AdminDashboard() {
         </div>
 
         {/* Human Review Assignments (Premium Tier) */}
-        <div className="mb-10">
-          <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center gap-2">
-              <UserCheck className="w-5 h-5 text-pink-600" />
-              <h2 className="text-2xl font-bold text-neutral-900 dark:text-neutral-100">Expert Review Queue</h2>
+        <div className="mb-6 sm:mb-10">
+          <div className="flex items-center justify-between mb-3 sm:mb-4 gap-2">
+            <div className="flex items-center gap-2 min-w-0">
+              <UserCheck className="w-5 h-5 text-pink-600 flex-shrink-0" />
+              <h2 className="text-lg sm:text-2xl font-bold text-neutral-900 dark:text-neutral-100 truncate">Expert Queue</h2>
             </div>
-            <Link href="/admin/reviewers">
-              <Button variant="outline" size="sm">
-                Manage Reviewers
+            <Link href="/admin/reviewers" className="flex-shrink-0">
+              <Button variant="outline" size="sm" className="text-xs sm:text-sm h-8 sm:h-9 px-2 sm:px-3">
+                <span className="hidden sm:inline">Manage </span>Reviewers
               </Button>
             </Link>
           </div>
 
-          {/* Human Review Stats */}
-          <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-6">
-            <Card className={humanReviewStats.queued > 0 ? 'border-2 border-warning-500' : ''}>
-              <CardHeader className="pb-2">
-                <CardDescription>Queued</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold text-warning-600">{humanReviewStats.queued}</div>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardHeader className="pb-2">
-                <CardDescription>Assigned</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold text-blue-600">{humanReviewStats.assigned}</div>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardHeader className="pb-2">
-                <CardDescription>In Progress</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold text-purple-600">{humanReviewStats.inProgress}</div>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardHeader className="pb-2">
-                <CardDescription>Completed</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold text-success-600">{humanReviewStats.completed}</div>
-              </CardContent>
-            </Card>
-            <Card className={humanReviewStats.overdue > 0 ? 'border-2 border-error-500' : ''}>
-              <CardHeader className="pb-2">
-                <CardDescription>Overdue</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold text-error-600">{humanReviewStats.overdue}</div>
-              </CardContent>
-            </Card>
+          {/* Human Review Stats - DRY: Using StatCardGroup */}
+          <div className="mb-4 sm:mb-6">
+            <StatCardGroup
+              cols={5}
+              stats={[
+                { label: 'Queue', value: humanReviewStats.queued, color: 'warning', highlight: true },
+                { label: 'Assign', value: humanReviewStats.assigned, color: 'blue' },
+                { label: 'Active', value: humanReviewStats.inProgress, color: 'purple' },
+                { label: 'Done', value: humanReviewStats.completed, color: 'success' },
+                { label: 'Late', value: humanReviewStats.overdue, color: 'error', highlight: true, highlightColor: 'error' },
+              ]}
+            />
           </div>
 
           {/* Human Review Assignment Queue */}
@@ -416,40 +341,22 @@ export default async function AdminDashboard() {
         </div>
 
         {/* Legacy Review Queue */}
-        <div className="mb-10">
-          <div className="flex items-center gap-2 mb-4">
+        <div className="mb-6 sm:mb-10">
+          <div className="flex items-center gap-2 mb-3 sm:mb-4">
             <Users className="w-5 h-5 text-purple-600" />
-            <h2 className="text-2xl font-bold text-neutral-900 dark:text-neutral-100">Legacy Review Queue</h2>
+            <h2 className="text-lg sm:text-2xl font-bold text-neutral-900 dark:text-neutral-100">Legacy Queue</h2>
           </div>
 
-          {/* Stats */}
-          <div className="grid md:grid-cols-3 gap-4 mb-6">
-            <Card>
-              <CardHeader className="pb-2">
-                <CardDescription>Assigned</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold text-warning-600">{reviewStats.assigned}</div>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader className="pb-2">
-                <CardDescription>In Progress</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold text-brand-600">{reviewStats.inProgress}</div>
-              </CardContent>
-            </Card>
-
-            <Card className={reviewStats.overdue > 0 ? 'border-2 border-error-500' : ''}>
-              <CardHeader className="pb-2">
-                <CardDescription>Overdue</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold text-error-600">{reviewStats.overdue}</div>
-              </CardContent>
-            </Card>
+          {/* Stats - DRY: Using StatCardGroup */}
+          <div className="mb-4 sm:mb-6">
+            <StatCardGroup
+              cols={3}
+              stats={[
+                { label: 'Assigned', value: reviewStats.assigned, color: 'warning' },
+                { label: 'Active', value: reviewStats.inProgress, color: 'purple' },
+                { label: 'Overdue', value: reviewStats.overdue, color: 'error', highlight: true, highlightColor: 'error' },
+              ]}
+            />
           </div>
         </div>
 
