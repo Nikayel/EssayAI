@@ -414,3 +414,72 @@ export class RAGError extends Error {
     this.name = 'RAGError';
   }
 }
+
+// =============================================================================
+// EMBEDDING QUALITY UTILITIES
+// =============================================================================
+
+/**
+ * Calculate statistics for a set of embeddings
+ * Useful for monitoring RAG data quality
+ */
+export function calculateEmbeddingStats<T>(
+  items: T[],
+  getEmbedding: (item: T) => unknown
+): {
+  total: number;
+  valid: number;
+  invalid: number;
+  validPercent: number;
+  issues: string[];
+} {
+  const issues: string[] = [];
+  let valid = 0;
+  let invalid = 0;
+
+  for (const item of items) {
+    const embedding = getEmbedding(item);
+    if (validateEmbedding(embedding)) {
+      valid++;
+    } else {
+      invalid++;
+      // Diagnose issue
+      if (!embedding) {
+        if (!issues.includes('null_embedding')) issues.push('null_embedding');
+      } else if (!Array.isArray(embedding)) {
+        if (!issues.includes('not_array')) issues.push('not_array');
+      } else if ((embedding as number[]).length !== 1536) {
+        if (!issues.includes('wrong_dimensions')) issues.push('wrong_dimensions');
+      } else {
+        if (!issues.includes('invalid_values')) issues.push('invalid_values');
+      }
+    }
+  }
+
+  return {
+    total: items.length,
+    valid,
+    invalid,
+    validPercent: items.length > 0 ? Math.round((valid / items.length) * 100) : 100,
+    issues,
+  };
+}
+
+/**
+ * Filter items by valid embedding and log statistics
+ */
+export function filterByValidEmbedding<T>(
+  items: T[],
+  getEmbedding: (item: T) => unknown,
+  logContext?: string
+): T[] {
+  const stats = calculateEmbeddingStats(items, getEmbedding);
+
+  if (stats.invalid > 0 && logContext) {
+    console.warn(
+      `[RAG ${logContext}] ${stats.invalid}/${stats.total} items have invalid embeddings (${stats.issues.join(', ')})`
+    );
+  }
+
+  return items.filter(item => validateEmbedding(getEmbedding(item)));
+}
