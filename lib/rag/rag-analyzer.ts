@@ -22,6 +22,14 @@ import {
   type RetrievedContext,
 } from './index';
 import { sanitizeAnalysisOutput, type SanitizationResult } from './output-sanitizer';
+import type {
+  Tier1Structural,
+  Tier2Content,
+  Tier3RedFlags,
+  TextAnnotation,
+  FeedbackSection,
+  AdminAnalysisData,
+} from './types';
 
 // =============================================================================
 // TYPES
@@ -66,6 +74,8 @@ export interface RAGAnalysisResponse extends AnalysisResponse {
     modifications_count: number; // Number of hallucinations removed
     modifications: string[];    // List of what was modified
   };
+  // Full admin/reviewer analysis data with 3-tier evaluation
+  admin_analysis?: AdminAnalysisData;
 }
 
 // =============================================================================
@@ -277,7 +287,12 @@ export async function analyzeEssayWithRAG(
     }
   }
 
-  // Step 11: Build enhanced response
+  // Step 11: Extract admin analysis data from raw AI response
+  // Cast to Record since the raw analysis may contain extra fields (tier1, tier2, etc.)
+  // that aren't part of the AnalysisResponse type but were requested in the prompt
+  const adminAnalysis = extractAdminAnalysisData(rawAnalysis as unknown as Record<string, unknown>, cleanedText);
+
+  // Step 12: Build enhanced response
   const ragResponse: RAGAnalysisResponse = {
     ...analysis,
     rag_enhanced: !skipRAG && retrievedContext.exampleEssays.length > 0,
@@ -301,6 +316,8 @@ export async function analyzeEssayWithRAG(
       modifications_count: sanitizationResult.modifications.length,
       modifications: sanitizationResult.modifications.map(m => `${m.type}: ${m.reason}`),
     },
+    // Full admin/reviewer analysis with 3-tier evaluation
+    admin_analysis: adminAnalysis,
   };
 
   return ragResponse;
@@ -460,6 +477,263 @@ function categorizeSpike(spike: string): string {
   }
 
   return 'general';
+}
+
+/**
+ * Extract admin analysis data from raw AI response
+ * Pulls out tier1/2/3, text_annotations, and feedback sections
+ * from the raw LLM output (before sanitization strips unknown fields)
+ */
+function extractAdminAnalysisData(
+  rawAnalysis: Record<string, unknown>,
+  essayText: string
+): AdminAnalysisData {
+  const adminData: AdminAnalysisData = {};
+
+  // Extract Tier 1: Structural Requirements
+  if (rawAnalysis.tier1_structural && typeof rawAnalysis.tier1_structural === 'object') {
+    const t1 = rawAnalysis.tier1_structural as Record<string, unknown>;
+    adminData.tier1_structural = {
+      word_count_compliant: extractPassFail(t1.word_count_compliant),
+      prompt_fully_addressed: extractPassFail(t1.prompt_fully_addressed),
+      school_name_correct: extractPassFail(t1.school_name_correct),
+      grammar_spelling: extractPassFail(t1.grammar_spelling),
+      formatting: extractPassFail(t1.formatting),
+      all_passed: t1.all_passed === true,
+      flags: Array.isArray(t1.flags) ? t1.flags.filter((f): f is string => typeof f === 'string') : [],
+    };
+  }
+
+  // Extract Tier 2: Content Quality
+  if (rawAnalysis.tier2_content && typeof rawAnalysis.tier2_content === 'object') {
+    const t2 = rawAnalysis.tier2_content as Record<string, unknown>;
+    adminData.tier2_content = {};
+
+    const dimensionKeys = [
+      'thesis_focus', 'specificity_evidence', 'personal_voice',
+      'insight_reflection', 'program_fit', 'structure_flow',
+    ] as const;
+
+    for (const key of dimensionKeys) {
+      if (t2[key] && typeof t2[key] === 'object') {
+        const dim = t2[key] as Record<string, unknown>;
+        const baseDim = {
+          score: typeof dim.score === 'number' ? Math.min(6, Math.max(0, dim.score)) : 3,
+          rationales: Array.isArray(dim.rationales) ? dim.rationales.filter((r): r is string => typeof r === 'string') : [],
+          evidence_quotes: extractTextPositions(dim.evidence_quotes, essayText),
+        };
+
+        // Add dimension-specific fields
+        if (key === 'thesis_focus') {
+          (adminData.tier2_content as Record<string, unknown>)[key] = {
+            ...baseDim,
+            one_sentence_summary: typeof dim.one_sentence_summary === 'string' ? dim.one_sentence_summary : undefined,
+          };
+        } else if (key === 'specificity_evidence') {
+          (adminData.tier2_content as Record<string, unknown>)[key] = {
+            ...baseDim,
+            vague_claims: extractTextPositionsWithField(dim.vague_claims, essayText, 'what_to_ask'),
+            strong_details: extractTextPositionsWithField(dim.strong_details, essayText, 'why_it_works'),
+          };
+        } else if (key === 'personal_voice') {
+          (adminData.tier2_content as Record<string, unknown>)[key] = {
+            ...baseDim,
+            authentic_moments: extractTextPositions(dim.authentic_moments, essayText),
+            inauthenticity_signals: extractTextPositionsWithField(dim.inauthenticity_signals, essayText, 'signal'),
+          };
+        } else if (key === 'insight_reflection') {
+          (adminData.tier2_content as Record<string, unknown>)[key] = {
+            ...baseDim,
+            reveals_thinking: typeof dim.reveals_thinking === 'boolean' ? dim.reveals_thinking : undefined,
+            growth_demonstrated: typeof dim.growth_demonstrated === 'boolean' ? dim.growth_demonstrated : undefined,
+            surface_vs_deep: typeof dim.surface_vs_deep === 'string' ? dim.surface_vs_deep : undefined,
+          };
+        } else if (key === 'program_fit') {
+          (adminData.tier2_content as Record<string, unknown>)[key] = {
+            ...baseDim,
+            specific_references: extractTextPositionsWithField(dim.specific_references, essayText, 'reference_type'),
+            missing_elements: Array.isArray(dim.missing_elements) ? dim.missing_elements : [],
+            contribution_mentioned: typeof dim.contribution_mentioned === 'boolean' ? dim.contribution_mentioned : undefined,
+          };
+        } else if (key === 'structure_flow') {
+          (adminData.tier2_content as Record<string, unknown>)[key] = {
+            ...baseDim,
+            opening_type: typeof dim.opening_type === 'string' ? dim.opening_type : undefined,
+            opening_strength: typeof dim.opening_strength === 'string' ? dim.opening_strength : undefined,
+            conclusion_resonates: typeof dim.conclusion_resonates === 'boolean' ? dim.conclusion_resonates : undefined,
+            transitions_quality: typeof dim.transitions_quality === 'string' ? dim.transitions_quality : undefined,
+            redundancy_with_resume: typeof dim.redundancy_with_resume === 'boolean' ? dim.redundancy_with_resume : undefined,
+          };
+        } else {
+          (adminData.tier2_content as Record<string, unknown>)[key] = baseDim;
+        }
+      }
+    }
+  }
+
+  // Extract Tier 3: Red Flags
+  if (rawAnalysis.tier3_red_flags && typeof rawAnalysis.tier3_red_flags === 'object') {
+    const t3 = rawAnalysis.tier3_red_flags as Record<string, unknown>;
+    adminData.tier3_red_flags = {
+      has_red_flags: t3.has_red_flags === true,
+      flags: Array.isArray(t3.flags) ? t3.flags.map((f: Record<string, unknown>) => ({
+        type: String(f.type || 'other'),
+        severity: f.severity === 'critical' ? 'critical' as const : 'warning' as const,
+        description: String(f.description || ''),
+        evidence: f.evidence && typeof f.evidence === 'object' ? validateTextPosition(f.evidence as Record<string, unknown>, essayText) : undefined,
+        recommendation: String(f.recommendation || ''),
+      })) : [],
+      ai_content_signals: t3.ai_content_signals && typeof t3.ai_content_signals === 'object'
+        ? {
+          likelihood: (['low', 'medium', 'high'] as const).includes((t3.ai_content_signals as Record<string, unknown>).likelihood as 'low' | 'medium' | 'high')
+            ? (t3.ai_content_signals as Record<string, unknown>).likelihood as 'low' | 'medium' | 'high'
+            : 'low',
+          signals_detected: Array.isArray((t3.ai_content_signals as Record<string, unknown>).signals_detected)
+            ? ((t3.ai_content_signals as Record<string, unknown>).signals_detected as unknown[]).filter((s): s is string => typeof s === 'string')
+            : [],
+          evidence: extractTextPositionsWithField(
+            (t3.ai_content_signals as Record<string, unknown>).evidence,
+            essayText,
+            'signal'
+          ),
+          recommendation: typeof (t3.ai_content_signals as Record<string, unknown>).recommendation === 'string'
+            ? (t3.ai_content_signals as Record<string, unknown>).recommendation as string
+            : undefined,
+        }
+        : undefined,
+    };
+  }
+
+  // Extract Text Annotations
+  if (Array.isArray(rawAnalysis.text_annotations)) {
+    adminData.text_annotations = rawAnalysis.text_annotations
+      .filter((a): a is Record<string, unknown> => a !== null && typeof a === 'object')
+      .map(a => ({
+        type: (['strength', 'issue', 'red_flag', 'ai_signal', 'suggestion'] as const).includes(a.type as never)
+          ? a.type as TextAnnotation['type']
+          : 'issue' as const,
+        severity: (['critical', 'major', 'minor', 'positive'] as const).includes(a.severity as never)
+          ? a.severity as TextAnnotation['severity']
+          : 'minor' as const,
+        text: String(a.text || ''),
+        start_index: typeof a.start_index === 'number' ? a.start_index : 0,
+        end_index: typeof a.end_index === 'number' ? a.end_index : 0,
+        category: String(a.category || 'other'),
+        message: String(a.message || ''),
+        suggestion: typeof a.suggestion === 'string' ? a.suggestion : undefined,
+      }))
+      // Validate that quoted text actually exists in essay
+      .filter(a => {
+        if (!a.text) return false;
+        const normalizedEssay = essayText.toLowerCase().replace(/\s+/g, ' ');
+        const normalizedQuote = a.text.toLowerCase().replace(/\s+/g, ' ');
+        return normalizedEssay.includes(normalizedQuote);
+      });
+  }
+
+  // Extract Feedback section
+  if (rawAnalysis.feedback && typeof rawAnalysis.feedback === 'object') {
+    const fb = rawAnalysis.feedback as Record<string, unknown>;
+    adminData.feedback = {
+      overall_assessment: String(fb.overall_assessment || ''),
+      whats_working: Array.isArray(fb.whats_working)
+        ? fb.whats_working.map((w: Record<string, unknown>) => ({
+          passage: String(w.passage || ''),
+          start_index: typeof w.start_index === 'number' ? w.start_index : undefined,
+          end_index: typeof w.end_index === 'number' ? w.end_index : undefined,
+          why: String(w.why || ''),
+        }))
+        : [],
+      priority_improvements: Array.isArray(fb.priority_improvements)
+        ? fb.priority_improvements.slice(0, 3).map((p: Record<string, unknown>) => ({
+          rank: typeof p.rank === 'number' ? p.rank : 0,
+          issue: String(p.issue || ''),
+          why_it_matters: String(p.why_it_matters || ''),
+          coaching_suggestion: String(p.coaching_suggestion || ''),
+          affected_text: p.affected_text && typeof p.affected_text === 'object'
+            ? validateTextPosition(p.affected_text as Record<string, unknown>, essayText)
+            : undefined,
+        }))
+        : [],
+      questions_for_writer: Array.isArray(fb.questions_for_writer)
+        ? fb.questions_for_writer.map((q: Record<string, unknown>) => ({
+          question: String(q.question || ''),
+          context: String(q.context || ''),
+          related_text: typeof q.related_text === 'string' ? q.related_text : undefined,
+        }))
+        : [],
+      prompt_compliance: String(fb.prompt_compliance || 'unknown'),
+    };
+  }
+
+  return adminData;
+}
+
+/** Extract pass/fail check from raw data */
+function extractPassFail(raw: unknown): { pass: boolean; detail: string } {
+  if (raw && typeof raw === 'object') {
+    const obj = raw as Record<string, unknown>;
+    return {
+      pass: obj.pass === true,
+      detail: String(obj.detail || ''),
+    };
+  }
+  return { pass: true, detail: '' };
+}
+
+/** Extract and validate text positions from raw data */
+function extractTextPositions(raw: unknown, essayText: string): Array<{ text: string; start_index: number; end_index: number }> {
+  if (!Array.isArray(raw)) return [];
+  return raw
+    .filter((item): item is Record<string, unknown> => item !== null && typeof item === 'object')
+    .map(item => ({
+      text: String(item.text || ''),
+      start_index: typeof item.start_index === 'number' ? item.start_index : 0,
+      end_index: typeof item.end_index === 'number' ? item.end_index : 0,
+    }))
+    .filter(item => {
+      if (!item.text) return false;
+      const normalizedEssay = essayText.toLowerCase().replace(/\s+/g, ' ');
+      const normalizedQuote = item.text.toLowerCase().replace(/\s+/g, ' ');
+      return normalizedEssay.includes(normalizedQuote);
+    });
+}
+
+/** Extract text positions with an extra string field */
+function extractTextPositionsWithField<F extends string>(
+  raw: unknown,
+  essayText: string,
+  fieldName: F
+): Array<{ text: string; start_index: number; end_index: number } & Record<F, string>> {
+  if (!Array.isArray(raw)) return [];
+  return raw
+    .filter((item): item is Record<string, unknown> => item !== null && typeof item === 'object')
+    .map(item => ({
+      text: String(item.text || ''),
+      start_index: typeof item.start_index === 'number' ? item.start_index : 0,
+      end_index: typeof item.end_index === 'number' ? item.end_index : 0,
+      [fieldName]: String(item[fieldName] || ''),
+    } as { text: string; start_index: number; end_index: number } & Record<F, string>))
+    .filter(item => {
+      if (!item.text) return false;
+      const normalizedEssay = essayText.toLowerCase().replace(/\s+/g, ' ');
+      const normalizedQuote = item.text.toLowerCase().replace(/\s+/g, ' ');
+      return normalizedEssay.includes(normalizedQuote);
+    });
+}
+
+/** Validate a single text position */
+function validateTextPosition(raw: Record<string, unknown>, essayText: string): { text: string; start_index: number; end_index: number } | undefined {
+  const text = String(raw.text || '');
+  if (!text) return undefined;
+  const normalizedEssay = essayText.toLowerCase().replace(/\s+/g, ' ');
+  const normalizedQuote = text.toLowerCase().replace(/\s+/g, ' ');
+  if (!normalizedEssay.includes(normalizedQuote)) return undefined;
+  return {
+    text,
+    start_index: typeof raw.start_index === 'number' ? raw.start_index : 0,
+    end_index: typeof raw.end_index === 'number' ? raw.end_index : 0,
+  };
 }
 
 // =============================================================================

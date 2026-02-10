@@ -162,6 +162,8 @@ export async function POST(request: NextRequest) {
       rag_enhanced: analysisResult.rag_enhanced,
       benchmarks: analysisResult.benchmarks,
       pattern_matches: analysisResult.pattern_matches,
+      admin_analysis: analysisResult.admin_analysis,
+      sanitization: analysisResult.sanitization,
       processingTime: Date.now() - startTime,
     });
 

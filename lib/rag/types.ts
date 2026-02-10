@@ -328,6 +328,149 @@ export const StudentProfileSchema = z.object({
 });
 
 // =============================================================================
+// ADMIN FULL ANALYSIS TYPES (3-Tier Evaluation Framework)
+// =============================================================================
+
+/** Text position reference for annotations */
+export interface TextPosition {
+  text: string;
+  start_index: number;
+  end_index: number;
+}
+
+/** Tier 1: Structural Requirements (pass/fail) */
+export interface Tier1Structural {
+  word_count_compliant: { pass: boolean; detail: string };
+  prompt_fully_addressed: { pass: boolean; detail: string };
+  school_name_correct: { pass: boolean; detail: string };
+  grammar_spelling: { pass: boolean; detail: string };
+  formatting: { pass: boolean; detail: string };
+  all_passed: boolean;
+  flags: string[];
+}
+
+/** Tier 2: Content Quality dimension with evidence */
+export interface ContentDimensionScore {
+  score: number;
+  rationales: string[];
+  evidence_quotes?: Array<TextPosition>;
+}
+
+/** Tier 2: Specificity dimension with vague/strong detail tracking */
+export interface SpecificityScore extends ContentDimensionScore {
+  vague_claims?: Array<TextPosition & { what_to_ask: string }>;
+  strong_details?: Array<TextPosition & { why_it_works: string }>;
+}
+
+/** Tier 2: Voice dimension with authenticity tracking */
+export interface VoiceScore extends ContentDimensionScore {
+  authentic_moments?: Array<TextPosition>;
+  inauthenticity_signals?: Array<TextPosition & { signal: string }>;
+}
+
+/** Tier 2: Insight dimension with depth tracking */
+export interface InsightScore extends ContentDimensionScore {
+  reveals_thinking?: boolean;
+  growth_demonstrated?: boolean;
+  surface_vs_deep?: 'surface' | 'moderate' | 'deep';
+}
+
+/** Tier 2: Program Fit dimension */
+export interface ProgramFitScore extends ContentDimensionScore {
+  specific_references?: Array<TextPosition & { reference_type: string }>;
+  missing_elements?: string[];
+  contribution_mentioned?: boolean;
+}
+
+/** Tier 2: Structure dimension */
+export interface StructureScore extends ContentDimensionScore {
+  opening_type?: string;
+  opening_strength?: 'weak' | 'moderate' | 'strong';
+  conclusion_resonates?: boolean;
+  transitions_quality?: 'poor' | 'adequate' | 'smooth';
+  redundancy_with_resume?: boolean;
+}
+
+/** Tier 2: All content quality dimensions */
+export interface Tier2Content {
+  thesis_focus?: ContentDimensionScore & { one_sentence_summary?: string };
+  specificity_evidence?: SpecificityScore;
+  personal_voice?: VoiceScore;
+  insight_reflection?: InsightScore;
+  program_fit?: ProgramFitScore;
+  structure_flow?: StructureScore;
+}
+
+/** Tier 3: Red flag entry */
+export interface RedFlagEntry {
+  type: string;
+  severity: 'critical' | 'warning';
+  description: string;
+  evidence?: TextPosition;
+  recommendation: string;
+}
+
+/** Tier 3: AI content detection signals */
+export interface AIContentSignals {
+  likelihood: 'low' | 'medium' | 'high';
+  signals_detected: string[];
+  evidence?: Array<TextPosition & { signal: string }>;
+  recommendation?: string;
+}
+
+/** Tier 3: Red Flags & Deal Breakers */
+export interface Tier3RedFlags {
+  has_red_flags: boolean;
+  flags: RedFlagEntry[];
+  ai_content_signals?: AIContentSignals;
+}
+
+/** Text annotation for highlighted display */
+export interface TextAnnotation {
+  type: 'strength' | 'issue' | 'red_flag' | 'ai_signal' | 'suggestion';
+  severity: 'critical' | 'major' | 'minor' | 'positive';
+  text: string;
+  start_index: number;
+  end_index: number;
+  category: string;
+  message: string;
+  suggestion?: string;
+}
+
+/** Feedback section for structured response */
+export interface FeedbackSection {
+  overall_assessment: string;
+  whats_working: Array<{
+    passage: string;
+    start_index?: number;
+    end_index?: number;
+    why: string;
+  }>;
+  priority_improvements: Array<{
+    rank: number;
+    issue: string;
+    why_it_matters: string;
+    coaching_suggestion: string;
+    affected_text?: TextPosition;
+  }>;
+  questions_for_writer: Array<{
+    question: string;
+    context: string;
+    related_text?: string;
+  }>;
+  prompt_compliance: string;
+}
+
+/** Complete admin analysis response extending the RAG response */
+export interface AdminAnalysisData {
+  tier1_structural?: Tier1Structural;
+  tier2_content?: Tier2Content;
+  tier3_red_flags?: Tier3RedFlags;
+  text_annotations?: TextAnnotation[];
+  feedback?: FeedbackSection;
+}
+
+// =============================================================================
 // PERFORMANCE TARGETS
 // =============================================================================
 

@@ -35,6 +35,8 @@ import {
   Sparkles,
   Mail,
 } from 'lucide-react';
+import { AdminAnalysisDisplay } from '@/components/admin/admin-analysis-display';
+import type { AdminAnalysisData } from '@/lib/rag/types';
 
 interface IntakeData {
   spike?: string;
@@ -285,68 +287,21 @@ export default function ReviewerAssignmentPage({
               </CardContent>
             </Card>
 
-            {/* AI Analysis */}
-            <Card>
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                      <Sparkles className="w-5 h-5 text-brand-600" />
-                      AI Analysis Reference
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    {assignment.aiAnalysis ? (
-                      <div className="space-y-4">
-                        {/* Overall Score */}
-                        {assignment.session?.aiScore && (
-                          <div className="flex items-center gap-4 p-4 bg-brand-50 rounded-lg">
-                            <div className="text-3xl font-bold text-brand-600">
-                              {Math.round(assignment.session.aiScore)}
-                            </div>
-                            <div>
-                              <p className="font-medium">AI Score</p>
-                              <p className="text-sm text-gray-500">Overall assessment</p>
-                            </div>
-                          </div>
-                        )}
-
-                        {/* Summary */}
-                        {assignment.aiAnalysis.summary && (
-                          <div>
-                            <h4 className="font-medium mb-2">Summary</h4>
-                            <p className="text-gray-700">{assignment.aiAnalysis.summary}</p>
-                          </div>
-                        )}
-
-                        {/* Key Suggestions */}
-                        {assignment.aiAnalysis.suggestions && (
-                          <div>
-                            <h4 className="font-medium mb-2">AI Suggestions</h4>
-                            <ul className="space-y-2">
-                              {assignment.aiAnalysis.suggestions.slice(0, 5).map((s: any, i: number) => (
-                                <li key={i} className="flex items-start gap-2 text-sm">
-                                  <span className="text-brand-600">•</span>
-                                  <span>{typeof s === 'string' ? s : s.text || s.suggestion}</span>
-                                </li>
-                              ))}
-                            </ul>
-                          </div>
-                        )}
-
-                        {/* Raw JSON for reference */}
-                        <details className="mt-4">
-                          <summary className="text-sm text-gray-500 cursor-pointer hover:text-gray-700">
-                            View raw AI analysis data
-                          </summary>
-                          <pre className="mt-2 p-4 bg-gray-100 rounded-lg text-xs overflow-auto max-h-96">
-                            {JSON.stringify(assignment.aiAnalysis, null, 2)}
-                          </pre>
-                        </details>
-                      </div>
-                    ) : (
-                      <p className="text-gray-500">No AI analysis available</p>
-                    )}
-                  </CardContent>
-                </Card>
+            {/* AI Analysis - Full Admin Display */}
+            {assignment.aiAnalysis ? (
+              <ReviewerAnalysisSection
+                essayText={assignment.essayText}
+                aiAnalysis={assignment.aiAnalysis}
+                aiScore={assignment.session?.aiScore}
+              />
+            ) : (
+              <Card>
+                <CardContent className="py-8 text-center">
+                  <Sparkles className="w-8 h-8 text-gray-300 mx-auto mb-2" />
+                  <p className="text-gray-500">No AI analysis available</p>
+                </CardContent>
+              </Card>
+            )}
 
             {/* Student Context */}
             <Card>
@@ -570,5 +525,109 @@ export default function ReviewerAssignmentPage({
         </div>
       </main>
     </div>
+  );
+}
+
+// =============================================================================
+// REVIEWER ANALYSIS SECTION
+// =============================================================================
+
+function ReviewerAnalysisSection({
+  essayText,
+  aiAnalysis,
+  aiScore,
+}: {
+  essayText: string;
+  aiAnalysis: any;
+  aiScore?: number | null;
+}) {
+  // Extract admin analysis data from the AI analysis
+  const adminAnalysisData: AdminAnalysisData = aiAnalysis.admin_analysis || {
+    tier1_structural: aiAnalysis.tier1_structural,
+    tier2_content: aiAnalysis.tier2_content,
+    tier3_red_flags: aiAnalysis.tier3_red_flags,
+    text_annotations: aiAnalysis.text_annotations,
+    feedback: aiAnalysis.feedback,
+  };
+
+  const hasAdminData = !!(
+    adminAnalysisData.tier1_structural ||
+    adminAnalysisData.tier2_content ||
+    adminAnalysisData.tier3_red_flags ||
+    adminAnalysisData.text_annotations?.length ||
+    adminAnalysisData.feedback
+  );
+
+  if (hasAdminData) {
+    return (
+      <AdminAnalysisDisplay
+        essayText={essayText}
+        analysisData={adminAnalysisData}
+        rawScores={aiAnalysis.scores}
+        overallScore={aiScore ? Math.round(aiScore) : undefined}
+        summary={aiAnalysis.overall?.summary || aiAnalysis.overall?.recommendation || aiAnalysis.summary}
+        benchmarks={aiAnalysis.benchmarks}
+        patternMatches={aiAnalysis.pattern_matches}
+        sanitization={aiAnalysis.sanitization}
+        commonsCheck={aiAnalysis.commons_check}
+      />
+    );
+  }
+
+  // Fallback: show raw analysis data
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          <Sparkles className="w-5 h-5 text-brand-600" />
+          AI Analysis Reference
+        </CardTitle>
+      </CardHeader>
+      <CardContent>
+        <div className="space-y-4">
+          {aiScore && (
+            <div className="flex items-center gap-4 p-4 bg-blue-50 rounded-lg">
+              <div className="text-3xl font-bold text-blue-600">
+                {Math.round(aiScore)}
+              </div>
+              <div>
+                <p className="font-medium">AI Score</p>
+                <p className="text-sm text-gray-500">Overall assessment</p>
+              </div>
+            </div>
+          )}
+
+          {aiAnalysis.summary && (
+            <div>
+              <h4 className="font-medium mb-2">Summary</h4>
+              <p className="text-gray-700">{aiAnalysis.summary}</p>
+            </div>
+          )}
+
+          {aiAnalysis.scores && (
+            <div>
+              <h4 className="font-medium mb-2">Scores</h4>
+              <div className="grid grid-cols-2 gap-2 text-sm">
+                {Object.entries(aiAnalysis.scores).map(([key, value]: [string, any]) => (
+                  <div key={key} className="flex justify-between p-2 bg-gray-50 rounded">
+                    <span className="text-gray-600 capitalize">{key.replace(/_/g, ' ')}</span>
+                    <span className="font-bold">{typeof value === 'object' ? value.score : value}/6</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          <details className="mt-4">
+            <summary className="text-sm text-gray-500 cursor-pointer hover:text-gray-700">
+              View raw AI analysis data
+            </summary>
+            <pre className="mt-2 p-4 bg-gray-100 rounded-lg text-xs overflow-auto max-h-96">
+              {JSON.stringify(aiAnalysis, null, 2)}
+            </pre>
+          </details>
+        </div>
+      </CardContent>
+    </Card>
   );
 }
