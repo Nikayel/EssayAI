@@ -1,10 +1,13 @@
 /**
  * RAG Integration for Scoring Engine
  * Connects the scoring system with the existing RAG infrastructure
+ * Includes converter from StandardAnalysisResult → AdminAnalysisData
  */
 
 import type { StudentIntake, EssayAnalysisResult, BenchmarkComparison } from './types';
 import type { StudentProfile, RetrievedContext, AnalysisHistoryEntry } from '../rag/types';
+import type { AdminAnalysisData, TextAnnotation } from '../rag/types';
+import type { StandardAnalysisResult, AnnotationWithFix, PrioritizedIssueWithFix } from './tiers/types';
 
 // Type aliases for backwards compatibility
 type RAGContext = RetrievedContext;
@@ -387,5 +390,293 @@ export function calculateScoringMetrics(
     scoreDistribution: distribution,
     commonIssues,
     dimensionAverages,
+  };
+}
+
+// =============================================================================
+// STANDARD RESULT → ADMIN ANALYSIS CONVERTER
+// Bridges the tiered scoring pipeline with the admin 3-tier display
+// =============================================================================
+
+/**
+ * Convert a StandardAnalysisResult into AdminAnalysisData
+ * so the admin/reviewer dashboard shows the 3-tier evaluation view
+ * regardless of which pipeline produced the analysis.
+ */
+export function standardResultToAdminAnalysis(
+  result: StandardAnalysisResult,
+  essayText: string,
+  intake?: StudentIntake,
+): AdminAnalysisData {
+  const wordCount = result.metadata.wordCount;
+  const wordLimit = intake?.essayContext?.wordLimit;
+
+  // =========================================================================
+  // TIER 1: STRUCTURAL REQUIREMENTS (pass/fail)
+  // =========================================================================
+  const wordCountPass = wordLimit ? (wordCount <= wordLimit * 1.1 && wordCount >= wordLimit * 0.5) : true;
+  const schoolName = intake?.essayContext?.targetSchool || '';
+  const schoolNameInEssay = schoolName
+    ? essayText.toLowerCase().includes(schoolName.toLowerCase())
+    : true;
+
+  const tier1_structural = {
+    word_count_compliant: {
+      pass: wordCountPass,
+      detail: wordLimit
+        ? `${wordCount}/${wordLimit} words (${Math.round((wordCount / wordLimit) * 100)}%)`
+        : `${wordCount} words`,
+    },
+    prompt_fully_addressed: {
+      pass: result.schoolFeedback.missingElements.length === 0,
+      detail: result.schoolFeedback.missingElements.length > 0
+        ? `Missing: ${result.schoolFeedback.missingElements.map(m => m.element).join(', ')}`
+        : 'All prompt elements addressed',
+    },
+    school_name_correct: {
+      pass: schoolNameInEssay,
+      detail: schoolNameInEssay
+        ? `School "${schoolName}" referenced correctly`
+        : `School name "${schoolName}" not found in essay`,
+    },
+    grammar_spelling: {
+      pass: result.dimensions.risk.totalScore >= 7,
+      detail: result.dimensions.risk.totalScore >= 7
+        ? 'No major grammar or spelling issues detected'
+        : 'Some grammar or spelling issues detected',
+    },
+    formatting: {
+      pass: result.metadata.paragraphCount >= 2,
+      detail: `${result.metadata.paragraphCount} paragraphs, ${result.metadata.sentenceCount} sentences`,
+    },
+    all_passed: wordCountPass && schoolNameInEssay && result.schoolFeedback.missingElements.length === 0,
+    flags: [
+      ...(wordCountPass ? [] : ['Word count out of range']),
+      ...(!schoolNameInEssay && schoolName ? ['School name not found in essay'] : []),
+      ...result.schoolFeedback.missingElements.map(m => `Missing: ${m.element}`),
+    ],
+  };
+
+  // =========================================================================
+  // TIER 2: CONTENT QUALITY (dimension scores mapped to 1-5 scale)
+  // =========================================================================
+  const dims = result.dimensions;
+
+  // Map 0-25/0-20/0-10 scores to 1-5 scale
+  const mapScore = (score: number, max: number): number =>
+    Math.max(1, Math.min(5, Math.round((score / max) * 5)));
+
+  const tier2_content = {
+    thesis_focus: {
+      score: mapScore(dims.insight.soWhatFactor.score * 5 + dims.authenticity.uniquePerspective.score * 5, 25),
+      rationales: [
+        dims.insight.soWhatFactor.feedback,
+        dims.authenticity.uniquePerspective.feedback,
+      ].filter(Boolean),
+    },
+    specificity_evidence: {
+      score: mapScore(dims.specificity.totalScore, 20),
+      rationales: [
+        dims.specificity.concreteDetails.feedback,
+        dims.specificity.sceneVsSummary.feedback,
+      ].filter(Boolean),
+      vague_claims: dims.specificity.concreteDetails.vagueNouns.map(v => ({
+        text: v.phrase,
+        start_index: 0,
+        end_index: 0,
+        what_to_ask: v.suggestion || 'Can you be more specific?',
+      })),
+      strong_details: dims.specificity.concreteDetails.specificNouns.map(s => ({
+        text: s,
+        start_index: 0,
+        end_index: 0,
+        why_it_works: 'Concrete detail that grounds the essay',
+      })),
+    },
+    personal_voice: {
+      score: mapScore(dims.authenticity.totalScore, 25),
+      rationales: [
+        dims.authenticity.toneConsistency.feedback,
+        dims.authenticity.personalIdioms.feedback,
+      ].filter(Boolean),
+      authentic_moments: dims.authenticity.personalIdioms.naturalPhrases.map(p => ({
+        text: p,
+        start_index: 0,
+        end_index: 0,
+      })),
+      inauthenticity_signals: [
+        ...dims.authenticity.clicheDensity.clichesFound.map(c => ({
+          text: c.phrase,
+          start_index: 0,
+          end_index: 0,
+          signal: `Cliché: "${c.phrase}"`,
+        })),
+        ...dims.authenticity.ageAppropriateness.thesaurusFlags.map(t => ({
+          text: t.phrase,
+          start_index: 0,
+          end_index: 0,
+          signal: `Unnatural vocabulary: "${t.phrase}"`,
+        })),
+      ],
+    },
+    insight_reflection: {
+      score: mapScore(dims.insight.totalScore, 25),
+      rationales: [
+        dims.insight.depthOfReflection.feedback,
+        dims.insight.selfAwareness.feedback,
+      ].filter(Boolean),
+      reveals_thinking: dims.insight.selfAwareness.strengthsAcknowledged.length > 0,
+      growth_demonstrated: dims.insight.growthArc.hasBeforeState && dims.insight.growthArc.hasAfterState,
+      surface_vs_deep: dims.insight.depthOfReflection.depthRatio > 0.6 ? 'deep' as const
+        : dims.insight.depthOfReflection.depthRatio > 0.3 ? 'moderate' as const
+        : 'surface' as const,
+    },
+    program_fit: {
+      score: mapScore(dims.schoolFit.totalScore, 20),
+      rationales: [
+        dims.schoolFit.specificProgramKnowledge.feedback,
+        dims.schoolFit.valueAlignment.feedback,
+        dims.schoolFit.futureContribution.feedback,
+      ].filter(Boolean),
+      specific_references: dims.schoolFit.specificProgramKnowledge.programsMentioned.map(p => ({
+        text: p,
+        start_index: 0,
+        end_index: 0,
+        reference_type: 'program',
+      })),
+      missing_elements: dims.schoolFit.valueAlignment.missingValues,
+      contribution_mentioned: dims.schoolFit.futureContribution.contributionsPlanned.length > 0,
+    },
+    structure_flow: {
+      score: mapScore(
+        dims.specificity.structure.score * 5 + dims.specificity.openingHook.score * 5,
+        20
+      ),
+      rationales: [
+        dims.specificity.structure.feedback,
+        dims.specificity.openingHook.feedback,
+      ].filter(Boolean),
+      opening_type: dims.specificity.openingHook.hookType,
+      opening_strength: dims.specificity.openingHook.grabsAttention ? 'strong' as const
+        : dims.specificity.openingHook.score >= 2.5 ? 'moderate' as const
+        : 'weak' as const,
+      conclusion_resonates: dims.insight.soWhatFactor.memorability > 0.6,
+      transitions_quality: dims.specificity.structure.transitionQuality >= 3 ? 'smooth' as const
+        : dims.specificity.structure.transitionQuality >= 2 ? 'adequate' as const
+        : 'poor' as const,
+    },
+  };
+
+  // =========================================================================
+  // TIER 3: RED FLAGS
+  // =========================================================================
+  const redFlags: AdminAnalysisData['tier3_red_flags'] = {
+    has_red_flags: result.schoolFeedback.redFlags.length > 0 ||
+      dims.risk.ethicalConcerns.issues.length > 0 ||
+      result.aiDetection.aiLikelihood === 'high',
+    flags: [
+      ...result.schoolFeedback.redFlags.map(rf => ({
+        type: rf.flag,
+        severity: rf.severity as 'critical' | 'warning',
+        description: rf.text,
+        recommendation: `Address the "${rf.flag}" issue for this school`,
+      })),
+      ...dims.risk.ethicalConcerns.issues.map(e => ({
+        type: 'ethical_concern',
+        severity: 'critical' as const,
+        description: e.evidence,
+        recommendation: 'Revise to address ethical concern',
+      })),
+      ...dims.risk.exaggerationSignals.issues.map(e => ({
+        type: 'exaggeration',
+        severity: 'warning' as const,
+        description: e.claim,
+        recommendation: 'Tone down or provide supporting evidence',
+      })),
+    ],
+    ai_content_signals: {
+      likelihood: result.aiDetection.aiLikelihood === 'high' ? 'high' as const
+        : result.aiDetection.aiScore > 30 ? 'medium' as const
+        : 'low' as const,
+      signals_detected: result.aiFeedback
+        .filter(f => f.severity === 'critical' || f.severity === 'major')
+        .map(f => f.headline),
+      recommendation: result.aiDetection.aiLikelihood === 'high'
+        ? 'Essay shows patterns typical of AI-generated content. Recommend investigation.'
+        : undefined,
+    },
+  };
+
+  // =========================================================================
+  // TEXT ANNOTATIONS (from scoring annotations)
+  // =========================================================================
+  const textAnnotations: TextAnnotation[] = result.annotations.map(ann => {
+    // Map scoring annotation types to admin annotation types
+    const typeMap: Record<string, TextAnnotation['type']> = {
+      strength: 'strength',
+      issue: 'issue',
+      suggestion: 'suggestion',
+    };
+    const severityMap: Record<string, TextAnnotation['severity']> = {
+      high: 'critical',
+      medium: 'major',
+      low: 'minor',
+    };
+
+    // Try to find the text position in the essay
+    const textLower = essayText.toLowerCase();
+    const annTextLower = ann.text.toLowerCase();
+    const idx = textLower.indexOf(annTextLower);
+
+    return {
+      type: typeMap[ann.type] || 'issue',
+      severity: ann.type === 'strength' ? 'positive' as const : (severityMap[ann.severity || 'medium'] || 'minor' as const),
+      text: ann.text,
+      start_index: idx >= 0 ? idx : 0,
+      end_index: idx >= 0 ? idx + ann.text.length : 0,
+      category: ann.category,
+      message: ann.message,
+      suggestion: (ann as AnnotationWithFix).fixSuggestion,
+    };
+  }).filter(a => a.text && a.start_index >= 0);
+
+  // =========================================================================
+  // FEEDBACK SECTION
+  // =========================================================================
+  const feedback = {
+    overall_assessment: result.scoreSummary + (result.aoInsights?.overallVerdict ? ` ${result.aoInsights.overallVerdict}` : ''),
+    whats_working: result.strengths.slice(0, 5).map(s => ({
+      passage: s.element,
+      why: `${s.why}${s.aoThought ? ` AO: ${s.aoThought}` : ''}`,
+    })),
+    priority_improvements: result.allIssues.slice(0, 3).map((issue, i) => ({
+      rank: i + 1,
+      issue: issue.issue,
+      why_it_matters: issue.impact,
+      coaching_suggestion: issue.bluntFeedback.fix || issue.howToFix,
+    })),
+    questions_for_writer: [
+      ...(dims.insight.depthOfReflection.score < 3 ? [{
+        question: 'What did this experience teach you about yourself that surprised you?',
+        context: 'Your reflection could go deeper',
+      }] : []),
+      ...(dims.specificity.concreteDetails.vagueNouns.length > 0 ? [{
+        question: 'Can you give a specific example or memory that illustrates this?',
+        context: 'Some claims lack concrete evidence',
+      }] : []),
+      ...(dims.schoolFit.totalScore < 15 ? [{
+        question: `What specifically about ${intake?.essayContext?.targetSchool || 'this school'} can't you find elsewhere?`,
+        context: 'School fit could be stronger',
+      }] : []),
+    ].slice(0, 4),
+    prompt_compliance: tier1_structural.prompt_fully_addressed.pass ? 'Complete' : `Missing: ${tier1_structural.prompt_fully_addressed.detail}`,
+  };
+
+  return {
+    tier1_structural,
+    tier2_content,
+    tier3_red_flags: redFlags,
+    text_annotations: textAnnotations,
+    feedback,
   };
 }

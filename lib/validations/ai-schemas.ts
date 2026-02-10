@@ -75,6 +75,9 @@ export const AnalysisResponseSchema = z.object({
   overall: z.object({
     score_100: z.number().min(0).max(100),
     summary: z.string(),
+    recommendation: z.string().optional(),
+    highlights: z.array(z.string()).optional(),
+    action_items: z.array(z.string()).optional(),
     next_actions_checklist: z.array(z.string()),
   }),
 });

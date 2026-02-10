@@ -4,7 +4,6 @@ import { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
-import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { ArrowLeft, Send, Save, FileText, AlertCircle, ChevronDown, ChevronRight, Eye, EyeOff } from 'lucide-react';
 import Link from 'next/link';

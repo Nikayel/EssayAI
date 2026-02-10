@@ -15,12 +15,16 @@ import {
   MessageSquare,
   LayoutDashboard,
   ChevronRight,
+  Database,
+  FileSearch,
 } from 'lucide-react';
 
 const ADMIN_NAV_ITEMS = [
   { href: '/admin', label: 'Dashboard', icon: LayoutDashboard },
   { href: '/admin/users', label: 'Users', icon: Users },
   { href: '/admin/reviewers', label: 'Reviewers', icon: UserCheck },
+  { href: '/admin/embeddings', label: 'Embeddings', icon: Database },
+  { href: '/admin/sessions', label: 'Sessions', icon: FileSearch },
   { href: '/admin/analytics', label: 'Analytics', icon: BarChart3 },
   { href: '/admin/conversions', label: 'Conversions', icon: TrendingUp },
   { href: '/admin/qa', label: 'Q&A Sessions', icon: MessageSquare },

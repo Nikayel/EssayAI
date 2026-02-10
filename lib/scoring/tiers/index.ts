@@ -44,6 +44,7 @@ import { runPreviewAnalysis } from './preview-analysis';
 import { runQuickAnalysis } from './quick-analysis';
 import { runStandardAnalysis } from './standard-analysis';
 import { getTierConfig } from '@/lib/config';
+import { standardResultToAdminAnalysis } from '../rag-integration';
 
 // =============================================================================
 // UNIFIED ANALYSIS FUNCTION
@@ -89,10 +90,14 @@ export async function runTieredAnalysis<T extends AnalysisTier>(
     case 'quick':
       return runQuickAnalysis(essayText, intake as QuickIntake, options) as Promise<AnalysisResult<T>>;
 
-    case 'standard':
-      return runStandardAnalysis(essayText, intake as FullIntake, options) as Promise<AnalysisResult<T>>;
+    case 'standard': {
+      const stdResult = await runStandardAnalysis(essayText, intake as FullIntake, options);
+      // Attach admin_analysis for the admin/reviewer dashboard 3-tier view
+      const stdAdmin = standardResultToAdminAnalysis(stdResult, essayText, intake as FullIntake);
+      return { ...stdResult, admin_analysis: stdAdmin } as unknown as AnalysisResult<T>;
+    }
 
-    case 'premium':
+    case 'premium': {
       // Premium includes standard + human review queue
       const standardResult = await runStandardAnalysis(essayText, intake as FullIntake, options);
 
@@ -135,12 +140,17 @@ export async function runTieredAnalysis<T extends AnalysisTier>(
         intake as FullIntake
       );
 
+      // Attach admin_analysis for the admin/reviewer dashboard 3-tier view
+      const premAdmin = standardResultToAdminAnalysis(standardResult, essayText, intake as FullIntake);
+
       return {
         ...standardResult,
         tier: 'premium',
         rewriteSuggestions,
         humanReview,
-      } as AnalysisResult<T>;
+        admin_analysis: premAdmin,
+      } as unknown as AnalysisResult<T>;
+    }
 
     default:
       throw new Error(`Unknown tier: ${tier}`);

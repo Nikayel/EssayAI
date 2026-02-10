@@ -171,7 +171,9 @@ export async function analyzeEssayWithRAG(
   }
 
   // Step 5: Parse and validate response
-  const rawAnalysis = parseAndValidate(content.text);
+  // parseAndValidate returns both Zod-validated data AND the raw JSON
+  // (Zod strips unknown fields like tier1_structural, text_annotations, etc.)
+  const { validated: rawAnalysis, raw: rawJsonWithAdminFields } = parseAndValidate(content.text);
 
   // Step 5.5: CODE-LEVEL ANTI-HALLUCINATION (cannot be bypassed by prompts)
   // This is the HARD enforcement layer - it actually modifies the output
@@ -287,10 +289,10 @@ export async function analyzeEssayWithRAG(
     }
   }
 
-  // Step 11: Extract admin analysis data from raw AI response
-  // Cast to Record since the raw analysis may contain extra fields (tier1, tier2, etc.)
-  // that aren't part of the AnalysisResponse type but were requested in the prompt
-  const adminAnalysis = extractAdminAnalysisData(rawAnalysis as unknown as Record<string, unknown>, cleanedText);
+  // Step 11: Extract admin analysis data from the RAW AI response (pre-Zod)
+  // rawJsonWithAdminFields has tier1_structural, tier2_content, tier3_red_flags,
+  // text_annotations, feedback - all of which Zod would have stripped
+  const adminAnalysis = extractAdminAnalysisData(rawJsonWithAdminFields, cleanedText);
 
   // Step 12: Build enhanced response
   const ragResponse: RAGAnalysisResponse = {
@@ -329,8 +331,11 @@ export async function analyzeEssayWithRAG(
 
 /**
  * Parse and validate AI response
+ * Returns both the Zod-validated response AND the raw parsed JSON.
+ * Zod strips unknown fields (tier1_structural, tier2_content, etc.)
+ * so we need the raw object for admin analysis extraction.
  */
-function parseAndValidate(text: string): AnalysisResponse {
+function parseAndValidate(text: string): { validated: AnalysisResponse; raw: Record<string, unknown> } {
   // Try to extract JSON from markdown code blocks
   const jsonMatch = text.match(/```(?:json)?\s*(\{[\s\S]*\})\s*```/);
   const jsonText = jsonMatch ? jsonMatch[1] : text;
@@ -342,13 +347,15 @@ function parseAndValidate(text: string): AnalysisResponse {
 
   try {
     const parsed = JSON.parse(cleaned);
-    return AnalysisResponseSchema.parse(parsed) as AnalysisResponse;
+    const validated = AnalysisResponseSchema.parse(parsed) as AnalysisResponse;
+    return { validated, raw: parsed };
   } catch (error) {
     // Try to find JSON object in the text
     const objectMatch = text.match(/\{[\s\S]*\}/);
     if (objectMatch) {
       const parsed = JSON.parse(objectMatch[0]);
-      return AnalysisResponseSchema.parse(parsed) as AnalysisResponse;
+      const validated = AnalysisResponseSchema.parse(parsed) as AnalysisResponse;
+      return { validated, raw: parsed };
     }
     throw new Error(`Failed to parse AI response: ${(error as Error).message}`);
   }
